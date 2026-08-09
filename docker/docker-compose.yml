@@ -1,0 +1,86 @@
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: agenda-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: agenda_processual
+      POSTGRES_USER: agenda
+      POSTGRES_PASSWORD: agenda
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./data/postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U agenda -d agenda_processual"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  mailpit:
+    image: axllent/mailpit:latest
+    container_name: agenda-mailpit
+    restart: unless-stopped
+    ports:
+      - "1025:1025"
+      - "8025:8025"
+
+  api:
+    build:
+      context: ../apps/api
+      dockerfile: Dockerfile
+    container_name: agenda-api
+    restart: unless-stopped
+    environment:
+      APP_NAME: Agenda Processual API
+      APP_ENV: development
+      DEBUG: "true"
+      API_V1_PREFIX: /api/v1
+      APP_PUBLIC_URL: http://localhost:3000
+      DATABASE_URL: postgresql+asyncpg://agenda:agenda@db:5432/agenda_processual
+      DATABASE_URL_SYNC: postgresql+psycopg://agenda:agenda@db:5432/agenda_processual
+      JWT_SECRET: dev-secret-change-me-please-32b+
+      JWT_EXPIRE_MINUTES: "720"
+      SEED_ADMIN_EMAIL: veronica@escritorio.com
+      SEED_ADMIN_PASSWORD: agenda123
+      SEED_ADMIN_NAME: Verônica
+      SMTP_HOST: mailpit
+      SMTP_PORT: "1025"
+      SMTP_FROM: agenda@local.test
+      SMTP_TLS: "false"
+      ALERTAS_ENABLED: "true"
+      ALERTAS_CRON_HOUR: "8"
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+      mailpit:
+        condition: service_started
+    command: >
+      uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+    volumes:
+      - ../apps/api/app:/app/app
+
+  web:
+    image: node:22-alpine
+    container_name: agenda-web
+    working_dir: /app
+    restart: unless-stopped
+    environment:
+      # Browser (host) fala com a API no localhost publicado
+      NEXT_PUBLIC_API_URL: http://localhost:8000
+      # Server Components / Route Handlers falam com o serviço na rede Docker
+      API_URL: http://api:8000
+      WATCHPACK_POLLING: "true"
+    ports:
+      - "3000:3000"
+    volumes:
+      - ../apps/web:/app
+      - web_node_modules:/app/node_modules
+    command: sh -c "npm ci && npm run dev -- --hostname 0.0.0.0 --port 3000"
+    depends_on:
+      - api
+
+volumes:
+  web_node_modules:

@@ -31,14 +31,15 @@ node_modules/
 out/
 .turbo/
 *.tsbuildinfo
-next-env.d.ts
 
 # IDE
+
 .idea/
 .vscode/
 *.swp
 *.swo
 
 # Docker / local data
-docker/data/
+docker/data/**
+!docker/data/.gitkeep
 *.log
