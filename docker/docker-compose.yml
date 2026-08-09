@@ -30,6 +30,11 @@ services:
       API_V1_PREFIX: /api/v1
       DATABASE_URL: postgresql+asyncpg://agenda:agenda@db:5432/agenda_processual
       DATABASE_URL_SYNC: postgresql+psycopg://agenda:agenda@db:5432/agenda_processual
+      JWT_SECRET: dev-secret-change-me-please-32b+
+      JWT_EXPIRE_MINUTES: "720"
+      SEED_ADMIN_EMAIL: veronica@escritorio.com
+      SEED_ADMIN_PASSWORD: agenda123
+      SEED_ADMIN_NAME: Verônica
     ports:
       - "8000:8000"
     depends_on:
@@ -46,7 +51,10 @@ services:
     working_dir: /app
     restart: unless-stopped
     environment:
+      # Browser (host) fala com a API no localhost publicado
       NEXT_PUBLIC_API_URL: http://localhost:8000
+      # Server Components / Route Handlers falam com o serviço na rede Docker
+      API_URL: http://api:8000
       WATCHPACK_POLLING: "true"
     ports:
       - "3000:3000"

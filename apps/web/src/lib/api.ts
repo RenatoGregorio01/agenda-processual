@@ -1,7 +1,20 @@
 const DEFAULT_API_URL = "http://localhost:8000";
 
+/** URL usada no browser (host da máquina). */
 export function getApiBaseUrl(): string {
   return process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "") || DEFAULT_API_URL;
+}
+
+/**
+ * URL usada em Route Handlers / Server Components.
+ * No Docker, o web chama o serviço `api` pela rede interna.
+ */
+export function getServerApiBaseUrl(): string {
+  return (
+    process.env.API_URL?.replace(/\/$/, "") ||
+    process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "") ||
+    DEFAULT_API_URL
+  );
 }
 
 export type HealthResponse = {

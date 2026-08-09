@@ -14,6 +14,9 @@ npm run dev
 App: http://localhost:3000  
 API esperada: `NEXT_PUBLIC_API_URL` (padrão `http://localhost:8000`)
 
+Login: http://localhost:3000/login  
+Usuário seed: `veronica@escritorio.com` / `agenda123`
+
 ## Com Docker
 
 ```bash

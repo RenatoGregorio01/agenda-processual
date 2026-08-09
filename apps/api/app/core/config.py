@@ -22,6 +22,14 @@ class Settings(BaseSettings):
         "postgresql+psycopg://agenda:agenda@localhost:5432/agenda_processual"
     )
 
+    jwt_secret: str = "dev-secret-change-me-please-32b+"
+    jwt_algorithm: str = "HS256"
+    jwt_expire_minutes: int = 60 * 12
+
+    seed_admin_email: str = "veronica@escritorio.com"
+    seed_admin_password: str = "agenda123"
+    seed_admin_name: str = "Verônica"
+
 
 @lru_cache
 def get_settings() -> Settings:

@@ -5,7 +5,7 @@ from sqlmodel import SQLModel
 
 from alembic import context
 from app.core.config import get_settings
-from app.models import Prazo  # noqa: F401
+from app.models import Prazo, User  # noqa: F401
 
 config = context.config
 settings = get_settings()

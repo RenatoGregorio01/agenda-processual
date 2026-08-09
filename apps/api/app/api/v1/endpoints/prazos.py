@@ -4,11 +4,12 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
+from app.api.deps import get_current_user
 from app.core.database import get_session
 from app.models.prazo import Prazo, StatusPrazo
 from app.schemas.prazo import PrazoCreate, PrazoRead, PrazoUpdate
 
-router = APIRouter()
+router = APIRouter(dependencies=[Depends(get_current_user)])
 
 
 @router.get("", response_model=list[PrazoRead])
