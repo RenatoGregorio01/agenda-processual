@@ -6,11 +6,18 @@ import { ExcluirPrazoButton } from "@/components/excluir-prazo-button";
 import { PrazoBadge } from "@/components/prazo-badge";
 import { RestaurarPrazoButton } from "@/components/restaurar-prazo-button";
 import { apiFetch } from "@/lib/api-server";
+import { hasPermission, type User } from "@/lib/auth";
 import {
   formatVencimentoLongo,
   getUrgencyBadge,
   type Prazo,
 } from "@/lib/prazos";
+
+async function getCurrentUser(): Promise<User | null> {
+  const response = await apiFetch("/api/v1/auth/me");
+  if (!response.ok) return null;
+  return (await response.json()) as User;
+}
 
 async function getPrazo(id: string): Promise<Prazo | null> {
   const response = await apiFetch(`/api/v1/prazos/${id}`);
@@ -25,7 +32,7 @@ export default async function PrazoDetalhePage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const prazo = await getPrazo(id);
+  const [user, prazo] = await Promise.all([getCurrentUser(), getPrazo(id)]);
   if (!prazo) notFound();
 
   const badge = getUrgencyBadge(prazo);
@@ -86,38 +93,80 @@ export default async function PrazoDetalhePage({
       </section>
 
       <section className="mt-8 border-t border-border pt-6">
-        <h3 className="text-sm font-medium text-foreground">Alertas</h3>
-        <ul className="mt-3 space-y-1 text-sm text-muted">
-          <li>{prazo.alerta_3_dias ? "✓" : "–"} 3 dias antes</li>
-          <li>{prazo.alerta_2_dias ? "✓" : "–"} 2 dias antes</li>
-          <li>{prazo.alerta_1_dia ? "✓" : "–"} 1 dia antes</li>
+        <h3 className="text-sm font-medium text-foreground">Alertas por e-mail</h3>
+        <ul className="mt-3 space-y-2 text-sm">
+          {(
+            [
+              {
+                label: "3 dias antes",
+                ativo: prazo.alerta_3_dias,
+                enviado: Boolean(prazo.alerta_3_dias_enviado),
+              },
+              {
+                label: "2 dias antes",
+                ativo: prazo.alerta_2_dias,
+                enviado: Boolean(prazo.alerta_2_dias_enviado),
+              },
+              {
+                label: "1 dia antes",
+                ativo: prazo.alerta_1_dia,
+                enviado: Boolean(prazo.alerta_1_dia_enviado),
+              },
+            ] as const
+          ).map((item) => (
+            <li
+              key={item.label}
+              className="flex flex-wrap items-center justify-between gap-2 border border-border px-3 py-2"
+            >
+              <span className="text-foreground">{item.label}</span>
+              <span className="text-muted">
+                {!item.ativo ? (
+                  "Desativado"
+                ) : item.enviado ? (
+                  <span className="font-medium text-no-prazo">Enviado ✓</span>
+                ) : (
+                  "Aguardando envio"
+                )}
+              </span>
+            </li>
+          ))}
         </ul>
       </section>
 
       <div className="mt-10 flex flex-col gap-3">
         {isExcluded ? (
-          <RestaurarPrazoButton prazoId={prazo.id} />
+          hasPermission(user, "prazos_restaurar") ? (
+            <RestaurarPrazoButton prazoId={prazo.id} />
+          ) : (
+            <p className="text-sm text-muted">Você não tem permissão para restaurar prazos.</p>
+          )
         ) : (
           <>
             {prazo.status !== "cumprido" ? (
-              <form action={cumprir}>
-                <button
-                  type="submit"
-                  className="inline-flex h-12 w-full items-center justify-center bg-primary px-6 text-base font-semibold text-primary-foreground transition hover:brightness-110"
-                >
-                  Marcar como cumprido
-                </button>
-              </form>
+              hasPermission(user, "prazos_cumprir") ? (
+                <form action={cumprir}>
+                  <button
+                    type="submit"
+                    className="inline-flex h-12 w-full items-center justify-center bg-primary px-6 text-base font-semibold text-primary-foreground transition hover:brightness-110"
+                  >
+                    Marcar como cumprido
+                  </button>
+                </form>
+              ) : null
             ) : (
               <p className="text-sm font-medium text-no-prazo">Este prazo já foi cumprido.</p>
             )}
-            <Link
-              href={`/prazos/${prazo.id}/editar`}
-              className="inline-flex h-12 w-full items-center justify-center border border-border bg-surface px-6 text-base font-medium text-foreground transition hover:bg-background"
-            >
-              Editar
-            </Link>
-            <ExcluirPrazoButton prazoId={prazo.id} acao={prazo.acao} />
+            {hasPermission(user, "prazos_alterar") ? (
+              <Link
+                href={`/prazos/${prazo.id}/editar`}
+                className="inline-flex h-12 w-full items-center justify-center border border-border bg-surface px-6 text-base font-medium text-foreground transition hover:bg-background"
+              >
+                Editar
+              </Link>
+            ) : null}
+            {hasPermission(user, "prazos_excluir") ? (
+              <ExcluirPrazoButton prazoId={prazo.id} acao={prazo.acao} />
+            ) : null}
           </>
         )}
       </div>

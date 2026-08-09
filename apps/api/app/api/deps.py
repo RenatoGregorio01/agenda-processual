@@ -1,3 +1,4 @@
+from collections.abc import Callable
 from uuid import UUID
 
 import jwt
@@ -6,6 +7,7 @@ from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from app.core.database import get_session
+from app.core.permissions import Permission, user_has_permission
 from app.core.security import decode_access_token
 from app.models.user import User
 
@@ -41,3 +43,21 @@ async def get_current_user(
             headers={"WWW-Authenticate": "Bearer"},
         )
     return user
+
+
+def require_permission(permission: Permission) -> Callable:
+    async def _checker(current_user: User = Depends(get_current_user)) -> User:
+        if not user_has_permission(current_user, permission):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Sem permissão para esta ação",
+            )
+        return current_user
+
+    return _checker
+
+
+async def get_current_admin(
+    current_user: User = Depends(require_permission(Permission.usuarios_gerenciar)),
+) -> User:
+    return current_user

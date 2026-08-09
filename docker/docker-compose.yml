@@ -17,6 +17,14 @@ services:
       timeout: 5s
       retries: 10
 
+  mailpit:
+    image: axllent/mailpit:latest
+    container_name: agenda-mailpit
+    restart: unless-stopped
+    ports:
+      - "1025:1025"
+      - "8025:8025"
+
   api:
     build:
       context: ../apps/api
@@ -28,6 +36,7 @@ services:
       APP_ENV: development
       DEBUG: "true"
       API_V1_PREFIX: /api/v1
+      APP_PUBLIC_URL: http://localhost:3000
       DATABASE_URL: postgresql+asyncpg://agenda:agenda@db:5432/agenda_processual
       DATABASE_URL_SYNC: postgresql+psycopg://agenda:agenda@db:5432/agenda_processual
       JWT_SECRET: dev-secret-change-me-please-32b+
@@ -35,11 +44,19 @@ services:
       SEED_ADMIN_EMAIL: veronica@escritorio.com
       SEED_ADMIN_PASSWORD: agenda123
       SEED_ADMIN_NAME: Verônica
+      SMTP_HOST: mailpit
+      SMTP_PORT: "1025"
+      SMTP_FROM: agenda@local.test
+      SMTP_TLS: "false"
+      ALERTAS_ENABLED: "true"
+      ALERTAS_CRON_HOUR: "8"
     ports:
       - "8000:8000"
     depends_on:
       db:
         condition: service_healthy
+      mailpit:
+        condition: service_started
     command: >
       uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
     volumes:
