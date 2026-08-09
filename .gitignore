@@ -40,5 +40,6 @@ next-env.d.ts
 *.swo
 
 # Docker / local data
-docker/data/
+docker/data/**
+!docker/data/.gitkeep
 *.log
