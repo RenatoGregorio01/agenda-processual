@@ -1,0 +1,41 @@
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: agenda-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: agenda_processual
+      POSTGRES_USER: agenda
+      POSTGRES_PASSWORD: agenda
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./data/postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U agenda -d agenda_processual"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  api:
+    build:
+      context: ../apps/api
+      dockerfile: Dockerfile
+    container_name: agenda-api
+    restart: unless-stopped
+    environment:
+      APP_NAME: Agenda Processual API
+      APP_ENV: development
+      DEBUG: "true"
+      API_V1_PREFIX: /api/v1
+      DATABASE_URL: postgresql+asyncpg://agenda:agenda@db:5432/agenda_processual
+      DATABASE_URL_SYNC: postgresql+psycopg://agenda:agenda@db:5432/agenda_processual
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+    command: >
+      uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+    volumes:
+      - ../apps/api/app:/app/app
