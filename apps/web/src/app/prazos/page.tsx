@@ -122,11 +122,7 @@ export default async function PrazosPage({
             q,
           }}
         />
-        <ExportPautaButtons
-          filtro={filtro === "todos" ? "7dias" : filtro}
-          responsavelId={responsavelId}
-          q={q}
-        />
+        <ExportPautaButtons filtro={filtro} responsavelId={responsavelId} q={q} />
       </div>
 
       {prazos.length === 0 ? (
