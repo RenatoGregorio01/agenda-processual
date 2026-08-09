@@ -19,7 +19,7 @@ export async function createPrazo(
     acao: String(formData.get("acao") || "").trim(),
     data_disponibilizacao: String(formData.get("data_disponibilizacao") || "") || null,
     data_vencimento: String(formData.get("data_vencimento") || ""),
-    responsavel: String(formData.get("responsavel") || "").trim(),
+    responsavel_id: String(formData.get("responsavel_id") || "").trim(),
     alerta_3_dias: formData.get("alerta_3_dias") === "on",
     alerta_2_dias: formData.get("alerta_2_dias") === "on",
     alerta_1_dia: formData.get("alerta_1_dia") === "on",
@@ -30,7 +30,7 @@ export async function createPrazo(
     !payload.cliente ||
     !payload.acao ||
     !payload.data_vencimento ||
-    !payload.responsavel
+    !payload.responsavel_id
   ) {
     return { error: "Preencha os campos obrigatórios." };
   }
@@ -62,7 +62,7 @@ export async function updatePrazo(
     acao: String(formData.get("acao") || "").trim(),
     data_disponibilizacao: String(formData.get("data_disponibilizacao") || "") || null,
     data_vencimento: String(formData.get("data_vencimento") || ""),
-    responsavel: String(formData.get("responsavel") || "").trim(),
+    responsavel_id: String(formData.get("responsavel_id") || "").trim(),
     alerta_3_dias: formData.get("alerta_3_dias") === "on",
     alerta_2_dias: formData.get("alerta_2_dias") === "on",
     alerta_1_dia: formData.get("alerta_1_dia") === "on",
@@ -73,7 +73,7 @@ export async function updatePrazo(
     !payload.cliente ||
     !payload.acao ||
     !payload.data_vencimento ||
-    !payload.responsavel
+    !payload.responsavel_id
   ) {
     return { error: "Preencha os campos obrigatórios." };
   }

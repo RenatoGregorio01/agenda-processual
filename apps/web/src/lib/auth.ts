@@ -18,8 +18,15 @@ export type User = {
   nome: string;
   ativo: boolean;
   role: Role;
+  receber_alertas: boolean;
   is_admin: boolean;
   permissions: Permission[];
+};
+
+export type UserOption = {
+  id: string;
+  nome: string;
+  email: string;
 };
 
 export type LoginPayload = {

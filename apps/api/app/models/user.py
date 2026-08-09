@@ -20,6 +20,7 @@ class User(SQLModel, table=True):
     hashed_password: str = Field(max_length=255)
     ativo: bool = Field(default=True, index=True)
     role: Role = Field(default=Role.editor, index=True)
+    receber_alertas: bool = Field(default=True)
     # Mantido sincronizado com role == admin (compatibilidade)
     is_admin: bool = False
     criado_em: datetime = Field(default_factory=datetime.utcnow)

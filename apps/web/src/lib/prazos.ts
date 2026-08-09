@@ -8,6 +8,7 @@ export type Prazo = {
   data_disponibilizacao: string | null;
   data_vencimento: string;
   responsavel: string;
+  responsavel_id: string | null;
   status: StatusPrazo;
   alerta_3_dias: boolean;
   alerta_2_dias: boolean;

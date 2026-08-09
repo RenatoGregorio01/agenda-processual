@@ -27,6 +27,16 @@ async def _get_prazo_ativo(session: AsyncSession, prazo_id: UUID) -> Prazo:
     return prazo
 
 
+async def _resolve_responsavel(session: AsyncSession, responsavel_id: UUID) -> User:
+    user = await session.get(User, responsavel_id)
+    if user is None or not user.ativo:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Responsável inválido ou inativo",
+        )
+    return user
+
+
 @router.get(
     "",
     response_model=list[PrazoRead],
@@ -76,7 +86,12 @@ async def criar_prazo(
     session: AsyncSession = Depends(get_session),
     current_user: User = Depends(require_permission(Permission.prazos_criar)),
 ) -> Prazo:
-    prazo = Prazo(**payload.model_dump())
+    responsavel = await _resolve_responsavel(session, payload.responsavel_id)
+    data = payload.model_dump()
+    prazo = Prazo(
+        **data,
+        responsavel=responsavel.nome,
+    )
     session.add(prazo)
     await session.flush()
     session.add(
@@ -115,8 +130,15 @@ async def atualizar_prazo(
     current_user: User = Depends(require_permission(Permission.prazos_alterar)),
 ) -> Prazo:
     prazo = await _get_prazo_ativo(session, prazo_id)
+    data = payload.model_dump(exclude_unset=True)
 
-    for field, value in payload.model_dump(exclude_unset=True).items():
+    if "responsavel_id" in data and data["responsavel_id"] is not None:
+        responsavel = await _resolve_responsavel(session, data["responsavel_id"])
+        prazo.responsavel_id = responsavel.id
+        prazo.responsavel = responsavel.nome
+        data.pop("responsavel_id")
+
+    for field, value in data.items():
         setattr(prazo, field, value)
     prazo.atualizado_em = datetime.utcnow()
 

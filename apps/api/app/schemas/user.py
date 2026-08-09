@@ -12,6 +12,7 @@ class UserCreate(BaseModel):
     password: str = Field(min_length=6, max_length=128)
     role: Role = Role.editor
     ativo: bool = True
+    receber_alertas: bool = True
 
 
 class UserUpdate(BaseModel):
@@ -20,6 +21,7 @@ class UserUpdate(BaseModel):
     password: str | None = Field(default=None, min_length=6, max_length=128)
     role: Role | None = None
     ativo: bool | None = None
+    receber_alertas: bool | None = None
 
 
 class UserRead(BaseModel):
@@ -30,8 +32,15 @@ class UserRead(BaseModel):
     nome: str
     ativo: bool
     role: Role
+    receber_alertas: bool
     is_admin: bool
     permissions: list[Permission] = []
+
+
+class UserOption(BaseModel):
+    id: UUID
+    nome: str
+    email: EmailStr
 
 
 class RoleInfo(BaseModel):

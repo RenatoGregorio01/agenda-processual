@@ -19,6 +19,7 @@ export async function createUsuario(
     password: String(formData.get("password") || ""),
     role: String(formData.get("role") || "editor"),
     ativo: formData.get("ativo") === "on",
+    receber_alertas: formData.get("receber_alertas") === "on",
   };
 
   if (!payload.nome || !payload.email || payload.password.length < 6) {
@@ -52,6 +53,7 @@ export async function updateUsuario(
     email: String(formData.get("email") || "").trim().toLowerCase(),
     role: String(formData.get("role") || "editor"),
     ativo: formData.get("ativo") === "on",
+    receber_alertas: formData.get("receber_alertas") === "on",
   };
 
   if (password) {
