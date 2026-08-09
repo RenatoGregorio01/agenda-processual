@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { ExportPautaButtons } from "@/components/export-pauta-buttons";
 import { LogoutButton } from "@/components/logout-button";
 import { PrazoFilters } from "@/components/prazo-filters";
 import { PrazoListItem } from "@/components/prazo-list-item";
@@ -120,6 +121,11 @@ export default async function PrazosPage({
             filtro: filtro === "todos" ? undefined : filtro,
             q,
           }}
+        />
+        <ExportPautaButtons
+          filtro={filtro === "todos" ? "7dias" : filtro}
+          responsavelId={responsavelId}
+          q={q}
         />
       </div>
 

@@ -1,10 +1,9 @@
-from datetime import date, datetime, timedelta
+from datetime import datetime
 from typing import Literal
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
-from sqlalchemy import or_
-from sqlmodel import col, select
+from fastapi.responses import Response
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from app.api.deps import require_permission
@@ -16,12 +15,12 @@ from app.models.user import User
 from app.schemas.prazo import PrazoCreate, PrazoRead, PrazoUpdate
 from app.services.alertas import status_alertas_enviados
 from app.services.audit import montar_auditoria
+from app.services.export_pauta import build_csv, build_pdf
+from app.services.prazos_query import FiltroPrazo, listar_prazos_filtrados
 
 router = APIRouter()
 
-FiltroPrazo = Literal[
-    "todos", "atrasados", "hoje", "amanha", "7dias", "cumpridos", "excluidos"
-]
+ExportFormat = Literal["csv", "pdf"]
 
 
 async def _get_prazo_ativo(session: AsyncSession, prazo_id: UUID) -> Prazo:
@@ -52,59 +51,51 @@ async def listar_prazos(
     q: str | None = Query(default=None, max_length=120),
     session: AsyncSession = Depends(get_session),
 ) -> list[Prazo]:
-    today = date.today()
-    query = select(Prazo)
+    return await listar_prazos_filtrados(
+        session,
+        filtro=filtro,
+        responsavel_id=responsavel_id,
+        q=q,
+    )
 
-    if filtro == "excluidos":
-        query = query.where(col(Prazo.excluido_em).is_not(None))
-    else:
-        query = query.where(col(Prazo.excluido_em).is_(None))
-        if filtro == "atrasados":
-            query = query.where(
-                Prazo.status == StatusPrazo.pendente,
-                Prazo.data_vencimento < today,
-            )
-        elif filtro == "hoje":
-            query = query.where(
-                Prazo.status == StatusPrazo.pendente,
-                Prazo.data_vencimento == today,
-            )
-        elif filtro == "amanha":
-            query = query.where(
-                Prazo.status == StatusPrazo.pendente,
-                Prazo.data_vencimento == today + timedelta(days=1),
-            )
-        elif filtro == "7dias":
-            query = query.where(
-                Prazo.status == StatusPrazo.pendente,
-                Prazo.data_vencimento >= today,
-                Prazo.data_vencimento <= today + timedelta(days=7),
-            )
-        elif filtro == "cumpridos":
-            query = query.where(Prazo.status == StatusPrazo.cumprido)
 
-    if responsavel_id is not None:
-        query = query.where(Prazo.responsavel_id == responsavel_id)
-
-    term = (q or "").strip()
-    if term:
-        pattern = f"%{term}%"
-        query = query.where(
-            or_(
-                col(Prazo.numero_processo).ilike(pattern),
-                col(Prazo.cliente).ilike(pattern),
-                col(Prazo.acao).ilike(pattern),
-                col(Prazo.responsavel).ilike(pattern),
-            )
+@router.get(
+    "/export",
+    dependencies=[Depends(require_permission(Permission.prazos_visualizar))],
+)
+async def exportar_prazos(
+    formato: ExportFormat = Query(default="csv"),
+    filtro: FiltroPrazo = Query(default="7dias"),
+    responsavel_id: UUID | None = Query(default=None),
+    q: str | None = Query(default=None, max_length=120),
+    session: AsyncSession = Depends(get_session),
+) -> Response:
+    prazos = await listar_prazos_filtrados(
+        session,
+        filtro=filtro,
+        responsavel_id=responsavel_id,
+        q=q,
+    )
+    hoje = datetime.utcnow().strftime("%Y%m%d")
+    titulo = f"Pauta ({filtro})"
+    if formato == "pdf":
+        content = build_pdf(prazos, titulo=titulo)
+        return Response(
+            content=content,
+            media_type="application/pdf",
+            headers={
+                "Content-Disposition": f'attachment; filename="pauta-{filtro}-{hoje}.pdf"'
+            },
         )
 
-    if filtro == "excluidos":
-        query = query.order_by(col(Prazo.excluido_em).desc())
-    else:
-        query = query.order_by(Prazo.data_vencimento.asc(), Prazo.criado_em.asc())
-
-    result = await session.exec(query)
-    return list(result.all())
+    content = build_csv(prazos)
+    return Response(
+        content=content,
+        media_type="text/csv; charset=utf-8",
+        headers={
+            "Content-Disposition": f'attachment; filename="pauta-{filtro}-{hoje}.csv"'
+        },
+    )
 
 
 @router.post(
