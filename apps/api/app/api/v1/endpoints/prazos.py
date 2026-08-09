@@ -1,4 +1,4 @@
-from datetime import date, datetime
+from datetime import date
 from typing import Literal
 from uuid import UUID
 
@@ -9,6 +9,7 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 from app.api.deps import require_permission
 from app.core.database import get_session
 from app.core.permissions import Permission
+from app.core.timeutils import utc_now
 from app.models.audit_log import AuditAction
 from app.models.prazo import Prazo, StatusPrazo
 from app.models.user import User
@@ -87,7 +88,7 @@ async def exportar_prazos(
         data_inicio=data_inicio,
         data_fim=data_fim,
     )
-    hoje = datetime.utcnow().strftime("%Y%m%d")
+    hoje = utc_now().strftime("%Y%m%d")
     if using_range:
         inicio_label = data_inicio.isoformat() if data_inicio else "inicio"
         fim_label = data_fim.isoformat() if data_fim else "fim"
@@ -182,7 +183,7 @@ async def atualizar_prazo(
 
     for field, value in data.items():
         setattr(prazo, field, value)
-    prazo.atualizado_em = datetime.utcnow()
+    prazo.atualizado_em = utc_now()
 
     session.add(prazo)
     session.add(
@@ -206,7 +207,7 @@ async def marcar_cumprido(
 ) -> Prazo:
     prazo = await _get_prazo_ativo(session, prazo_id)
     prazo.status = StatusPrazo.cumprido
-    prazo.atualizado_em = datetime.utcnow()
+    prazo.atualizado_em = utc_now()
     session.add(prazo)
     session.add(
         montar_auditoria(
@@ -235,7 +236,7 @@ async def restaurar_prazo(
         )
 
     prazo.excluido_em = None
-    prazo.atualizado_em = datetime.utcnow()
+    prazo.atualizado_em = utc_now()
     session.add(prazo)
     session.add(
         montar_auditoria(
@@ -257,8 +258,8 @@ async def excluir_prazo(
     current_user: User = Depends(require_permission(Permission.prazos_excluir)),
 ) -> Prazo:
     prazo = await _get_prazo_ativo(session, prazo_id)
-    prazo.excluido_em = datetime.utcnow()
-    prazo.atualizado_em = datetime.utcnow()
+    prazo.excluido_em = utc_now()
+    prazo.atualizado_em = utc_now()
     session.add(prazo)
     session.add(
         montar_auditoria(

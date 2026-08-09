@@ -4,6 +4,8 @@ from uuid import UUID, uuid4
 
 from sqlmodel import Field, SQLModel
 
+from app.core.timeutils import utc_now
+
 
 class Role(StrEnum):
     admin = "admin"
@@ -23,5 +25,5 @@ class User(SQLModel, table=True):
     receber_alertas: bool = Field(default=True)
     # Mantido sincronizado com role == admin (compatibilidade)
     is_admin: bool = False
-    criado_em: datetime = Field(default_factory=datetime.utcnow)
-    atualizado_em: datetime = Field(default_factory=datetime.utcnow)
+    criado_em: datetime = Field(default_factory=utc_now)
+    atualizado_em: datetime = Field(default_factory=utc_now)

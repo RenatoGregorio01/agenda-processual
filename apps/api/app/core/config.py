@@ -41,6 +41,8 @@ class Settings(BaseSettings):
     alertas_enabled: bool = True
     alertas_cron_hour: int = 8
 
+    invite_expire_hours: int = 72
+
 
 @lru_cache
 def get_settings() -> Settings:

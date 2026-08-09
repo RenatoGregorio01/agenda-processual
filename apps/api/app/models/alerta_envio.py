@@ -5,6 +5,8 @@ from uuid import UUID, uuid4
 from sqlalchemy import UniqueConstraint
 from sqlmodel import Field, SQLModel
 
+from app.core.timeutils import utc_now
+
 
 class TipoAlerta(StrEnum):
     dias_3 = "3dias"
@@ -27,4 +29,4 @@ class AlertaEnvio(SQLModel, table=True):
     prazo_id: UUID = Field(index=True)
     tipo: TipoAlerta = Field(index=True, max_length=20)
     destinatario_email: str = Field(max_length=255, index=True)
-    enviado_em: datetime = Field(default_factory=datetime.utcnow)
+    enviado_em: datetime = Field(default_factory=utc_now)

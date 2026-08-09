@@ -3,9 +3,11 @@ import { redirect } from "next/navigation";
 
 import { CriarUsuarioForm } from "@/components/criar-usuario-form";
 import { EditarUsuarioForm } from "@/components/editar-usuario-form";
+import { ListaConvites } from "@/components/lista-convites";
 import { LogoutButton } from "@/components/logout-button";
 import { apiFetch } from "@/lib/api-server";
 import { hasPermission, type RoleInfo, type User } from "@/lib/auth";
+import type { Convite } from "@/lib/convites";
 
 async function getCurrentUser(): Promise<User | null> {
   const response = await apiFetch("/api/v1/auth/me");
@@ -25,12 +27,22 @@ async function listRoles(): Promise<RoleInfo[]> {
   return (await response.json()) as RoleInfo[];
 }
 
+async function listConvites(): Promise<Convite[]> {
+  const response = await apiFetch("/api/v1/convites");
+  if (!response.ok) return [];
+  return (await response.json()) as Convite[];
+}
+
 export default async function UsuariosPage() {
   const currentUser = await getCurrentUser();
   if (!currentUser) redirect("/login");
   if (!hasPermission(currentUser, "usuarios_gerenciar")) redirect("/prazos");
 
-  const [usuarios, roles] = await Promise.all([listUsuarios(), listRoles()]);
+  const [usuarios, roles, convites] = await Promise.all([
+    listUsuarios(),
+    listRoles(),
+    listConvites(),
+  ]);
 
   return (
     <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col px-6 py-10 sm:px-10">
@@ -43,7 +55,8 @@ export default async function UsuariosPage() {
             Usuários
           </h1>
           <p className="mt-2 text-muted">
-            Defina quem acessa a base e o perfil de permissões (admin, editor ou visualizador).
+            Convide pessoas por e-mail e defina o perfil de permissões (admin, editor ou
+            visualizador).
           </p>
         </div>
         <div className="flex flex-col items-end gap-3">
@@ -78,6 +91,11 @@ export default async function UsuariosPage() {
 
       <section className="mt-10 border border-border bg-surface p-5 sm:p-7">
         <CriarUsuarioForm roles={roles} />
+      </section>
+
+      <section className="mt-10">
+        <h2 className="text-lg font-semibold text-foreground">Convites</h2>
+        <ListaConvites convites={convites} />
       </section>
 
       <section className="mt-10">

@@ -1,4 +1,3 @@
-from datetime import datetime
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -9,6 +8,7 @@ from app.api.deps import get_current_admin, get_current_user
 from app.core.database import get_session
 from app.core.permissions import Permission, sync_admin_flag, user_has_permission
 from app.core.security import hash_password
+from app.core.timeutils import utc_now
 from app.models.audit_log import AuditAction
 from app.models.user import Role, User
 from app.schemas.user import UserCreate, UserOption, UserRead, UserUpdate
@@ -144,7 +144,7 @@ async def atualizar_usuario(
     if data.get("password"):
         user.hashed_password = hash_password(data["password"])
 
-    user.atualizado_em = datetime.utcnow()
+    user.atualizado_em = utc_now()
     session.add(user)
     session.add(
         montar_auditoria(

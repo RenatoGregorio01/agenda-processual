@@ -9,24 +9,22 @@ export type ActionState = {
   ok?: boolean;
 };
 
-export async function createUsuario(
+export async function createConvite(
   _prev: ActionState,
   formData: FormData,
 ): Promise<ActionState> {
   const payload = {
     nome: String(formData.get("nome") || "").trim(),
     email: String(formData.get("email") || "").trim().toLowerCase(),
-    password: String(formData.get("password") || ""),
     role: String(formData.get("role") || "editor"),
-    ativo: formData.get("ativo") === "on",
     receber_alertas: formData.get("receber_alertas") === "on",
   };
 
-  if (!payload.nome || !payload.email || payload.password.length < 6) {
-    return { error: "Preencha nome, e-mail e senha (mín. 6 caracteres)." };
+  if (!payload.nome || !payload.email) {
+    return { error: "Preencha nome e e-mail." };
   }
 
-  const response = await apiFetch("/api/v1/usuarios", {
+  const response = await apiFetch("/api/v1/convites", {
     method: "POST",
     body: JSON.stringify(payload),
   });
@@ -34,7 +32,42 @@ export async function createUsuario(
   if (!response.ok) {
     const data = await response.json().catch(() => ({}));
     return {
-      error: typeof data.detail === "string" ? data.detail : "Não foi possível criar o usuário.",
+      error:
+        typeof data.detail === "string" ? data.detail : "Não foi possível enviar o convite.",
+    };
+  }
+
+  revalidatePath("/usuarios");
+  return { ok: true };
+}
+
+export async function reenviarConvite(conviteId: string): Promise<ActionState> {
+  const response = await apiFetch(`/api/v1/convites/${conviteId}/reenviar`, {
+    method: "POST",
+  });
+
+  if (!response.ok) {
+    const data = await response.json().catch(() => ({}));
+    return {
+      error:
+        typeof data.detail === "string" ? data.detail : "Não foi possível reenviar o convite.",
+    };
+  }
+
+  revalidatePath("/usuarios");
+  return { ok: true };
+}
+
+export async function revogarConvite(conviteId: string): Promise<ActionState> {
+  const response = await apiFetch(`/api/v1/convites/${conviteId}`, {
+    method: "DELETE",
+  });
+
+  if (!response.ok) {
+    const data = await response.json().catch(() => ({}));
+    return {
+      error:
+        typeof data.detail === "string" ? data.detail : "Não foi possível revogar o convite.",
     };
   }
 

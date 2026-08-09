@@ -17,7 +17,7 @@ export function middleware(request: NextRequest) {
     return NextResponse.redirect(loginUrl);
   }
 
-  if (pathname === "/login" && token) {
+  if ((pathname === "/login" || pathname.startsWith("/convite/")) && token) {
     return NextResponse.redirect(new URL("/dashboard", request.url));
   }
 
@@ -31,6 +31,7 @@ export const config = {
     "/auditoria",
     "/usuarios",
     "/feriados",
+    "/convite/:path*",
     "/login",
   ],
 };

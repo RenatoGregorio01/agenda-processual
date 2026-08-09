@@ -39,3 +39,15 @@ uvicorn app.main:app --reload
 alembic revision --autogenerate -m "mensagem"
 alembic upgrade head
 ```
+
+## Testes
+
+```bash
+# unitários + e2e da API
+pytest -q
+
+# só e2e (ASGI + SQLite em memória)
+pytest tests/e2e -q
+```
+
+Os e2e cobrem login, convite por e-mail, prazos e cálculo de dias úteis/feriados.

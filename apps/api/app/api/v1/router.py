@@ -5,6 +5,7 @@ from app.api.v1.endpoints import (
     auditoria,
     auth,
     calendario,
+    convites,
     feriados,
     health,
     prazos,
@@ -22,3 +23,4 @@ api_router.include_router(roles.router, prefix="/roles", tags=["roles"])
 api_router.include_router(alertas.router, prefix="/alertas", tags=["alertas"])
 api_router.include_router(feriados.router, prefix="/feriados", tags=["feriados"])
 api_router.include_router(calendario.router, prefix="/calendario", tags=["calendario"])
+api_router.include_router(convites.router, prefix="/convites", tags=["convites"])
