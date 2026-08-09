@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 
-import { getApiBaseUrl } from "@/lib/api";
+import { getServerApiBaseUrl } from "@/lib/api";
 import { AUTH_COOKIE, type LoginPayload } from "@/lib/auth";
 
 export async function POST(request: Request) {
@@ -15,14 +15,22 @@ export async function POST(request: Request) {
     return NextResponse.json({ detail: "E-mail e senha são obrigatórios" }, { status: 400 });
   }
 
-  const apiResponse = await fetch(`${getApiBaseUrl()}/api/v1/auth/login`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      email: payload.email,
-      password: payload.password,
-    }),
-  });
+  let apiResponse: Response;
+  try {
+    apiResponse = await fetch(`${getServerApiBaseUrl()}/api/v1/auth/login`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        email: payload.email,
+        password: payload.password,
+      }),
+    });
+  } catch {
+    return NextResponse.json(
+      { detail: "Não foi possível conectar à API. Verifique se ela está no ar." },
+      { status: 502 },
+    );
+  }
 
   const data = await apiResponse.json().catch(() => ({}));
   if (!apiResponse.ok) {

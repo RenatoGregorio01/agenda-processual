@@ -1,6 +1,6 @@
 import { cookies } from "next/headers";
 
-import { getApiBaseUrl } from "@/lib/api";
+import { getServerApiBaseUrl } from "@/lib/api";
 import { AUTH_COOKIE } from "@/lib/auth";
 
 export async function apiFetch(path: string, init: RequestInit = {}): Promise<Response> {
@@ -15,7 +15,7 @@ export async function apiFetch(path: string, init: RequestInit = {}): Promise<Re
     headers.set("Content-Type", "application/json");
   }
 
-  return fetch(`${getApiBaseUrl()}${path}`, {
+  return fetch(`${getServerApiBaseUrl()}${path}`, {
     ...init,
     headers,
     cache: "no-store",

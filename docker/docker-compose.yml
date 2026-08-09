@@ -51,7 +51,10 @@ services:
     working_dir: /app
     restart: unless-stopped
     environment:
+      # Browser (host) fala com a API no localhost publicado
       NEXT_PUBLIC_API_URL: http://localhost:8000
+      # Server Components / Route Handlers falam com o serviço na rede Docker
+      API_URL: http://api:8000
       WATCHPACK_POLLING: "true"
     ports:
       - "3000:3000"
