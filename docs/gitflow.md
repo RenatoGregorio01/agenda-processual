@@ -17,6 +17,14 @@
 3. Abrir PR `feature/*` → `develop`
 4. Quando a release estiver pronta: `release/x.y.z` → merge em `main` e `develop` + tag `vx.y.z`
 
+## CI (GitHub Actions)
+
+Workflow: `.github/workflows/api-ci.yml`
+
+- Roda em PRs para `develop` / `main` e em pushes de `feature/**`, `develop` e `main`
+- Escopo atual: lint (`ruff`) + testes (`pytest`) em `apps/api`
+- Deploy automático fica fora do escopo por enquanto
+
 ## Convenção de nomes
 
 - `feature/api-auth`

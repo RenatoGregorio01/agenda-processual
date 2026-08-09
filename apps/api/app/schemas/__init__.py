@@ -1,4 +1,4 @@
-from app.schemas.prazo import PrazoCreate, PrazoRead, PrazoUpdate
 from app.schemas.health import HealthResponse
+from app.schemas.prazo import PrazoCreate, PrazoRead, PrazoUpdate
 
-__all__ = ["PrazoCreate", "PrazoRead", "PrazoUpdate", "HealthResponse"]
+__all__ = ["HealthResponse", "PrazoCreate", "PrazoRead", "PrazoUpdate"]

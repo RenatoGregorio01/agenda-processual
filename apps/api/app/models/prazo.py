@@ -1,11 +1,11 @@
 from datetime import date, datetime
-from enum import Enum
+from enum import StrEnum
 from uuid import UUID, uuid4
 
 from sqlmodel import Field, SQLModel
 
 
-class StatusPrazo(str, Enum):
+class StatusPrazo(StrEnum):
     pendente = "pendente"
     cumprido = "cumprido"
 
