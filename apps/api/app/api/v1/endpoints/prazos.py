@@ -1,6 +1,8 @@
+from datetime import date, timedelta
+from typing import Literal
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
@@ -11,14 +13,33 @@ from app.schemas.prazo import PrazoCreate, PrazoRead, PrazoUpdate
 
 router = APIRouter(dependencies=[Depends(get_current_user)])
 
+FiltroPrazo = Literal["todos", "atrasados", "7dias", "cumpridos"]
+
 
 @router.get("", response_model=list[PrazoRead])
 async def listar_prazos(
+    filtro: FiltroPrazo = Query(default="todos"),
     session: AsyncSession = Depends(get_session),
 ) -> list[Prazo]:
-    result = await session.exec(
-        select(Prazo).order_by(Prazo.data_vencimento.asc(), Prazo.criado_em.asc())
-    )
+    today = date.today()
+    query = select(Prazo)
+
+    if filtro == "atrasados":
+        query = query.where(
+            Prazo.status == StatusPrazo.pendente,
+            Prazo.data_vencimento < today,
+        )
+    elif filtro == "7dias":
+        query = query.where(
+            Prazo.status == StatusPrazo.pendente,
+            Prazo.data_vencimento >= today,
+            Prazo.data_vencimento <= today + timedelta(days=7),
+        )
+    elif filtro == "cumpridos":
+        query = query.where(Prazo.status == StatusPrazo.cumprido)
+
+    query = query.order_by(Prazo.data_vencimento.asc(), Prazo.criado_em.asc())
+    result = await session.exec(query)
     return list(result.all())
 
 

@@ -6,7 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.api.v1.router import api_router
 from app.core.config import get_settings
 from app.core.database import AsyncSessionLocal, init_db
-from app.core.seed import seed_admin_user
+from app.core.seed import seed_admin_user, seed_example_prazos
 
 
 @asynccontextmanager
@@ -15,6 +15,7 @@ async def lifespan(_: FastAPI):
     await init_db()
     async with AsyncSessionLocal() as session:
         await seed_admin_user(session, settings)
+        await seed_example_prazos(session)
     yield
 
 
