@@ -2,7 +2,7 @@
 
 import { useActionState, useEffect, useMemo, useRef, useState } from "react";
 
-import { createUsuario, type ActionState } from "@/app/usuarios/actions";
+import { createConvite, type ActionState } from "@/app/usuarios/actions";
 import type { RoleInfo } from "@/lib/auth";
 
 const initialState: ActionState = {};
@@ -10,7 +10,7 @@ const initialState: ActionState = {};
 export function CriarUsuarioForm({ roles }: { roles: RoleInfo[] }) {
   const formRef = useRef<HTMLFormElement>(null);
   const [role, setRole] = useState(roles[1]?.id ?? "editor");
-  const [state, formAction, pending] = useActionState(createUsuario, initialState);
+  const [state, formAction, pending] = useActionState(createConvite, initialState);
   const selected = useMemo(() => roles.find((item) => item.id === role), [role, roles]);
 
   useEffect(() => {
@@ -22,7 +22,11 @@ export function CriarUsuarioForm({ roles }: { roles: RoleInfo[] }) {
 
   return (
     <form ref={formRef} action={formAction} className="flex flex-col gap-4">
-      <h2 className="text-lg font-semibold text-foreground">Novo usuário</h2>
+      <h2 className="text-lg font-semibold text-foreground">Convidar por e-mail</h2>
+      <p className="text-sm text-muted">
+        A pessoa recebe um link para definir a própria senha. Não é preciso enviar senha pelo
+        WhatsApp.
+      </p>
 
       <label className="flex flex-col gap-1.5 text-sm">
         <span className="font-medium">Nome</span>
@@ -39,17 +43,6 @@ export function CriarUsuarioForm({ roles }: { roles: RoleInfo[] }) {
           name="email"
           type="email"
           required
-          className="h-11 border border-border bg-background px-3 outline-none ring-primary focus:ring-2"
-        />
-      </label>
-
-      <label className="flex flex-col gap-1.5 text-sm">
-        <span className="font-medium">Senha inicial</span>
-        <input
-          name="password"
-          type="password"
-          required
-          minLength={6}
           className="h-11 border border-border bg-background px-3 outline-none ring-primary focus:ring-2"
         />
       </label>
@@ -82,11 +75,6 @@ export function CriarUsuarioForm({ roles }: { roles: RoleInfo[] }) {
         </div>
       ) : null}
 
-      <label className="flex items-center gap-2 text-sm">
-        <input name="ativo" type="checkbox" defaultChecked />
-        Ativo (pode entrar no sistema)
-      </label>
-
       <label className="flex items-start gap-2 text-sm">
         <input name="receber_alertas" type="checkbox" defaultChecked className="mt-0.5" />
         <span>
@@ -98,14 +86,16 @@ export function CriarUsuarioForm({ roles }: { roles: RoleInfo[] }) {
       </label>
 
       {state.error ? <p className="text-sm text-atrasado">{state.error}</p> : null}
-      {state.ok ? <p className="text-sm text-no-prazo">Usuário criado com sucesso.</p> : null}
+      {state.ok ? (
+        <p className="text-sm text-no-prazo">Convite enviado. Confira o e-mail no Mailpit.</p>
+      ) : null}
 
       <button
         type="submit"
         disabled={pending}
         className="inline-flex h-12 items-center justify-center bg-primary px-6 text-base font-semibold text-primary-foreground transition hover:brightness-110 disabled:opacity-60"
       >
-        {pending ? "Salvando…" : "Criar usuário"}
+        {pending ? "Enviando…" : "Enviar convite"}
       </button>
     </form>
   );

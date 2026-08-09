@@ -50,6 +50,7 @@ services:
       SMTP_TLS: "false"
       ALERTAS_ENABLED: "true"
       ALERTAS_CRON_HOUR: "8"
+      INVITE_EXPIRE_HOURS: "72"
     ports:
       - "8000:8000"
     depends_on:

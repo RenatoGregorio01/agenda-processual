@@ -17,6 +17,10 @@ class AuditAction(StrEnum):
     feriado_criado = "feriado_criado"
     feriado_atualizado = "feriado_atualizado"
     feriado_excluido = "feriado_excluido"
+    convite_criado = "convite_criado"
+    convite_reenviado = "convite_reenviado"
+    convite_revogado = "convite_revogado"
+    convite_aceito = "convite_aceito"
 
 
 class AuditLog(SQLModel, table=True):

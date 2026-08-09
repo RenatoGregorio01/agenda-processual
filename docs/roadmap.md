@@ -14,7 +14,7 @@ Visão de produto após o MVP (`v0.1.0`). Ordem sugerida; prioridades podem muda
 ## Próximo (produto operacional)
 
 - [ ] Histórico no prazo (timeline de alterações / cumprimento / restauração)
-- [ ] Convite por e-mail (criar usuário sem passar senha no WhatsApp)
+- [x] Convite por e-mail (criar usuário sem passar senha no WhatsApp)
 - [ ] SMTP de produção (provedor real além do Mailpit)
 - [ ] Seed opcional de feriados nacionais BR
 
