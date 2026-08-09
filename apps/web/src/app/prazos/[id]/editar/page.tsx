@@ -3,7 +3,14 @@ import { notFound, redirect } from "next/navigation";
 
 import { EditarPrazoForm } from "@/components/editar-prazo-form";
 import { apiFetch } from "@/lib/api-server";
+import { hasPermission, type User } from "@/lib/auth";
 import type { Prazo } from "@/lib/prazos";
+
+async function getCurrentUser(): Promise<User | null> {
+  const response = await apiFetch("/api/v1/auth/me");
+  if (!response.ok) return null;
+  return (await response.json()) as User;
+}
 
 async function getPrazo(id: string): Promise<Prazo | null> {
   const response = await apiFetch(`/api/v1/prazos/${id}`);
@@ -18,7 +25,8 @@ export default async function EditarPrazoPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const prazo = await getPrazo(id);
+  const [user, prazo] = await Promise.all([getCurrentUser(), getPrazo(id)]);
+  if (!hasPermission(user, "prazos_alterar")) redirect("/prazos");
   if (!prazo) notFound();
   if (prazo.excluido_em) {
     redirect(`/prazos/${id}`);

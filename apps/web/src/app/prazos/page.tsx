@@ -4,7 +4,7 @@ import { LogoutButton } from "@/components/logout-button";
 import { PrazoBadge } from "@/components/prazo-badge";
 import { PrazoFilters } from "@/components/prazo-filters";
 import { apiFetch } from "@/lib/api-server";
-import type { User } from "@/lib/auth";
+import { hasPermission, type User } from "@/lib/auth";
 import {
   FILTROS,
   formatVencimento,
@@ -55,7 +55,7 @@ export default async function PrazosPage({
         <div className="flex flex-col items-end gap-3">
           <LogoutButton />
           <div className="flex flex-wrap justify-end gap-2">
-            {user?.is_admin ? (
+            {hasPermission(user, "usuarios_gerenciar") ? (
               <Link
                 href="/usuarios"
                 className="inline-flex h-11 items-center justify-center border border-border bg-surface px-4 text-sm font-medium"
@@ -69,12 +69,14 @@ export default async function PrazosPage({
             >
               Auditoria
             </Link>
-            <Link
-              href="/prazos/novo"
-              className="inline-flex h-11 items-center justify-center bg-primary px-4 text-sm font-semibold text-primary-foreground transition hover:brightness-110"
-            >
-              Novo prazo
-            </Link>
+            {hasPermission(user, "prazos_criar") ? (
+              <Link
+                href="/prazos/novo"
+                className="inline-flex h-11 items-center justify-center bg-primary px-4 text-sm font-semibold text-primary-foreground transition hover:brightness-110"
+              >
+                Novo prazo
+              </Link>
+            ) : null}
           </div>
         </div>
       </div>

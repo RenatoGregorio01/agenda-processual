@@ -6,15 +6,16 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlmodel import col, select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
-from app.api.deps import get_current_user
+from app.api.deps import require_permission
 from app.core.database import get_session
+from app.core.permissions import Permission
 from app.models.audit_log import AuditAction
 from app.models.prazo import Prazo, StatusPrazo
 from app.models.user import User
 from app.schemas.prazo import PrazoCreate, PrazoRead, PrazoUpdate
 from app.services.audit import montar_auditoria
 
-router = APIRouter(dependencies=[Depends(get_current_user)])
+router = APIRouter()
 
 FiltroPrazo = Literal["todos", "atrasados", "7dias", "cumpridos", "excluidos"]
 
@@ -26,7 +27,11 @@ async def _get_prazo_ativo(session: AsyncSession, prazo_id: UUID) -> Prazo:
     return prazo
 
 
-@router.get("", response_model=list[PrazoRead])
+@router.get(
+    "",
+    response_model=list[PrazoRead],
+    dependencies=[Depends(require_permission(Permission.prazos_visualizar))],
+)
 async def listar_prazos(
     filtro: FiltroPrazo = Query(default="todos"),
     session: AsyncSession = Depends(get_session),
@@ -61,11 +66,15 @@ async def listar_prazos(
     return list(result.all())
 
 
-@router.post("", response_model=PrazoRead, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "",
+    response_model=PrazoRead,
+    status_code=status.HTTP_201_CREATED,
+)
 async def criar_prazo(
     payload: PrazoCreate,
     session: AsyncSession = Depends(get_session),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_permission(Permission.prazos_criar)),
 ) -> Prazo:
     prazo = Prazo(**payload.model_dump())
     session.add(prazo)
@@ -83,7 +92,11 @@ async def criar_prazo(
     return prazo
 
 
-@router.get("/{prazo_id}", response_model=PrazoRead)
+@router.get(
+    "/{prazo_id}",
+    response_model=PrazoRead,
+    dependencies=[Depends(require_permission(Permission.prazos_visualizar))],
+)
 async def obter_prazo(
     prazo_id: UUID,
     session: AsyncSession = Depends(get_session),
@@ -99,7 +112,7 @@ async def atualizar_prazo(
     prazo_id: UUID,
     payload: PrazoUpdate,
     session: AsyncSession = Depends(get_session),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_permission(Permission.prazos_alterar)),
 ) -> Prazo:
     prazo = await _get_prazo_ativo(session, prazo_id)
 
@@ -125,7 +138,7 @@ async def atualizar_prazo(
 async def marcar_cumprido(
     prazo_id: UUID,
     session: AsyncSession = Depends(get_session),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_permission(Permission.prazos_cumprir)),
 ) -> Prazo:
     prazo = await _get_prazo_ativo(session, prazo_id)
     prazo.status = StatusPrazo.cumprido
@@ -148,7 +161,7 @@ async def marcar_cumprido(
 async def restaurar_prazo(
     prazo_id: UUID,
     session: AsyncSession = Depends(get_session),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_permission(Permission.prazos_restaurar)),
 ) -> Prazo:
     prazo = await session.get(Prazo, prazo_id)
     if prazo is None or prazo.excluido_em is None:
@@ -177,7 +190,7 @@ async def restaurar_prazo(
 async def excluir_prazo(
     prazo_id: UUID,
     session: AsyncSession = Depends(get_session),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_permission(Permission.prazos_excluir)),
 ) -> Prazo:
     prazo = await _get_prazo_ativo(session, prazo_id)
     prazo.excluido_em = datetime.utcnow()

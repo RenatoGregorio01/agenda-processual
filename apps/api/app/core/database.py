@@ -31,7 +31,6 @@ async def get_session() -> AsyncGenerator[AsyncSession, None]:
 async def init_db() -> None:
     async with engine.begin() as conn:
         await conn.run_sync(SQLModel.metadata.create_all)
-        # Bancos já criados antes do soft delete
         await conn.execute(
             text("ALTER TABLE prazos ADD COLUMN IF NOT EXISTS excluido_em TIMESTAMP NULL")
         )
@@ -39,4 +38,19 @@ async def init_db() -> None:
             text(
                 "CREATE INDEX IF NOT EXISTS ix_prazos_excluido_em ON prazos (excluido_em)"
             )
+        )
+        await conn.execute(
+            text("ALTER TABLE users ADD COLUMN IF NOT EXISTS role VARCHAR(20)")
+        )
+        await conn.execute(
+            text(
+                "UPDATE users SET role = CASE "
+                "WHEN is_admin = true THEN 'admin' "
+                "ELSE COALESCE(role, 'editor') END "
+                "WHERE role IS NULL OR role = ''"
+            )
+        )
+        await conn.execute(text("UPDATE users SET role = 'editor' WHERE role IS NULL"))
+        await conn.execute(
+            text("CREATE INDEX IF NOT EXISTS ix_users_role ON users (role)")
         )

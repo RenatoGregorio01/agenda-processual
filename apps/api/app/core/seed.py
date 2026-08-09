@@ -4,9 +4,10 @@ from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from app.core.config import Settings
+from app.core.permissions import sync_admin_flag
 from app.core.security import hash_password
 from app.models.prazo import Prazo
-from app.models.user import User
+from app.models.user import Role, User
 
 
 async def seed_admin_user(session: AsyncSession, settings: Settings) -> None:
@@ -15,16 +16,23 @@ async def seed_admin_user(session: AsyncSession, settings: Settings) -> None:
 
     email = settings.seed_admin_email.lower()
     result = await session.exec(select(User).where(User.email == email))
-    if result.first() is not None:
+    existing = result.first()
+    if existing is not None:
+        if existing.role != Role.admin:
+            existing.role = Role.admin
+            sync_admin_flag(existing)
+            session.add(existing)
+            await session.commit()
         return
 
     user = User(
         email=email,
         nome=settings.seed_admin_name,
         hashed_password=hash_password(settings.seed_admin_password),
-        is_admin=True,
+        role=Role.admin,
         ativo=True,
     )
+    sync_admin_flag(user)
     session.add(user)
     await session.commit()
 

@@ -6,11 +6,18 @@ import { ExcluirPrazoButton } from "@/components/excluir-prazo-button";
 import { PrazoBadge } from "@/components/prazo-badge";
 import { RestaurarPrazoButton } from "@/components/restaurar-prazo-button";
 import { apiFetch } from "@/lib/api-server";
+import { hasPermission, type User } from "@/lib/auth";
 import {
   formatVencimentoLongo,
   getUrgencyBadge,
   type Prazo,
 } from "@/lib/prazos";
+
+async function getCurrentUser(): Promise<User | null> {
+  const response = await apiFetch("/api/v1/auth/me");
+  if (!response.ok) return null;
+  return (await response.json()) as User;
+}
 
 async function getPrazo(id: string): Promise<Prazo | null> {
   const response = await apiFetch(`/api/v1/prazos/${id}`);
@@ -25,7 +32,7 @@ export default async function PrazoDetalhePage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const prazo = await getPrazo(id);
+  const [user, prazo] = await Promise.all([getCurrentUser(), getPrazo(id)]);
   if (!prazo) notFound();
 
   const badge = getUrgencyBadge(prazo);
@@ -96,28 +103,38 @@ export default async function PrazoDetalhePage({
 
       <div className="mt-10 flex flex-col gap-3">
         {isExcluded ? (
-          <RestaurarPrazoButton prazoId={prazo.id} />
+          hasPermission(user, "prazos_restaurar") ? (
+            <RestaurarPrazoButton prazoId={prazo.id} />
+          ) : (
+            <p className="text-sm text-muted">Você não tem permissão para restaurar prazos.</p>
+          )
         ) : (
           <>
             {prazo.status !== "cumprido" ? (
-              <form action={cumprir}>
-                <button
-                  type="submit"
-                  className="inline-flex h-12 w-full items-center justify-center bg-primary px-6 text-base font-semibold text-primary-foreground transition hover:brightness-110"
-                >
-                  Marcar como cumprido
-                </button>
-              </form>
+              hasPermission(user, "prazos_cumprir") ? (
+                <form action={cumprir}>
+                  <button
+                    type="submit"
+                    className="inline-flex h-12 w-full items-center justify-center bg-primary px-6 text-base font-semibold text-primary-foreground transition hover:brightness-110"
+                  >
+                    Marcar como cumprido
+                  </button>
+                </form>
+              ) : null
             ) : (
               <p className="text-sm font-medium text-no-prazo">Este prazo já foi cumprido.</p>
             )}
-            <Link
-              href={`/prazos/${prazo.id}/editar`}
-              className="inline-flex h-12 w-full items-center justify-center border border-border bg-surface px-6 text-base font-medium text-foreground transition hover:bg-background"
-            >
-              Editar
-            </Link>
-            <ExcluirPrazoButton prazoId={prazo.id} acao={prazo.acao} />
+            {hasPermission(user, "prazos_alterar") ? (
+              <Link
+                href={`/prazos/${prazo.id}/editar`}
+                className="inline-flex h-12 w-full items-center justify-center border border-border bg-surface px-6 text-base font-medium text-foreground transition hover:bg-background"
+              >
+                Editar
+              </Link>
+            ) : null}
+            {hasPermission(user, "prazos_excluir") ? (
+              <ExcluirPrazoButton prazoId={prazo.id} acao={prazo.acao} />
+            ) : null}
           </>
         )}
       </div>

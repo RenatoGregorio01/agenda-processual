@@ -1,8 +1,20 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 
 import { NovoPrazoForm } from "@/components/novo-prazo-form";
+import { apiFetch } from "@/lib/api-server";
+import { hasPermission, type User } from "@/lib/auth";
 
-export default function NovoPrazoPage() {
+async function getCurrentUser(): Promise<User | null> {
+  const response = await apiFetch("/api/v1/auth/me");
+  if (!response.ok) return null;
+  return (await response.json()) as User;
+}
+
+export default async function NovoPrazoPage() {
+  const user = await getCurrentUser();
+  if (!hasPermission(user, "prazos_criar")) redirect("/prazos");
+
   return (
     <main className="mx-auto flex w-full max-w-xl flex-1 flex-col px-6 py-10 sm:px-10">
       <Link href="/prazos" className="text-sm text-muted underline-offset-4 hover:underline">
