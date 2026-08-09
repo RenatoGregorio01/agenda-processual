@@ -88,7 +88,7 @@ export function NovoPrazoForm() {
         </label>
         <label className="flex items-center gap-2 text-sm">
           <input name="alerta_1_dia" type="checkbox" defaultChecked />
-          Alertar 1 dia antes (amanhã)
+          Alertar 1 dia antes
         </label>
       </fieldset>
 

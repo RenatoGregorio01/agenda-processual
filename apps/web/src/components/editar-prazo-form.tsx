@@ -105,7 +105,7 @@ export function EditarPrazoForm({ prazo }: EditarPrazoFormProps) {
         </label>
         <label className="flex items-center gap-2 text-sm">
           <input name="alerta_1_dia" type="checkbox" defaultChecked={prazo.alerta_1_dia} />
-          Alertar 1 dia antes (amanhã)
+          Alertar 1 dia antes
         </label>
       </fieldset>
 

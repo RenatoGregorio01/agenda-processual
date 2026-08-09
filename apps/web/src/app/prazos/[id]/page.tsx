@@ -90,7 +90,7 @@ export default async function PrazoDetalhePage({
         <ul className="mt-3 space-y-1 text-sm text-muted">
           <li>{prazo.alerta_3_dias ? "✓" : "–"} 3 dias antes</li>
           <li>{prazo.alerta_2_dias ? "✓" : "–"} 2 dias antes</li>
-          <li>{prazo.alerta_1_dia ? "✓" : "–"} 1 dia antes (amanhã)</li>
+          <li>{prazo.alerta_1_dia ? "✓" : "–"} 1 dia antes</li>
         </ul>
       </section>
 
