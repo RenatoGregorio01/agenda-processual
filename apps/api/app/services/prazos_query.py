@@ -19,11 +19,23 @@ async def listar_prazos_filtrados(
     filtro: FiltroPrazo = "todos",
     responsavel_id: UUID | None = None,
     q: str | None = None,
+    data_inicio: date | None = None,
+    data_fim: date | None = None,
 ) -> list[Prazo]:
     today = date.today()
     query = select(Prazo)
+    using_date_range = data_inicio is not None or data_fim is not None
 
-    if filtro == "excluidos":
+    if using_date_range:
+        query = query.where(
+            col(Prazo.excluido_em).is_(None),
+            Prazo.status == StatusPrazo.pendente,
+        )
+        if data_inicio is not None:
+            query = query.where(Prazo.data_vencimento >= data_inicio)
+        if data_fim is not None:
+            query = query.where(Prazo.data_vencimento <= data_fim)
+    elif filtro == "excluidos":
         query = query.where(col(Prazo.excluido_em).is_not(None))
     else:
         query = query.where(col(Prazo.excluido_em).is_(None))
@@ -66,7 +78,7 @@ async def listar_prazos_filtrados(
             )
         )
 
-    if filtro == "excluidos":
+    if not using_date_range and filtro == "excluidos":
         query = query.order_by(col(Prazo.excluido_em).desc())
     else:
         query = query.order_by(Prazo.data_vencimento.asc(), Prazo.criado_em.asc())

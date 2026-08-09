@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import date, datetime
 from typing import Literal
 from uuid import UUID
 
@@ -66,25 +66,44 @@ async def listar_prazos(
 async def exportar_prazos(
     formato: ExportFormat = Query(default="csv"),
     filtro: FiltroPrazo = Query(default="7dias"),
+    data_inicio: date | None = Query(default=None),
+    data_fim: date | None = Query(default=None),
     responsavel_id: UUID | None = Query(default=None),
     q: str | None = Query(default=None, max_length=120),
     session: AsyncSession = Depends(get_session),
 ) -> Response:
+    if data_inicio and data_fim and data_inicio > data_fim:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="A data inicial não pode ser maior que a data final",
+        )
+
+    using_range = data_inicio is not None or data_fim is not None
     prazos = await listar_prazos_filtrados(
         session,
-        filtro=filtro,
+        filtro=filtro if not using_range else "todos",
         responsavel_id=responsavel_id,
         q=q,
+        data_inicio=data_inicio,
+        data_fim=data_fim,
     )
     hoje = datetime.utcnow().strftime("%Y%m%d")
-    titulo = f"Pauta ({filtro})"
+    if using_range:
+        inicio_label = data_inicio.isoformat() if data_inicio else "inicio"
+        fim_label = data_fim.isoformat() if data_fim else "fim"
+        titulo = f"Pauta ({inicio_label} a {fim_label})"
+        filename_base = f"pauta-{inicio_label}-{fim_label}"
+    else:
+        titulo = f"Pauta ({filtro})"
+        filename_base = f"pauta-{filtro}-{hoje}"
+
     if formato == "pdf":
         content = build_pdf(prazos, titulo=titulo)
         return Response(
             content=content,
             media_type="application/pdf",
             headers={
-                "Content-Disposition": f'attachment; filename="pauta-{filtro}-{hoje}.pdf"'
+                "Content-Disposition": f'attachment; filename="{filename_base}.pdf"'
             },
         )
 
@@ -93,7 +112,7 @@ async def exportar_prazos(
         content=content,
         media_type="text/csv; charset=utf-8",
         headers={
-            "Content-Disposition": f'attachment; filename="pauta-{filtro}-{hoje}.csv"'
+            "Content-Disposition": f'attachment; filename="{filename_base}.csv"'
         },
     )
 

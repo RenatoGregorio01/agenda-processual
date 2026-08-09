@@ -65,3 +65,12 @@ def test_busca_match_logic() -> None:
     ).lower()
     assert term in haystack
     assert "recurso" not in haystack
+
+
+def test_intervalo_datas_logic() -> None:
+    inicio = date.today()
+    fim = inicio + timedelta(days=7)
+    dentro = _pendente(inicio + timedelta(days=3))
+    fora = _pendente(inicio + timedelta(days=10))
+    assert inicio <= dentro.data_vencimento <= fim
+    assert not (inicio <= fora.data_vencimento <= fim)

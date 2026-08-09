@@ -18,9 +18,6 @@ export async function GET(request: NextRequest) {
   if (!upstream.searchParams.has("formato")) {
     upstream.searchParams.set("formato", "csv");
   }
-  if (!upstream.searchParams.has("filtro")) {
-    upstream.searchParams.set("filtro", "7dias");
-  }
 
   const response = await fetch(upstream, {
     headers: { Authorization: `Bearer ${token}` },
