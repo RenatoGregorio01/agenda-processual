@@ -84,12 +84,20 @@ export default async function PrazosPage({
               Hoje
             </Link>
             {hasPermission(user, "usuarios_gerenciar") ? (
-              <Link
-                href="/usuarios"
-                className="inline-flex h-11 items-center justify-center border border-border bg-surface px-4 text-sm font-medium"
-              >
-                Usuários
-              </Link>
+              <>
+                <Link
+                  href="/usuarios"
+                  className="inline-flex h-11 items-center justify-center border border-border bg-surface px-4 text-sm font-medium"
+                >
+                  Usuários
+                </Link>
+                <Link
+                  href="/feriados"
+                  className="inline-flex h-11 items-center justify-center border border-border bg-surface px-4 text-sm font-medium"
+                >
+                  Feriados
+                </Link>
+              </>
             ) : null}
             <Link
               href="/auditoria"

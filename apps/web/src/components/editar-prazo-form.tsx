@@ -1,9 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 
 import { updatePrazo, type ActionState } from "@/app/prazos/actions";
+import { CalculoDiasUteis } from "@/components/calculo-dias-uteis";
 import type { UserOption } from "@/lib/auth";
 import type { Prazo } from "@/lib/prazos";
 
@@ -18,6 +19,10 @@ export function EditarPrazoForm({ prazo, usuarios }: EditarPrazoFormProps) {
   const boundUpdate = updatePrazo.bind(null, prazo.id);
   const [state, formAction, pending] = useActionState(boundUpdate, initialState);
   const defaultResponsavel = prazo.responsavel_id ?? usuarios[0]?.id ?? "";
+  const [dataDisponibilizacao, setDataDisponibilizacao] = useState(
+    prazo.data_disponibilizacao ?? "",
+  );
+  const [dataVencimento, setDataVencimento] = useState(prazo.data_vencimento);
 
   return (
     <form action={formAction} className="flex flex-col gap-5">
@@ -56,10 +61,16 @@ export function EditarPrazoForm({ prazo, usuarios }: EditarPrazoFormProps) {
         <input
           name="data_disponibilizacao"
           type="date"
-          defaultValue={prazo.data_disponibilizacao ?? ""}
+          value={dataDisponibilizacao}
+          onChange={(event) => setDataDisponibilizacao(event.target.value)}
           className="h-11 border border-border bg-background px-3 outline-none ring-primary focus:ring-2"
         />
       </label>
+
+      <CalculoDiasUteis
+        defaultDataBase={dataDisponibilizacao}
+        onVencimento={setDataVencimento}
+      />
 
       <label className="flex flex-col gap-1.5 text-sm">
         <span className="font-medium text-primary">Data de vencimento</span>
@@ -67,11 +78,12 @@ export function EditarPrazoForm({ prazo, usuarios }: EditarPrazoFormProps) {
           name="data_vencimento"
           type="date"
           required
-          defaultValue={prazo.data_vencimento}
+          value={dataVencimento}
+          onChange={(event) => setDataVencimento(event.target.value)}
           className="h-12 border-2 border-primary bg-background px-3 text-base font-semibold outline-none ring-primary focus:ring-2"
         />
         <span className="text-xs text-muted">
-          Esta data deve aparecer em destaque na lista e nos alertas.
+          Preencha manualmente ou use o cálculo em dias úteis acima.
         </span>
       </label>
 

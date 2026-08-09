@@ -14,6 +14,9 @@ class AuditAction(StrEnum):
     prazo_restaurado = "prazo_restaurado"
     usuario_criado = "usuario_criado"
     usuario_atualizado = "usuario_atualizado"
+    feriado_criado = "feriado_criado"
+    feriado_atualizado = "feriado_atualizado"
+    feriado_excluido = "feriado_excluido"
 
 
 class AuditLog(SQLModel, table=True):

@@ -6,7 +6,10 @@ export type AuditAction =
   | "prazo_excluido"
   | "prazo_restaurado"
   | "usuario_criado"
-  | "usuario_atualizado";
+  | "usuario_atualizado"
+  | "feriado_criado"
+  | "feriado_atualizado"
+  | "feriado_excluido";
 
 export type AuditLog = {
   id: string;
@@ -29,6 +32,9 @@ const ACTION_LABELS: Record<AuditAction, string> = {
   prazo_restaurado: "Restauração",
   usuario_criado: "Usuário criado",
   usuario_atualizado: "Usuário atualizado",
+  feriado_criado: "Feriado criado",
+  feriado_atualizado: "Feriado atualizado",
+  feriado_excluido: "Feriado excluído",
 };
 
 export function labelAcao(acao: AuditAction): string {

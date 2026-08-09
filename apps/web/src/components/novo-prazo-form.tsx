@@ -1,9 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 
 import { createPrazo, type ActionState } from "@/app/prazos/actions";
+import { CalculoDiasUteis } from "@/components/calculo-dias-uteis";
 import type { UserOption } from "@/lib/auth";
 
 const initialState: ActionState = {};
@@ -11,6 +12,8 @@ const initialState: ActionState = {};
 export function NovoPrazoForm({ usuarios }: { usuarios: UserOption[] }) {
   const [state, formAction, pending] = useActionState(createPrazo, initialState);
   const defaultResponsavel = usuarios[0]?.id ?? "";
+  const [dataDisponibilizacao, setDataDisponibilizacao] = useState("");
+  const [dataVencimento, setDataVencimento] = useState("");
 
   return (
     <form action={formAction} className="flex flex-col gap-5">
@@ -48,9 +51,16 @@ export function NovoPrazoForm({ usuarios }: { usuarios: UserOption[] }) {
         <input
           name="data_disponibilizacao"
           type="date"
+          value={dataDisponibilizacao}
+          onChange={(event) => setDataDisponibilizacao(event.target.value)}
           className="h-11 border border-border bg-background px-3 outline-none ring-primary focus:ring-2"
         />
       </label>
+
+      <CalculoDiasUteis
+        defaultDataBase={dataDisponibilizacao}
+        onVencimento={setDataVencimento}
+      />
 
       <label className="flex flex-col gap-1.5 text-sm">
         <span className="font-medium text-primary">Data de vencimento</span>
@@ -58,10 +68,12 @@ export function NovoPrazoForm({ usuarios }: { usuarios: UserOption[] }) {
           name="data_vencimento"
           type="date"
           required
+          value={dataVencimento}
+          onChange={(event) => setDataVencimento(event.target.value)}
           className="h-12 border-2 border-primary bg-background px-3 text-base font-semibold outline-none ring-primary focus:ring-2"
         />
         <span className="text-xs text-muted">
-          Esta data deve aparecer em destaque na lista e nos alertas.
+          Preencha manualmente ou use o cálculo em dias úteis acima.
         </span>
       </label>
 

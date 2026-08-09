@@ -48,12 +48,20 @@ export default async function UsuariosPage() {
         </div>
         <div className="flex flex-col items-end gap-3">
           <LogoutButton />
-          <Link
-            href="/dashboard"
-            className="inline-flex h-11 items-center justify-center border border-border bg-surface px-4 text-sm font-medium"
-          >
-            Voltar ao painel
-          </Link>
+          <div className="flex flex-wrap justify-end gap-2">
+            <Link
+              href="/feriados"
+              className="inline-flex h-11 items-center justify-center border border-border bg-surface px-4 text-sm font-medium"
+            >
+              Feriados
+            </Link>
+            <Link
+              href="/dashboard"
+              className="inline-flex h-11 items-center justify-center border border-border bg-surface px-4 text-sm font-medium"
+            >
+              Voltar ao painel
+            </Link>
+          </div>
         </div>
       </div>
 
