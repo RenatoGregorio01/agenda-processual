@@ -20,6 +20,7 @@ class Prazo(SQLModel, table=True):
     data_disponibilizacao: date | None = None
     data_vencimento: date = Field(index=True)
     responsavel: str = Field(max_length=120)
+    responsavel_id: UUID | None = Field(default=None, index=True)
     status: StatusPrazo = Field(default=StatusPrazo.pendente, index=True)
     alerta_3_dias: bool = True
     alerta_2_dias: bool = True

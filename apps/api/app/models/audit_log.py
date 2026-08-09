@@ -12,6 +12,8 @@ class AuditAction(StrEnum):
     prazo_cumprido = "prazo_cumprido"
     prazo_excluido = "prazo_excluido"
     prazo_restaurado = "prazo_restaurado"
+    usuario_criado = "usuario_criado"
+    usuario_atualizado = "usuario_atualizado"
 
 
 class AuditLog(SQLModel, table=True):

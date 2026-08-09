@@ -8,16 +8,27 @@ export type Prazo = {
   data_disponibilizacao: string | null;
   data_vencimento: string;
   responsavel: string;
+  responsavel_id: string | null;
   status: StatusPrazo;
   alerta_3_dias: boolean;
   alerta_2_dias: boolean;
   alerta_1_dia: boolean;
+  alerta_3_dias_enviado?: boolean;
+  alerta_2_dias_enviado?: boolean;
+  alerta_1_dia_enviado?: boolean;
   excluido_em: string | null;
   criado_em: string;
   atualizado_em: string;
 };
 
-export type FiltroPrazo = "todos" | "atrasados" | "7dias" | "cumpridos" | "excluidos";
+export type FiltroPrazo =
+  | "todos"
+  | "atrasados"
+  | "hoje"
+  | "amanha"
+  | "7dias"
+  | "cumpridos"
+  | "excluidos";
 
 export type UrgencyBadge = {
   label: string;
@@ -84,6 +95,8 @@ export function getUrgencyBadge(prazo: Prazo, today = new Date()): UrgencyBadge 
 export const FILTROS: { id: FiltroPrazo; label: string }[] = [
   { id: "todos", label: "Todos" },
   { id: "atrasados", label: "Atrasados" },
+  { id: "hoje", label: "Hoje" },
+  { id: "amanha", label: "Amanhã" },
   { id: "7dias", label: "7 dias" },
   { id: "cumpridos", label: "Cumpridos" },
   { id: "excluidos", label: "Excluídos" },

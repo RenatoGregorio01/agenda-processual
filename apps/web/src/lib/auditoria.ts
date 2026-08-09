@@ -4,7 +4,9 @@ export type AuditAction =
   | "prazo_atualizado"
   | "prazo_cumprido"
   | "prazo_excluido"
-  | "prazo_restaurado";
+  | "prazo_restaurado"
+  | "usuario_criado"
+  | "usuario_atualizado";
 
 export type AuditLog = {
   id: string;
@@ -25,6 +27,8 @@ const ACTION_LABELS: Record<AuditAction, string> = {
   prazo_cumprido: "Cumprido",
   prazo_excluido: "Exclusão",
   prazo_restaurado: "Restauração",
+  usuario_criado: "Usuário criado",
+  usuario_atualizado: "Usuário atualizado",
 };
 
 export function labelAcao(acao: AuditAction): string {

@@ -2,7 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 
 import { AUTH_COOKIE } from "@/lib/auth";
 
-const protectedPrefixes = ["/prazos", "/auditoria"];
+const protectedPrefixes = ["/dashboard", "/prazos", "/auditoria", "/usuarios"];
 
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
@@ -18,12 +18,12 @@ export function middleware(request: NextRequest) {
   }
 
   if (pathname === "/login" && token) {
-    return NextResponse.redirect(new URL("/prazos", request.url));
+    return NextResponse.redirect(new URL("/dashboard", request.url));
   }
 
   return NextResponse.next();
 }
 
 export const config = {
-  matcher: ["/prazos/:path*", "/auditoria", "/login"],
+  matcher: ["/dashboard", "/prazos/:path*", "/auditoria", "/usuarios", "/login"],
 };
