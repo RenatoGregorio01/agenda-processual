@@ -111,6 +111,12 @@ export default async function PrazoDetalhePage({
             ) : (
               <p className="text-sm font-medium text-no-prazo">Este prazo já foi cumprido.</p>
             )}
+            <Link
+              href={`/prazos/${prazo.id}/editar`}
+              className="inline-flex h-12 w-full items-center justify-center border border-border bg-surface px-6 text-base font-medium text-foreground transition hover:bg-background"
+            >
+              Editar
+            </Link>
             <ExcluirPrazoButton prazoId={prazo.id} acao={prazo.acao} />
           </>
         )}
