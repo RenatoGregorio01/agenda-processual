@@ -47,12 +47,20 @@ export default async function PrazosPage({
         </div>
         <div className="flex flex-col items-end gap-3">
           <LogoutButton />
-          <Link
-            href="/prazos/novo"
-            className="inline-flex h-11 items-center justify-center bg-primary px-4 text-sm font-semibold text-primary-foreground transition hover:brightness-110"
-          >
-            Novo prazo
-          </Link>
+          <div className="flex flex-wrap justify-end gap-2">
+            <Link
+              href="/auditoria"
+              className="inline-flex h-11 items-center justify-center border border-border bg-surface px-4 text-sm font-medium"
+            >
+              Auditoria
+            </Link>
+            <Link
+              href="/prazos/novo"
+              className="inline-flex h-11 items-center justify-center bg-primary px-4 text-sm font-semibold text-primary-foreground transition hover:brightness-110"
+            >
+              Novo prazo
+            </Link>
+          </div>
         </div>
       </div>
 

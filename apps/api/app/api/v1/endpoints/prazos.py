@@ -8,8 +8,11 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 
 from app.api.deps import get_current_user
 from app.core.database import get_session
+from app.models.audit_log import AuditAction
 from app.models.prazo import Prazo, StatusPrazo
+from app.models.user import User
 from app.schemas.prazo import PrazoCreate, PrazoRead, PrazoUpdate
+from app.services.audit import montar_auditoria
 
 router = APIRouter(dependencies=[Depends(get_current_user)])
 
@@ -62,9 +65,19 @@ async def listar_prazos(
 async def criar_prazo(
     payload: PrazoCreate,
     session: AsyncSession = Depends(get_session),
+    current_user: User = Depends(get_current_user),
 ) -> Prazo:
     prazo = Prazo(**payload.model_dump())
     session.add(prazo)
+    await session.flush()
+    session.add(
+        montar_auditoria(
+            usuario=current_user,
+            acao=AuditAction.prazo_criado,
+            entidade_id=prazo.id,
+            resumo=f"Criou prazo: {prazo.acao} ({prazo.numero_processo})",
+        )
+    )
     await session.commit()
     await session.refresh(prazo)
     return prazo
@@ -75,7 +88,6 @@ async def obter_prazo(
     prazo_id: UUID,
     session: AsyncSession = Depends(get_session),
 ) -> Prazo:
-    # Permite abrir detalhe também de itens soft-deleted (para restaurar).
     prazo = await session.get(Prazo, prazo_id)
     if prazo is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Prazo não encontrado")
@@ -87,6 +99,7 @@ async def atualizar_prazo(
     prazo_id: UUID,
     payload: PrazoUpdate,
     session: AsyncSession = Depends(get_session),
+    current_user: User = Depends(get_current_user),
 ) -> Prazo:
     prazo = await _get_prazo_ativo(session, prazo_id)
 
@@ -95,6 +108,14 @@ async def atualizar_prazo(
     prazo.atualizado_em = datetime.utcnow()
 
     session.add(prazo)
+    session.add(
+        montar_auditoria(
+            usuario=current_user,
+            acao=AuditAction.prazo_atualizado,
+            entidade_id=prazo.id,
+            resumo=f"Editou prazo: {prazo.acao} ({prazo.numero_processo})",
+        )
+    )
     await session.commit()
     await session.refresh(prazo)
     return prazo
@@ -104,11 +125,20 @@ async def atualizar_prazo(
 async def marcar_cumprido(
     prazo_id: UUID,
     session: AsyncSession = Depends(get_session),
+    current_user: User = Depends(get_current_user),
 ) -> Prazo:
     prazo = await _get_prazo_ativo(session, prazo_id)
     prazo.status = StatusPrazo.cumprido
     prazo.atualizado_em = datetime.utcnow()
     session.add(prazo)
+    session.add(
+        montar_auditoria(
+            usuario=current_user,
+            acao=AuditAction.prazo_cumprido,
+            entidade_id=prazo.id,
+            resumo=f"Marcou como cumprido: {prazo.acao} ({prazo.numero_processo})",
+        )
+    )
     await session.commit()
     await session.refresh(prazo)
     return prazo
@@ -118,6 +148,7 @@ async def marcar_cumprido(
 async def restaurar_prazo(
     prazo_id: UUID,
     session: AsyncSession = Depends(get_session),
+    current_user: User = Depends(get_current_user),
 ) -> Prazo:
     prazo = await session.get(Prazo, prazo_id)
     if prazo is None or prazo.excluido_em is None:
@@ -129,6 +160,14 @@ async def restaurar_prazo(
     prazo.excluido_em = None
     prazo.atualizado_em = datetime.utcnow()
     session.add(prazo)
+    session.add(
+        montar_auditoria(
+            usuario=current_user,
+            acao=AuditAction.prazo_restaurado,
+            entidade_id=prazo.id,
+            resumo=f"Restaurou prazo: {prazo.acao} ({prazo.numero_processo})",
+        )
+    )
     await session.commit()
     await session.refresh(prazo)
     return prazo
@@ -138,11 +177,20 @@ async def restaurar_prazo(
 async def excluir_prazo(
     prazo_id: UUID,
     session: AsyncSession = Depends(get_session),
+    current_user: User = Depends(get_current_user),
 ) -> Prazo:
     prazo = await _get_prazo_ativo(session, prazo_id)
     prazo.excluido_em = datetime.utcnow()
     prazo.atualizado_em = datetime.utcnow()
     session.add(prazo)
+    session.add(
+        montar_auditoria(
+            usuario=current_user,
+            acao=AuditAction.prazo_excluido,
+            entidade_id=prazo.id,
+            resumo=f"Excluiu prazo: {prazo.acao} ({prazo.numero_processo})",
+        )
+    )
     await session.commit()
     await session.refresh(prazo)
     return prazo

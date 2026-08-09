@@ -6,6 +6,7 @@ from sqlmodel import SQLModel
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from app.core.config import get_settings
+from app.models import AuditLog, Prazo, User  # noqa: F401
 
 settings = get_settings()
 
