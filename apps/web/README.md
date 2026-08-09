@@ -1,15 +1,23 @@
 # Web — Agenda Processual
 
-Frontend Next.js + TypeScript (ainda não scaffoldado).
+Frontend Next.js + TypeScript (App Router).
 
-Será criado em uma feature dedicada, por exemplo `feature/web-nextjs-scaffold`.
+## Desenvolvimento
 
-## Telas do MVP (referência)
+```bash
+cd apps/web
+cp .env.example .env.local
+npm install
+npm run dev
+```
 
-Ver [docs/figma-brief-mvp.md](../../docs/figma-brief-mvp.md):
+App: http://localhost:3000  
+API esperada: `NEXT_PUBLIC_API_URL` (padrão `http://localhost:8000`)
 
-1. Login
-2. Lista de prazos
-3. Novo prazo
-4. Detalhe do prazo
-5. Mock de alerta
+## Com Docker
+
+```bash
+docker compose -f docker/docker-compose.yml up --build
+```
+
+Web em http://localhost:3000

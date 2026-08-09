@@ -37,12 +37,25 @@ docs/      # Briefs e documentação de produto
 
 ## Desenvolvimento local
 
-Com Docker (API + Postgres):
+Com Docker (API + Postgres + Web):
 
 ```bash
 docker compose -f docker/docker-compose.yml up --build
 ```
 
-API: http://localhost:8000  
-Docs OpenAPI: http://localhost:8000/docs  
-Postgres: `localhost:5432`
+| Serviço | URL |
+|---------|-----|
+| Web | http://localhost:3000 |
+| API | http://localhost:8000 |
+| Docs OpenAPI | http://localhost:8000/docs |
+| Postgres | `localhost:5432` |
+
+Web isolado:
+
+```bash
+cd apps/web
+cp .env.example .env.local
+npm install
+npm run dev
+```
+
