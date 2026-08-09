@@ -24,7 +24,8 @@ async def listar_opcoes_usuarios(
     current_user: User = Depends(get_current_user),
 ) -> list[UserOption]:
     if not (
-        user_has_permission(current_user, Permission.prazos_criar)
+        user_has_permission(current_user, Permission.prazos_visualizar)
+        or user_has_permission(current_user, Permission.prazos_criar)
         or user_has_permission(current_user, Permission.prazos_alterar)
     ):
         raise HTTPException(

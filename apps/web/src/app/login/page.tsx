@@ -26,7 +26,7 @@ export default async function LoginPage({
             Use a conta criada pelo administrador do escritório.
           </p>
           <div className="mt-6">
-            <LoginForm nextPath={params.next || "/prazos"} />
+            <LoginForm nextPath={params.next || "/dashboard"} />
           </div>
         </div>
       </main>

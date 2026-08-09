@@ -34,10 +34,10 @@ export default function Home() {
             Entrar
           </Link>
           <Link
-            href="/prazos"
+            href="/dashboard"
             className="inline-flex h-12 items-center justify-center border border-border bg-surface px-6 text-base font-medium text-foreground transition hover:bg-background"
           >
-            Ver prazos
+            Ver hoje
           </Link>
         </div>
 

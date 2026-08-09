@@ -35,7 +35,7 @@ export function LoginForm({ nextPath }: LoginFormProps) {
         return;
       }
 
-      router.replace(nextPath.startsWith("/") ? nextPath : "/prazos");
+      router.replace(nextPath.startsWith("/") ? nextPath : "/dashboard");
       router.refresh();
     });
   }
