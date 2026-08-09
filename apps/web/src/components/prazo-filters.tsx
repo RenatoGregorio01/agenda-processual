@@ -6,9 +6,11 @@ import { buildQuery } from "@/lib/query";
 export function PrazoFilters({
   current,
   responsavelId,
+  q,
 }: {
   current: FiltroPrazo;
   responsavelId?: string;
+  q?: string;
 }) {
   return (
     <div className="flex gap-2 overflow-x-auto pb-1">
@@ -17,6 +19,7 @@ export function PrazoFilters({
         const href = `/prazos${buildQuery({
           filtro: filtro.id === "todos" ? undefined : filtro.id,
           responsavel_id: responsavelId,
+          q,
         })}`;
         return (
           <Link

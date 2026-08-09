@@ -50,3 +50,18 @@ def test_filtro_responsavel_logic() -> None:
         if prazo.responsavel_id == responsavel_a
     ]
     assert filtrados == [prazo_a]
+
+
+def test_busca_match_logic() -> None:
+    prazo = _pendente(date.today())
+    prazo.numero_processo = "0001234-56.2024.4.01.0000"
+    prazo.cliente = "Maria Souza"
+    prazo.acao = "Protocolar contestação"
+    prazo.responsavel = "Verônica"
+
+    term = "maria"
+    haystack = " ".join(
+        [prazo.numero_processo, prazo.cliente, prazo.acao, prazo.responsavel]
+    ).lower()
+    assert term in haystack
+    assert "recurso" not in haystack
