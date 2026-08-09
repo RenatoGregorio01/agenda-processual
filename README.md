@@ -8,6 +8,10 @@ Validação inicial: destacar a **data de vencimento** e alertar em 3 / 2 / 1 di
 
 Brief para Figma AI/Make: [docs/figma-brief-mvp.md](docs/figma-brief-mvp.md)
 
+## Roadmap
+
+Próximos temas de produto (incluindo compra de acesso e melhoria de UI): [docs/roadmap.md](docs/roadmap.md)
+
 ## Stack
 
 - API: FastAPI (Python)
