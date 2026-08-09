@@ -1,8 +1,10 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
-import { cumprirPrazo, excluirPrazo } from "@/app/prazos/actions";
+import { cumprirPrazo } from "@/app/prazos/actions";
+import { ExcluirPrazoButton } from "@/components/excluir-prazo-button";
 import { PrazoBadge } from "@/components/prazo-badge";
+import { RestaurarPrazoButton } from "@/components/restaurar-prazo-button";
 import { apiFetch } from "@/lib/api-server";
 import {
   formatVencimentoLongo,
@@ -27,12 +29,13 @@ export default async function PrazoDetalhePage({
   if (!prazo) notFound();
 
   const badge = getUrgencyBadge(prazo);
+  const isExcluded = Boolean(prazo.excluido_em);
   const cumprir = cumprirPrazo.bind(null, prazo.id);
-  const excluir = excluirPrazo.bind(null, prazo.id);
+  const backHref = isExcluded ? "/prazos?filtro=excluidos" : "/prazos";
 
   return (
     <main className="mx-auto flex w-full max-w-2xl flex-1 flex-col px-6 py-10 sm:px-10">
-      <Link href="/prazos" className="text-sm text-muted underline-offset-4 hover:underline">
+      <Link href={backHref} className="text-sm text-muted underline-offset-4 hover:underline">
         ← Voltar para prazos
       </Link>
 
@@ -49,11 +52,13 @@ export default async function PrazoDetalhePage({
       <section className="mt-10 border-t border-border pt-6">
         <h2 className="text-2xl font-semibold text-foreground">{prazo.acao}</h2>
         <p className="mt-2 text-muted">
-          {badge.label === "ATRASADO"
-            ? "Prazo vencido. Protocolar o quanto antes."
-            : badge.label === "AMANHÃ" || badge.label === "HOJE"
-              ? `${badge.label === "HOJE" ? "Hoje" : "Amanhã"} vence. Protocolar no prazo.`
-              : "Acompanhe o vencimento e a ação necessária."}
+          {isExcluded
+            ? "Este prazo foi excluído e pode ser restaurado."
+            : badge.label === "ATRASADO"
+              ? "Prazo vencido. Protocolar o quanto antes."
+              : badge.label === "AMANHÃ" || badge.label === "HOJE"
+                ? `${badge.label === "HOJE" ? "Hoje" : "Amanhã"} vence. Protocolar no prazo.`
+                : "Acompanhe o vencimento e a ação necessária."}
         </p>
       </section>
 
@@ -90,26 +95,25 @@ export default async function PrazoDetalhePage({
       </section>
 
       <div className="mt-10 flex flex-col gap-3">
-        {prazo.status !== "cumprido" ? (
-          <form action={cumprir}>
-            <button
-              type="submit"
-              className="inline-flex h-12 w-full items-center justify-center bg-primary px-6 text-base font-semibold text-primary-foreground transition hover:brightness-110"
-            >
-              Marcar como cumprido
-            </button>
-          </form>
+        {isExcluded ? (
+          <RestaurarPrazoButton prazoId={prazo.id} />
         ) : (
-          <p className="text-sm font-medium text-no-prazo">Este prazo já foi cumprido.</p>
+          <>
+            {prazo.status !== "cumprido" ? (
+              <form action={cumprir}>
+                <button
+                  type="submit"
+                  className="inline-flex h-12 w-full items-center justify-center bg-primary px-6 text-base font-semibold text-primary-foreground transition hover:brightness-110"
+                >
+                  Marcar como cumprido
+                </button>
+              </form>
+            ) : (
+              <p className="text-sm font-medium text-no-prazo">Este prazo já foi cumprido.</p>
+            )}
+            <ExcluirPrazoButton prazoId={prazo.id} acao={prazo.acao} />
+          </>
         )}
-        <form action={excluir}>
-          <button
-            type="submit"
-            className="inline-flex h-11 w-full items-center justify-center text-sm text-atrasado underline-offset-4 hover:underline"
-          >
-            Excluir
-          </button>
-        </form>
       </div>
     </main>
   );

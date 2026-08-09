@@ -1,5 +1,6 @@
 from collections.abc import AsyncGenerator
 
+from sqlalchemy import text
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 from sqlmodel import SQLModel
 from sqlmodel.ext.asyncio.session import AsyncSession
@@ -29,3 +30,12 @@ async def get_session() -> AsyncGenerator[AsyncSession, None]:
 async def init_db() -> None:
     async with engine.begin() as conn:
         await conn.run_sync(SQLModel.metadata.create_all)
+        # Bancos já criados antes do soft delete
+        await conn.execute(
+            text("ALTER TABLE prazos ADD COLUMN IF NOT EXISTS excluido_em TIMESTAMP NULL")
+        )
+        await conn.execute(
+            text(
+                "CREATE INDEX IF NOT EXISTS ix_prazos_excluido_em ON prazos (excluido_em)"
+            )
+        )

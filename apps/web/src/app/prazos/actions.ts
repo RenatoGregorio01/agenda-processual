@@ -71,5 +71,16 @@ export async function excluirPrazo(prazoId: string): Promise<void> {
     throw new Error("Não foi possível excluir o prazo.");
   }
   revalidatePath("/prazos");
+  redirect("/prazos?filtro=excluidos");
+}
+
+export async function restaurarPrazo(prazoId: string): Promise<void> {
+  const response = await apiFetch(`/api/v1/prazos/${prazoId}/restaurar`, {
+    method: "POST",
+  });
+  if (!response.ok) {
+    throw new Error("Não foi possível restaurar o prazo.");
+  }
+  revalidatePath("/prazos");
   redirect("/prazos");
 }

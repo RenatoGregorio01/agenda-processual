@@ -45,5 +45,6 @@ class PrazoRead(BaseModel):
     alerta_3_dias: bool
     alerta_2_dias: bool
     alerta_1_dia: bool
+    excluido_em: datetime | None
     criado_em: datetime
     atualizado_em: datetime

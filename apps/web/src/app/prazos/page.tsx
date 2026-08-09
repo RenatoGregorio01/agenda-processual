@@ -62,7 +62,9 @@ export default async function PrazosPage({
 
       {prazos.length === 0 ? (
         <p className="mt-12 max-w-md text-muted">
-          Nenhum prazo por enquanto. Cadastre o primeiro para sair do memoriômetro.
+          {filtro === "excluidos"
+            ? "Nenhum prazo excluído. Itens removidos ficam aqui para restauração."
+            : "Nenhum prazo por enquanto. Cadastre o primeiro para sair do memoriômetro."}
         </p>
       ) : (
         <ul className="mt-8 divide-y divide-border border-y border-border">

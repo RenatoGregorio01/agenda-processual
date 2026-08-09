@@ -12,11 +12,12 @@ export type Prazo = {
   alerta_3_dias: boolean;
   alerta_2_dias: boolean;
   alerta_1_dia: boolean;
+  excluido_em: string | null;
   criado_em: string;
   atualizado_em: string;
 };
 
-export type FiltroPrazo = "todos" | "atrasados" | "7dias" | "cumpridos";
+export type FiltroPrazo = "todos" | "atrasados" | "7dias" | "cumpridos" | "excluidos";
 
 export type UrgencyBadge = {
   label: string;
@@ -65,6 +66,9 @@ export function daysUntil(value: string, today = new Date()): number {
 }
 
 export function getUrgencyBadge(prazo: Prazo, today = new Date()): UrgencyBadge {
+  if (prazo.excluido_em) {
+    return { label: "EXCLUÍDO", tone: "neutro" };
+  }
   if (prazo.status === "cumprido") {
     return { label: "CUMPRIDO", tone: "neutro" };
   }
@@ -82,4 +86,5 @@ export const FILTROS: { id: FiltroPrazo; label: string }[] = [
   { id: "atrasados", label: "Atrasados" },
   { id: "7dias", label: "7 dias" },
   { id: "cumpridos", label: "Cumpridos" },
+  { id: "excluidos", label: "Excluídos" },
 ];

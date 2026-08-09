@@ -24,5 +24,6 @@ class Prazo(SQLModel, table=True):
     alerta_3_dias: bool = True
     alerta_2_dias: bool = True
     alerta_1_dia: bool = True
+    excluido_em: datetime | None = Field(default=None, index=True)
     criado_em: datetime = Field(default_factory=datetime.utcnow)
     atualizado_em: datetime = Field(default_factory=datetime.utcnow)
