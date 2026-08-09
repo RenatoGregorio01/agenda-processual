@@ -4,6 +4,7 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 
 from app.api.deps import get_current_user
 from app.core.database import get_session
+from app.core.permissions import Permission, user_has_permission
 from app.models.audit_log import AuditLog
 from app.models.user import User
 from app.schemas.audit import AuditLogRead
@@ -19,8 +20,7 @@ async def listar_auditoria(
 ) -> list[AuditLog]:
     query = select(AuditLog).order_by(col(AuditLog.criado_em).desc()).limit(limit)
 
-    # Admin vê tudo; demais usuários só o que eles incluíram/alteraram.
-    if not current_user.is_admin:
+    if not user_has_permission(current_user, Permission.auditoria_ver_tudo):
         query = query.where(AuditLog.usuario_id == current_user.id)
 
     result = await session.exec(query)

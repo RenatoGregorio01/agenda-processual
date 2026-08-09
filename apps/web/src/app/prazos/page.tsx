@@ -1,17 +1,15 @@
 import Link from "next/link";
 
+import { ExportPautaButtons } from "@/components/export-pauta-buttons";
 import { LogoutButton } from "@/components/logout-button";
-import { PrazoBadge } from "@/components/prazo-badge";
 import { PrazoFilters } from "@/components/prazo-filters";
+import { PrazoListItem } from "@/components/prazo-list-item";
+import { PrazoSearch } from "@/components/prazo-search";
+import { ResponsavelFilter } from "@/components/responsavel-filter";
 import { apiFetch } from "@/lib/api-server";
-import type { User } from "@/lib/auth";
-import {
-  FILTROS,
-  formatVencimento,
-  getUrgencyBadge,
-  type FiltroPrazo,
-  type Prazo,
-} from "@/lib/prazos";
+import { hasPermission, type User, type UserOption } from "@/lib/auth";
+import { FILTROS, type FiltroPrazo, type Prazo } from "@/lib/prazos";
+import { buildQuery } from "@/lib/query";
 
 async function getCurrentUser(): Promise<User | null> {
   const response = await apiFetch("/api/v1/auth/me");
@@ -19,8 +17,22 @@ async function getCurrentUser(): Promise<User | null> {
   return (await response.json()) as User;
 }
 
-async function listPrazos(filtro: FiltroPrazo): Promise<Prazo[]> {
-  const query = filtro === "todos" ? "" : `?filtro=${filtro}`;
+async function listUsuariosOpcoes(): Promise<UserOption[]> {
+  const response = await apiFetch("/api/v1/usuarios/opcoes");
+  if (!response.ok) return [];
+  return (await response.json()) as UserOption[];
+}
+
+async function listPrazos(
+  filtro: FiltroPrazo,
+  responsavelId?: string,
+  q?: string,
+): Promise<Prazo[]> {
+  const query = buildQuery({
+    filtro: filtro === "todos" ? undefined : filtro,
+    responsavel_id: responsavelId,
+    q,
+  });
   const response = await apiFetch(`/api/v1/prazos${query}`);
   if (!response.ok) {
     return [];
@@ -36,11 +48,17 @@ function resolveFiltro(value?: string): FiltroPrazo {
 export default async function PrazosPage({
   searchParams,
 }: {
-  searchParams: Promise<{ filtro?: string }>;
+  searchParams: Promise<{ filtro?: string; responsavel_id?: string; q?: string }>;
 }) {
   const params = await searchParams;
   const filtro = resolveFiltro(params.filtro);
-  const [user, prazos] = await Promise.all([getCurrentUser(), listPrazos(filtro)]);
+  const responsavelId = params.responsavel_id || undefined;
+  const q = params.q?.trim() || undefined;
+  const [user, usuarios, prazos] = await Promise.all([
+    getCurrentUser(),
+    listUsuariosOpcoes(),
+    listPrazos(filtro, responsavelId, q),
+  ]);
 
   return (
     <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col px-6 py-10 sm:px-10">
@@ -50,12 +68,22 @@ export default async function PrazosPage({
             Agenda Processual
           </p>
           <h1 className="mt-5 text-3xl font-semibold tracking-tight text-foreground">Prazos</h1>
-          <p className="mt-2 text-muted">Ordenados por vencimento</p>
+          <p className="mt-2 text-muted">
+            {q
+              ? `Resultados para “${q}” · ${prazos.length} encontrado${prazos.length === 1 ? "" : "s"}`
+              : "Ordenados por vencimento"}
+          </p>
         </div>
         <div className="flex flex-col items-end gap-3">
           <LogoutButton />
           <div className="flex flex-wrap justify-end gap-2">
-            {user?.is_admin ? (
+            <Link
+              href={`/dashboard${buildQuery({ responsavel_id: responsavelId })}`}
+              className="inline-flex h-11 items-center justify-center border border-border bg-surface px-4 text-sm font-medium"
+            >
+              Hoje
+            </Link>
+            {hasPermission(user, "usuarios_gerenciar") ? (
               <Link
                 href="/usuarios"
                 className="inline-flex h-11 items-center justify-center border border-border bg-surface px-4 text-sm font-medium"
@@ -69,50 +97,49 @@ export default async function PrazosPage({
             >
               Auditoria
             </Link>
-            <Link
-              href="/prazos/novo"
-              className="inline-flex h-11 items-center justify-center bg-primary px-4 text-sm font-semibold text-primary-foreground transition hover:brightness-110"
-            >
-              Novo prazo
-            </Link>
+            {hasPermission(user, "prazos_criar") ? (
+              <Link
+                href="/prazos/novo"
+                className="inline-flex h-11 items-center justify-center bg-primary px-4 text-sm font-semibold text-primary-foreground transition hover:brightness-110"
+              >
+                Novo prazo
+              </Link>
+            ) : null}
           </div>
         </div>
       </div>
 
-      <div className="mt-8">
-        <PrazoFilters current={filtro} />
+      <div className="mt-8 space-y-4">
+        <PrazoSearch q={q} filtro={filtro} responsavelId={responsavelId} />
+        <PrazoFilters current={filtro} responsavelId={responsavelId} q={q} />
+        <ResponsavelFilter
+          basePath="/prazos"
+          usuarios={usuarios}
+          currentUserId={user?.id}
+          currentResponsavelId={responsavelId}
+          extraParams={{
+            filtro: filtro === "todos" ? undefined : filtro,
+            q,
+          }}
+        />
+        <ExportPautaButtons filtro={filtro} responsavelId={responsavelId} q={q} />
       </div>
 
       {prazos.length === 0 ? (
         <p className="mt-12 max-w-md text-muted">
-          {filtro === "excluidos"
-            ? "Nenhum prazo excluído. Itens removidos ficam aqui para restauração."
-            : "Nenhum prazo por enquanto. Cadastre o primeiro para sair do memoriômetro."}
+          {q
+            ? "Nenhum prazo encontrado para essa busca."
+            : filtro === "excluidos"
+              ? "Nenhum prazo excluído. Itens removidos ficam aqui para restauração."
+              : responsavelId
+                ? "Nenhum prazo para este responsável com o filtro atual."
+                : "Nenhum prazo por enquanto. Cadastre o primeiro para sair do memoriômetro."}
         </p>
       ) : (
         <ul className="mt-8 divide-y divide-border border-y border-border">
-          {prazos.map((prazo) => {
-            const badge = getUrgencyBadge(prazo);
-            return (
-              <li key={prazo.id}>
-                <Link
-                  href={`/prazos/${prazo.id}`}
-                  className="block py-5 transition hover:bg-surface/80"
-                >
-                  <p className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
-                    {formatVencimento(prazo.data_vencimento)}
-                  </p>
-                  <div className="mt-2">
-                    <PrazoBadge badge={badge} />
-                  </div>
-                  <p className="mt-3 text-lg font-medium text-foreground">{prazo.acao}</p>
-                  <p className="mt-1 text-sm text-muted">
-                    {prazo.numero_processo} · {prazo.cliente} · {prazo.responsavel}
-                  </p>
-                </Link>
-              </li>
-            );
-          })}
+          {prazos.map((prazo) => (
+            <PrazoListItem key={prazo.id} prazo={prazo} />
+          ))}
         </ul>
       )}
     </main>

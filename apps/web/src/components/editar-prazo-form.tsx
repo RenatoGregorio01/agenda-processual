@@ -4,22 +4,20 @@ import Link from "next/link";
 import { useActionState } from "react";
 
 import { updatePrazo, type ActionState } from "@/app/prazos/actions";
+import type { UserOption } from "@/lib/auth";
 import type { Prazo } from "@/lib/prazos";
 
 const initialState: ActionState = {};
 
-const RESPONSAVEIS = ["Verônica", "Estagiário"] as const;
-
 type EditarPrazoFormProps = {
   prazo: Prazo;
+  usuarios: UserOption[];
 };
 
-export function EditarPrazoForm({ prazo }: EditarPrazoFormProps) {
+export function EditarPrazoForm({ prazo, usuarios }: EditarPrazoFormProps) {
   const boundUpdate = updatePrazo.bind(null, prazo.id);
   const [state, formAction, pending] = useActionState(boundUpdate, initialState);
-  const responsaveis = RESPONSAVEIS.includes(prazo.responsavel as (typeof RESPONSAVEIS)[number])
-    ? [...RESPONSAVEIS]
-    : [prazo.responsavel, ...RESPONSAVEIS];
+  const defaultResponsavel = prazo.responsavel_id ?? usuarios[0]?.id ?? "";
 
   return (
     <form action={formAction} className="flex flex-col gap-5">
@@ -80,21 +78,21 @@ export function EditarPrazoForm({ prazo }: EditarPrazoFormProps) {
       <label className="flex flex-col gap-1.5 text-sm">
         <span className="font-medium">Responsável</span>
         <select
-          name="responsavel"
+          name="responsavel_id"
           required
-          defaultValue={prazo.responsavel}
+          defaultValue={defaultResponsavel}
           className="h-11 border border-border bg-background px-3 outline-none ring-primary focus:ring-2"
         >
-          {responsaveis.map((nome) => (
-            <option key={nome} value={nome}>
-              {nome}
+          {usuarios.map((user) => (
+            <option key={user.id} value={user.id}>
+              {user.nome} ({user.email})
             </option>
           ))}
         </select>
       </label>
 
       <fieldset className="flex flex-col gap-2 border border-border p-4">
-        <legend className="px-1 text-sm font-medium">Alertas</legend>
+        <legend className="px-1 text-sm font-medium">Alertas por e-mail</legend>
         <label className="flex items-center gap-2 text-sm">
           <input name="alerta_3_dias" type="checkbox" defaultChecked={prazo.alerta_3_dias} />
           Alertar 3 dias antes
@@ -114,7 +112,7 @@ export function EditarPrazoForm({ prazo }: EditarPrazoFormProps) {
       <div className="flex flex-col gap-3 sm:flex-row">
         <button
           type="submit"
-          disabled={pending}
+          disabled={pending || usuarios.length === 0}
           className="inline-flex h-12 items-center justify-center bg-primary px-6 text-base font-semibold text-primary-foreground transition hover:brightness-110 disabled:opacity-60"
         >
           {pending ? "Salvando…" : "Salvar alterações"}

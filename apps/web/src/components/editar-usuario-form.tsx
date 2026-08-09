@@ -1,20 +1,23 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useMemo, useState } from "react";
 
 import { updateUsuario, type ActionState } from "@/app/usuarios/actions";
-import type { User } from "@/lib/auth";
+import type { RoleInfo, User } from "@/lib/auth";
 
 const initialState: ActionState = {};
 
 type EditarUsuarioFormProps = {
   user: User;
+  roles: RoleInfo[];
   isSelf: boolean;
 };
 
-export function EditarUsuarioForm({ user, isSelf }: EditarUsuarioFormProps) {
+export function EditarUsuarioForm({ user, roles, isSelf }: EditarUsuarioFormProps) {
   const boundUpdate = updateUsuario.bind(null, user.id);
   const [state, formAction, pending] = useActionState(boundUpdate, initialState);
+  const [role, setRole] = useState(user.role);
+  const selected = useMemo(() => roles.find((item) => item.id === role), [role, roles]);
 
   return (
     <form action={formAction} className="flex flex-col gap-3 border border-border bg-surface p-4">
@@ -57,25 +60,55 @@ export function EditarUsuarioForm({ user, isSelf }: EditarUsuarioFormProps) {
 
       {isSelf ? (
         <>
-          {user.is_admin ? <input type="hidden" name="is_admin" value="on" /> : null}
+          <input type="hidden" name="role" value={user.role} />
           {user.ativo ? <input type="hidden" name="ativo" value="on" /> : null}
           <p className="text-sm text-muted">
-            Permissão: {user.is_admin ? "Administrador" : "Padrão"} · Status:{" "}
+            Perfil: {roles.find((item) => item.id === user.role)?.label ?? user.role} · Status:{" "}
             {user.ativo ? "Ativo" : "Inativo"} (não alterável na própria conta)
           </p>
         </>
       ) : (
         <>
-          <label className="flex items-center gap-2 text-sm">
-            <input name="is_admin" type="checkbox" defaultChecked={user.is_admin} />
-            Administrador
+          <label className="flex flex-col gap-1.5 text-sm">
+            <span className="font-medium">Perfil (role)</span>
+            <select
+              name="role"
+              required
+              value={role}
+              onChange={(event) => setRole(event.target.value as User["role"])}
+              className="h-10 border border-border bg-background px-3 outline-none ring-primary focus:ring-2"
+            >
+              {roles.map((item) => (
+                <option key={item.id} value={item.id}>
+                  {item.label}
+                </option>
+              ))}
+            </select>
           </label>
+          {selected ? (
+            <p className="text-xs text-muted">{selected.description}</p>
+          ) : null}
           <label className="flex items-center gap-2 text-sm">
             <input name="ativo" type="checkbox" defaultChecked={user.ativo} />
             Ativo
           </label>
         </>
       )}
+
+      <label className="flex items-start gap-2 text-sm">
+        <input
+          name="receber_alertas"
+          type="checkbox"
+          defaultChecked={user.receber_alertas}
+          className="mt-0.5"
+        />
+        <span>
+          Receber alertas de prazos por e-mail
+          <span className="mt-0.5 block text-xs text-muted">
+            Inclui avisos de todos os prazos do escritório (3/2/1 dia).
+          </span>
+        </span>
+      </label>
 
       {state.error ? <p className="text-sm text-atrasado">{state.error}</p> : null}
       {state.ok ? <p className="text-sm text-no-prazo">Alterações salvas.</p> : null}

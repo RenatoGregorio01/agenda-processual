@@ -3,7 +3,7 @@ import Link from "next/link";
 import { LogoutButton } from "@/components/logout-button";
 import { apiFetch } from "@/lib/api-server";
 import { formatAuditDate, labelAcao, type AuditLog } from "@/lib/auditoria";
-import type { User } from "@/lib/auth";
+import { hasPermission, type User } from "@/lib/auth";
 
 async function getCurrentUser(): Promise<User | null> {
   const response = await apiFetch("/api/v1/auth/me");
@@ -31,18 +31,18 @@ export default async function AuditoriaPage() {
             Auditoria
           </h1>
           <p className="mt-2 text-muted">
-            {user?.is_admin
-              ? "Visão administrativa: ações de todos os usuários."
+            {hasPermission(user, "auditoria_ver_tudo")
+              ? "Visão completa: ações de todos os usuários."
               : "Você vê apenas as ações que você incluiu ou alterou."}
           </p>
         </div>
         <div className="flex flex-col items-end gap-3">
           <LogoutButton />
           <Link
-            href="/prazos"
+            href="/dashboard"
             className="inline-flex h-11 items-center justify-center border border-border bg-surface px-4 text-sm font-medium"
           >
-            Voltar aos prazos
+            Voltar ao painel
           </Link>
         </div>
       </div>

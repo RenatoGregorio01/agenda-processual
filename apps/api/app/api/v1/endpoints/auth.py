@@ -9,6 +9,7 @@ from app.models.audit_log import AuditAction
 from app.models.user import User
 from app.schemas.auth import LoginRequest, TokenResponse, UserRead
 from app.services.audit import registrar_auditoria
+from app.services.users import to_user_read
 
 router = APIRouter()
 
@@ -45,5 +46,5 @@ async def login(
 
 
 @router.get("/me", response_model=UserRead)
-async def me(current_user: User = Depends(get_current_user)) -> User:
-    return current_user
+async def me(current_user: User = Depends(get_current_user)) -> UserRead:
+    return to_user_read(current_user)

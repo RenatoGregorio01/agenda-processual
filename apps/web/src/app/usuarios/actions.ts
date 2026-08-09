@@ -17,8 +17,9 @@ export async function createUsuario(
     nome: String(formData.get("nome") || "").trim(),
     email: String(formData.get("email") || "").trim().toLowerCase(),
     password: String(formData.get("password") || ""),
-    is_admin: formData.get("is_admin") === "on",
+    role: String(formData.get("role") || "editor"),
     ativo: formData.get("ativo") === "on",
+    receber_alertas: formData.get("receber_alertas") === "on",
   };
 
   if (!payload.nome || !payload.email || payload.password.length < 6) {
@@ -50,8 +51,9 @@ export async function updateUsuario(
   const payload: Record<string, unknown> = {
     nome: String(formData.get("nome") || "").trim(),
     email: String(formData.get("email") || "").trim().toLowerCase(),
-    is_admin: formData.get("is_admin") === "on",
+    role: String(formData.get("role") || "editor"),
     ativo: formData.get("ativo") === "on",
+    receber_alertas: formData.get("receber_alertas") === "on",
   };
 
   if (password) {

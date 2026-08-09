@@ -5,7 +5,7 @@ import { CriarUsuarioForm } from "@/components/criar-usuario-form";
 import { EditarUsuarioForm } from "@/components/editar-usuario-form";
 import { LogoutButton } from "@/components/logout-button";
 import { apiFetch } from "@/lib/api-server";
-import type { User } from "@/lib/auth";
+import { hasPermission, type RoleInfo, type User } from "@/lib/auth";
 
 async function getCurrentUser(): Promise<User | null> {
   const response = await apiFetch("/api/v1/auth/me");
@@ -19,12 +19,18 @@ async function listUsuarios(): Promise<User[]> {
   return (await response.json()) as User[];
 }
 
+async function listRoles(): Promise<RoleInfo[]> {
+  const response = await apiFetch("/api/v1/roles");
+  if (!response.ok) return [];
+  return (await response.json()) as RoleInfo[];
+}
+
 export default async function UsuariosPage() {
   const currentUser = await getCurrentUser();
   if (!currentUser) redirect("/login");
-  if (!currentUser.is_admin) redirect("/prazos");
+  if (!hasPermission(currentUser, "usuarios_gerenciar")) redirect("/prazos");
 
-  const usuarios = await listUsuarios();
+  const [usuarios, roles] = await Promise.all([listUsuarios(), listRoles()]);
 
   return (
     <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col px-6 py-10 sm:px-10">
@@ -37,22 +43,33 @@ export default async function UsuariosPage() {
             Usuários
           </h1>
           <p className="mt-2 text-muted">
-            Gerencie quem acessa a base e o nível de permissão (admin ou padrão).
+            Defina quem acessa a base e o perfil de permissões (admin, editor ou visualizador).
           </p>
         </div>
         <div className="flex flex-col items-end gap-3">
           <LogoutButton />
           <Link
-            href="/prazos"
+            href="/dashboard"
             className="inline-flex h-11 items-center justify-center border border-border bg-surface px-4 text-sm font-medium"
           >
-            Voltar aos prazos
+            Voltar ao painel
           </Link>
         </div>
       </div>
 
+      <section className="mt-8 border border-border bg-background p-4 text-sm">
+        <p className="font-medium text-foreground">Perfis disponíveis</p>
+        <ul className="mt-3 space-y-2 text-muted">
+          {roles.map((role) => (
+            <li key={role.id}>
+              <span className="font-medium text-foreground">{role.label}:</span> {role.description}
+            </li>
+          ))}
+        </ul>
+      </section>
+
       <section className="mt-10 border border-border bg-surface p-5 sm:p-7">
-        <CriarUsuarioForm />
+        <CriarUsuarioForm roles={roles} />
       </section>
 
       <section className="mt-10">
@@ -62,6 +79,7 @@ export default async function UsuariosPage() {
             <EditarUsuarioForm
               key={user.id}
               user={user}
+              roles={roles}
               isSelf={user.id === currentUser.id}
             />
           ))}
