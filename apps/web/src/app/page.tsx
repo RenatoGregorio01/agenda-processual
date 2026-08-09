@@ -28,14 +28,17 @@ export default function Home() {
 
         <div className="mt-10 flex flex-col gap-3 sm:flex-row sm:items-center">
           <Link
-            href="/prazos"
+            href="/login"
             className="inline-flex h-12 items-center justify-center bg-primary px-6 text-base font-semibold text-primary-foreground transition hover:brightness-110"
+          >
+            Entrar
+          </Link>
+          <Link
+            href="/prazos"
+            className="inline-flex h-12 items-center justify-center border border-border bg-surface px-6 text-base font-medium text-foreground transition hover:bg-background"
           >
             Ver prazos
           </Link>
-          <span className="text-sm text-muted">
-            Telas do MVP entram nas próximas features
-          </span>
         </div>
 
         <div className="mt-12 border-t border-border pt-6">

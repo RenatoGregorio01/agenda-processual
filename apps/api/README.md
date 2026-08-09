@@ -6,13 +6,17 @@ FastAPI + SQLModel + PostgreSQL + Alembic.
 
 | Método | Rota | Descrição |
 |--------|------|-----------|
-| GET | `/api/v1/health` | Healthcheck |
-| GET | `/api/v1/prazos` | Lista prazos (por vencimento) |
-| POST | `/api/v1/prazos` | Cria prazo |
-| GET | `/api/v1/prazos/{id}` | Detalhe |
-| PATCH | `/api/v1/prazos/{id}` | Atualiza |
-| POST | `/api/v1/prazos/{id}/cumprir` | Marca cumprido |
-| DELETE | `/api/v1/prazos/{id}` | Exclui |
+| GET | `/api/v1/health` | Healthcheck (público) |
+| POST | `/api/v1/auth/login` | Login (JWT) |
+| GET | `/api/v1/auth/me` | Usuário autenticado |
+| GET | `/api/v1/prazos` | Lista prazos (auth) |
+| POST | `/api/v1/prazos` | Cria prazo (auth) |
+| GET | `/api/v1/prazos/{id}` | Detalhe (auth) |
+| PATCH | `/api/v1/prazos/{id}` | Atualiza (auth) |
+| POST | `/api/v1/prazos/{id}/cumprir` | Marca cumprido (auth) |
+| DELETE | `/api/v1/prazos/{id}` | Exclui (auth) |
+
+Usuário seed (dev): `veronica@escritorio.com` / `agenda123`
 
 ## Local sem Docker
 
