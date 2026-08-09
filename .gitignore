@@ -31,9 +31,9 @@ node_modules/
 out/
 .turbo/
 *.tsbuildinfo
-next-env.d.ts
 
 # IDE
+
 .idea/
 .vscode/
 *.swp
