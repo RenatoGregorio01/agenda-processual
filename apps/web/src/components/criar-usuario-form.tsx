@@ -87,6 +87,16 @@ export function CriarUsuarioForm({ roles }: { roles: RoleInfo[] }) {
         Ativo (pode entrar no sistema)
       </label>
 
+      <label className="flex items-start gap-2 text-sm">
+        <input name="receber_alertas" type="checkbox" defaultChecked className="mt-0.5" />
+        <span>
+          Receber alertas de prazos por e-mail
+          <span className="mt-0.5 block text-xs text-muted">
+            Além do responsável do prazo, quem estiver marcado recebe os avisos 3/2/1 dia.
+          </span>
+        </span>
+      </label>
+
       {state.error ? <p className="text-sm text-atrasado">{state.error}</p> : null}
       {state.ok ? <p className="text-sm text-no-prazo">Usuário criado com sucesso.</p> : null}
 

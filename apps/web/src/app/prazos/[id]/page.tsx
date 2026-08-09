@@ -93,11 +93,43 @@ export default async function PrazoDetalhePage({
       </section>
 
       <section className="mt-8 border-t border-border pt-6">
-        <h3 className="text-sm font-medium text-foreground">Alertas</h3>
-        <ul className="mt-3 space-y-1 text-sm text-muted">
-          <li>{prazo.alerta_3_dias ? "✓" : "–"} 3 dias antes</li>
-          <li>{prazo.alerta_2_dias ? "✓" : "–"} 2 dias antes</li>
-          <li>{prazo.alerta_1_dia ? "✓" : "–"} 1 dia antes</li>
+        <h3 className="text-sm font-medium text-foreground">Alertas por e-mail</h3>
+        <ul className="mt-3 space-y-2 text-sm">
+          {(
+            [
+              {
+                label: "3 dias antes",
+                ativo: prazo.alerta_3_dias,
+                enviado: Boolean(prazo.alerta_3_dias_enviado),
+              },
+              {
+                label: "2 dias antes",
+                ativo: prazo.alerta_2_dias,
+                enviado: Boolean(prazo.alerta_2_dias_enviado),
+              },
+              {
+                label: "1 dia antes",
+                ativo: prazo.alerta_1_dia,
+                enviado: Boolean(prazo.alerta_1_dia_enviado),
+              },
+            ] as const
+          ).map((item) => (
+            <li
+              key={item.label}
+              className="flex flex-wrap items-center justify-between gap-2 border border-border px-3 py-2"
+            >
+              <span className="text-foreground">{item.label}</span>
+              <span className="text-muted">
+                {!item.ativo ? (
+                  "Desativado"
+                ) : item.enviado ? (
+                  <span className="font-medium text-no-prazo">Enviado ✓</span>
+                ) : (
+                  "Aguardando envio"
+                )}
+              </span>
+            </li>
+          ))}
         </ul>
       </section>
 

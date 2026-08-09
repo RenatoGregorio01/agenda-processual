@@ -1,6 +1,6 @@
 from fastapi import APIRouter
 
-from app.api.v1.endpoints import auditoria, auth, health, prazos, roles, usuarios
+from app.api.v1.endpoints import alertas, auditoria, auth, health, prazos, roles, usuarios
 
 api_router = APIRouter()
 api_router.include_router(health.router, tags=["health"])
@@ -9,3 +9,4 @@ api_router.include_router(prazos.router, prefix="/prazos", tags=["prazos"])
 api_router.include_router(auditoria.router, prefix="/auditoria", tags=["auditoria"])
 api_router.include_router(usuarios.router, prefix="/usuarios", tags=["usuarios"])
 api_router.include_router(roles.router, prefix="/roles", tags=["roles"])
+api_router.include_router(alertas.router, prefix="/alertas", tags=["alertas"])

@@ -1,14 +1,12 @@
 import Link from "next/link";
 
+import { DashboardSection } from "@/components/dashboard-section";
 import { ExportPautaButtons } from "@/components/export-pauta-buttons";
 import { LogoutButton } from "@/components/logout-button";
-import { PrazoFilters } from "@/components/prazo-filters";
-import { PrazoListItem } from "@/components/prazo-list-item";
-import { PrazoSearch } from "@/components/prazo-search";
 import { ResponsavelFilter } from "@/components/responsavel-filter";
 import { apiFetch } from "@/lib/api-server";
 import { hasPermission, type User, type UserOption } from "@/lib/auth";
-import { FILTROS, type FiltroPrazo, type Prazo } from "@/lib/prazos";
+import type { Prazo } from "@/lib/prazos";
 import { buildQuery } from "@/lib/query";
 
 async function getCurrentUser(): Promise<User | null> {
@@ -24,41 +22,36 @@ async function listUsuariosOpcoes(): Promise<UserOption[]> {
 }
 
 async function listPrazos(
-  filtro: FiltroPrazo,
+  filtro: "atrasados" | "hoje" | "amanha",
   responsavelId?: string,
-  q?: string,
 ): Promise<Prazo[]> {
   const query = buildQuery({
-    filtro: filtro === "todos" ? undefined : filtro,
+    filtro,
     responsavel_id: responsavelId,
-    q,
   });
   const response = await apiFetch(`/api/v1/prazos${query}`);
-  if (!response.ok) {
-    return [];
-  }
+  if (!response.ok) return [];
   return (await response.json()) as Prazo[];
 }
 
-function resolveFiltro(value?: string): FiltroPrazo {
-  const found = FILTROS.find((item) => item.id === value);
-  return found?.id ?? "todos";
-}
-
-export default async function PrazosPage({
+export default async function DashboardPage({
   searchParams,
 }: {
-  searchParams: Promise<{ filtro?: string; responsavel_id?: string; q?: string }>;
+  searchParams: Promise<{ responsavel_id?: string }>;
 }) {
   const params = await searchParams;
-  const filtro = resolveFiltro(params.filtro);
   const responsavelId = params.responsavel_id || undefined;
-  const q = params.q?.trim() || undefined;
-  const [user, usuarios, prazos] = await Promise.all([
+
+  const [user, usuarios, atrasados, hoje, amanha] = await Promise.all([
     getCurrentUser(),
     listUsuariosOpcoes(),
-    listPrazos(filtro, responsavelId, q),
+    listPrazos("atrasados", responsavelId),
+    listPrazos("hoje", responsavelId),
+    listPrazos("amanha", responsavelId),
   ]);
+
+  const totalUrgente = atrasados.length + hoje.length + amanha.length;
+  const responsavelNome = usuarios.find((item) => item.id === responsavelId)?.nome;
 
   return (
     <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col px-6 py-10 sm:px-10">
@@ -67,21 +60,25 @@ export default async function PrazosPage({
           <p className="font-[family-name:var(--font-display)] text-2xl font-semibold text-primary">
             Agenda Processual
           </p>
-          <h1 className="mt-5 text-3xl font-semibold tracking-tight text-foreground">Prazos</h1>
+          <h1 className="mt-5 text-3xl font-semibold tracking-tight text-foreground">Hoje</h1>
           <p className="mt-2 text-muted">
-            {q
-              ? `Resultados para “${q}” · ${prazos.length} encontrado${prazos.length === 1 ? "" : "s"}`
-              : "Ordenados por vencimento"}
+            {totalUrgente === 0
+              ? responsavelNome
+                ? `Nenhum prazo urgente para ${responsavelNome}.`
+                : "Nenhum prazo urgente no momento."
+              : responsavelNome
+                ? `${responsavelNome}: ${totalUrgente} prazo${totalUrgente === 1 ? "" : "s"} pedindo atenção.`
+                : `${totalUrgente} prazo${totalUrgente === 1 ? "" : "s"} pedindo atenção.`}
           </p>
         </div>
         <div className="flex flex-col items-end gap-3">
           <LogoutButton />
           <div className="flex flex-wrap justify-end gap-2">
             <Link
-              href={`/dashboard${buildQuery({ responsavel_id: responsavelId })}`}
+              href={`/prazos${buildQuery({ responsavel_id: responsavelId })}`}
               className="inline-flex h-11 items-center justify-center border border-border bg-surface px-4 text-sm font-medium"
             >
-              Hoje
+              Todos os prazos
             </Link>
             {hasPermission(user, "usuarios_gerenciar") ? (
               <Link
@@ -110,38 +107,38 @@ export default async function PrazosPage({
       </div>
 
       <div className="mt-8 space-y-4">
-        <PrazoSearch q={q} filtro={filtro} responsavelId={responsavelId} />
-        <PrazoFilters current={filtro} responsavelId={responsavelId} q={q} />
         <ResponsavelFilter
-          basePath="/prazos"
+          basePath="/dashboard"
           usuarios={usuarios}
           currentUserId={user?.id}
           currentResponsavelId={responsavelId}
-          extraParams={{
-            filtro: filtro === "todos" ? undefined : filtro,
-            q,
-          }}
         />
-        <ExportPautaButtons filtro={filtro} responsavelId={responsavelId} q={q} />
+        <ExportPautaButtons filtro="7dias" responsavelId={responsavelId} />
       </div>
 
-      {prazos.length === 0 ? (
-        <p className="mt-12 max-w-md text-muted">
-          {q
-            ? "Nenhum prazo encontrado para essa busca."
-            : filtro === "excluidos"
-              ? "Nenhum prazo excluído. Itens removidos ficam aqui para restauração."
-              : responsavelId
-                ? "Nenhum prazo para este responsável com o filtro atual."
-                : "Nenhum prazo por enquanto. Cadastre o primeiro para sair do memoriômetro."}
-        </p>
-      ) : (
-        <ul className="mt-8 divide-y divide-border border-y border-border">
-          {prazos.map((prazo) => (
-            <PrazoListItem key={prazo.id} prazo={prazo} />
-          ))}
-        </ul>
-      )}
+      <DashboardSection
+        title="Atrasados"
+        description="Vencidos e ainda pendentes"
+        emptyMessage="Nenhum prazo atrasado."
+        prazos={atrasados}
+        accent="atrasado"
+      />
+
+      <DashboardSection
+        title="Vence hoje"
+        description="Protocolar ainda hoje"
+        emptyMessage="Nada vence hoje."
+        prazos={hoje}
+        accent="urgente"
+      />
+
+      <DashboardSection
+        title="Vence amanhã"
+        description="Preparar para o protocolo"
+        emptyMessage="Nada vence amanhã."
+        prazos={amanha}
+        accent="urgente"
+      />
     </main>
   );
 }

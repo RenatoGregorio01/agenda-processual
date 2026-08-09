@@ -95,6 +95,21 @@ export function EditarUsuarioForm({ user, roles, isSelf }: EditarUsuarioFormProp
         </>
       )}
 
+      <label className="flex items-start gap-2 text-sm">
+        <input
+          name="receber_alertas"
+          type="checkbox"
+          defaultChecked={user.receber_alertas}
+          className="mt-0.5"
+        />
+        <span>
+          Receber alertas de prazos por e-mail
+          <span className="mt-0.5 block text-xs text-muted">
+            Inclui avisos de todos os prazos do escritório (3/2/1 dia).
+          </span>
+        </span>
+      </label>
+
       {state.error ? <p className="text-sm text-atrasado">{state.error}</p> : null}
       {state.ok ? <p className="text-sm text-no-prazo">Alterações salvas.</p> : null}
 

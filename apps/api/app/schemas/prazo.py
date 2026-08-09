@@ -12,7 +12,7 @@ class PrazoCreate(BaseModel):
     acao: str = Field(min_length=1, max_length=255)
     data_disponibilizacao: date | None = None
     data_vencimento: date
-    responsavel: str = Field(min_length=1, max_length=120)
+    responsavel_id: UUID
     alerta_3_dias: bool = True
     alerta_2_dias: bool = True
     alerta_1_dia: bool = True
@@ -24,7 +24,7 @@ class PrazoUpdate(BaseModel):
     acao: str | None = Field(default=None, min_length=1, max_length=255)
     data_disponibilizacao: date | None = None
     data_vencimento: date | None = None
-    responsavel: str | None = Field(default=None, min_length=1, max_length=120)
+    responsavel_id: UUID | None = None
     status: StatusPrazo | None = None
     alerta_3_dias: bool | None = None
     alerta_2_dias: bool | None = None
@@ -41,10 +41,14 @@ class PrazoRead(BaseModel):
     data_disponibilizacao: date | None
     data_vencimento: date
     responsavel: str
+    responsavel_id: UUID | None
     status: StatusPrazo
     alerta_3_dias: bool
     alerta_2_dias: bool
     alerta_1_dia: bool
+    alerta_3_dias_enviado: bool = False
+    alerta_2_dias_enviado: bool = False
+    alerta_1_dia_enviado: bool = False
     excluido_em: datetime | None
     criado_em: datetime
     atualizado_em: datetime

@@ -39,10 +39,10 @@ export default async function AuditoriaPage() {
         <div className="flex flex-col items-end gap-3">
           <LogoutButton />
           <Link
-            href="/prazos"
+            href="/dashboard"
             className="inline-flex h-11 items-center justify-center border border-border bg-surface px-4 text-sm font-medium"
           >
-            Voltar aos prazos
+            Voltar ao painel
           </Link>
         </div>
       </div>

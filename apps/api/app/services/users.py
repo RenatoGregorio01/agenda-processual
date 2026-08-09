@@ -10,6 +10,7 @@ def to_user_read(user: User) -> UserRead:
         nome=user.nome,
         ativo=user.ativo,
         role=user.role,
+        receber_alertas=user.receber_alertas,
         is_admin=user.is_admin,
         permissions=permissions_for_role(user.role),
     )
