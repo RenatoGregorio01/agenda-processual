@@ -18,7 +18,9 @@ from app.services.audit import montar_auditoria
 
 router = APIRouter()
 
-FiltroPrazo = Literal["todos", "atrasados", "7dias", "cumpridos", "excluidos"]
+FiltroPrazo = Literal[
+    "todos", "atrasados", "hoje", "amanha", "7dias", "cumpridos", "excluidos"
+]
 
 
 async def _get_prazo_ativo(session: AsyncSession, prazo_id: UUID) -> Prazo:
@@ -58,6 +60,16 @@ async def listar_prazos(
             query = query.where(
                 Prazo.status == StatusPrazo.pendente,
                 Prazo.data_vencimento < today,
+            )
+        elif filtro == "hoje":
+            query = query.where(
+                Prazo.status == StatusPrazo.pendente,
+                Prazo.data_vencimento == today,
+            )
+        elif filtro == "amanha":
+            query = query.where(
+                Prazo.status == StatusPrazo.pendente,
+                Prazo.data_vencimento == today + timedelta(days=1),
             )
         elif filtro == "7dias":
             query = query.where(
