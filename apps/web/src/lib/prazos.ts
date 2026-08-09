@@ -13,6 +13,9 @@ export type Prazo = {
   alerta_3_dias: boolean;
   alerta_2_dias: boolean;
   alerta_1_dia: boolean;
+  alerta_3_dias_enviado?: boolean;
+  alerta_2_dias_enviado?: boolean;
+  alerta_1_dia_enviado?: boolean;
   excluido_em: string | null;
   criado_em: string;
   atualizado_em: string;

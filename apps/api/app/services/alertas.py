@@ -15,6 +15,21 @@ from app.services.email import send_email
 logger = logging.getLogger(__name__)
 
 
+async def status_alertas_enviados(
+    session: AsyncSession,
+    prazo_id: UUID,
+) -> dict[str, bool]:
+    result = await session.exec(
+        select(AlertaEnvio.tipo).where(AlertaEnvio.prazo_id == prazo_id).distinct()
+    )
+    tipos = {item.value if isinstance(item, TipoAlerta) else str(item) for item in result.all()}
+    return {
+        "alerta_3_dias_enviado": TipoAlerta.dias_3.value in tipos,
+        "alerta_2_dias_enviado": TipoAlerta.dias_2.value in tipos,
+        "alerta_1_dia_enviado": TipoAlerta.dias_1.value in tipos,
+    }
+
+
 @dataclass(frozen=True)
 class AlertaCandidato:
     prazo: Prazo

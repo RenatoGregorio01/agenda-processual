@@ -13,6 +13,7 @@ from app.models.audit_log import AuditAction
 from app.models.prazo import Prazo, StatusPrazo
 from app.models.user import User
 from app.schemas.prazo import PrazoCreate, PrazoRead, PrazoUpdate
+from app.services.alertas import status_alertas_enviados
 from app.services.audit import montar_auditoria
 
 router = APIRouter()
@@ -115,11 +116,12 @@ async def criar_prazo(
 async def obter_prazo(
     prazo_id: UUID,
     session: AsyncSession = Depends(get_session),
-) -> Prazo:
+) -> PrazoRead:
     prazo = await session.get(Prazo, prazo_id)
     if prazo is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Prazo não encontrado")
-    return prazo
+    enviados = await status_alertas_enviados(session, prazo.id)
+    return PrazoRead.model_validate(prazo, from_attributes=True).model_copy(update=enviados)
 
 
 @router.patch("/{prazo_id}", response_model=PrazoRead)
