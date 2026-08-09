@@ -47,6 +47,7 @@ async def _resolve_responsavel(session: AsyncSession, responsavel_id: UUID) -> U
 )
 async def listar_prazos(
     filtro: FiltroPrazo = Query(default="todos"),
+    responsavel_id: UUID | None = Query(default=None),
     session: AsyncSession = Depends(get_session),
 ) -> list[Prazo]:
     today = date.today()
@@ -79,6 +80,9 @@ async def listar_prazos(
             )
         elif filtro == "cumpridos":
             query = query.where(Prazo.status == StatusPrazo.cumprido)
+
+    if responsavel_id is not None:
+        query = query.where(Prazo.responsavel_id == responsavel_id)
 
     if filtro == "excluidos":
         query = query.order_by(col(Prazo.excluido_em).desc())
