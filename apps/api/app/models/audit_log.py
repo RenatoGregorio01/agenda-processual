@@ -4,6 +4,8 @@ from uuid import UUID, uuid4
 
 from sqlmodel import Field, SQLModel
 
+from app.core.timeutils import utc_now
+
 
 class AuditAction(StrEnum):
     login = "login"
@@ -34,4 +36,4 @@ class AuditLog(SQLModel, table=True):
     entidade: str = Field(default="prazo", max_length=40, index=True)
     entidade_id: UUID | None = Field(default=None, index=True)
     resumo: str = Field(max_length=500)
-    criado_em: datetime = Field(default_factory=datetime.utcnow, index=True)
+    criado_em: datetime = Field(default_factory=utc_now, index=True)

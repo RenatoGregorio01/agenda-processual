@@ -3,6 +3,7 @@ from uuid import UUID, uuid4
 
 from sqlmodel import Field, SQLModel
 
+from app.core.timeutils import utc_now
 from app.models.user import Role
 
 
@@ -19,4 +20,4 @@ class Convite(SQLModel, table=True):
     used_at: datetime | None = Field(default=None, index=True)
     revoked_at: datetime | None = Field(default=None)
     invited_by_id: UUID = Field(index=True)
-    criado_em: datetime = Field(default_factory=datetime.utcnow)
+    criado_em: datetime = Field(default_factory=utc_now)

@@ -1,8 +1,9 @@
 import hashlib
 import secrets
-from datetime import UTC, datetime, timedelta
+from datetime import datetime, timedelta
 
 from app.core.config import Settings
+from app.core.timeutils import utc_now
 from app.models.convite import Convite
 from app.services.email import send_email
 
@@ -16,7 +17,7 @@ def hash_invite_token(token: str) -> str:
 
 
 def invite_status(convite: Convite, *, now: datetime | None = None) -> str:
-    current = now or datetime.utcnow()
+    current = now or utc_now()
     if convite.used_at is not None:
         return "aceito"
     if convite.revoked_at is not None:
@@ -34,7 +35,7 @@ def is_invite_usable(convite: Convite, *, now: datetime | None = None) -> bool:
 
 
 def build_invite_expiry(settings: Settings, *, now: datetime | None = None) -> datetime:
-    current = now or datetime.now(UTC).replace(tzinfo=None)
+    current = now or utc_now()
     return current + timedelta(hours=settings.invite_expire_hours)
 
 

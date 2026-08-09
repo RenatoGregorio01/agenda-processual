@@ -1,4 +1,3 @@
-from datetime import datetime
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -10,6 +9,7 @@ from app.core.config import get_settings
 from app.core.database import get_session
 from app.core.permissions import sync_admin_flag
 from app.core.security import create_access_token, hash_password
+from app.core.timeutils import utc_now
 from app.models.audit_log import AuditAction
 from app.models.convite import Convite
 from app.models.user import User
@@ -97,7 +97,7 @@ async def aceitar_convite(
     session.add(user)
     await session.flush()
 
-    convite.used_at = datetime.utcnow()
+    convite.used_at = utc_now()
     session.add(convite)
     session.add(
         montar_auditoria(
@@ -281,7 +281,7 @@ async def revogar_convite(
     if convite.revoked_at is not None:
         return _to_read(convite)
 
-    convite.revoked_at = datetime.utcnow()
+    convite.revoked_at = utc_now()
     session.add(convite)
     session.add(
         montar_auditoria(
