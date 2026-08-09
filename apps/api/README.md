@@ -17,6 +17,8 @@ FastAPI + SQLModel + PostgreSQL + Alembic.
 | DELETE | `/api/v1/prazos/{id}` | Soft delete (auth) |
 | POST | `/api/v1/prazos/{id}/restaurar` | Restaura (auth) |
 | GET | `/api/v1/auditoria` | Auditoria (admin vê tudo; demais só as próprias) |
+| GET/POST | `/api/v1/usuarios` | Gestão de usuários (somente admin) |
+| PATCH | `/api/v1/usuarios/{id}` | Atualiza usuário/permissões (somente admin) |
 
 Usuário seed (dev): `veronica@escritorio.com` / `agenda123` (admin)
 

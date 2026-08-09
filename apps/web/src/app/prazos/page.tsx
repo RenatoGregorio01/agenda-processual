@@ -4,6 +4,7 @@ import { LogoutButton } from "@/components/logout-button";
 import { PrazoBadge } from "@/components/prazo-badge";
 import { PrazoFilters } from "@/components/prazo-filters";
 import { apiFetch } from "@/lib/api-server";
+import type { User } from "@/lib/auth";
 import {
   FILTROS,
   formatVencimento,
@@ -11,6 +12,12 @@ import {
   type FiltroPrazo,
   type Prazo,
 } from "@/lib/prazos";
+
+async function getCurrentUser(): Promise<User | null> {
+  const response = await apiFetch("/api/v1/auth/me");
+  if (!response.ok) return null;
+  return (await response.json()) as User;
+}
 
 async function listPrazos(filtro: FiltroPrazo): Promise<Prazo[]> {
   const query = filtro === "todos" ? "" : `?filtro=${filtro}`;
@@ -33,7 +40,7 @@ export default async function PrazosPage({
 }) {
   const params = await searchParams;
   const filtro = resolveFiltro(params.filtro);
-  const prazos = await listPrazos(filtro);
+  const [user, prazos] = await Promise.all([getCurrentUser(), listPrazos(filtro)]);
 
   return (
     <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col px-6 py-10 sm:px-10">
@@ -48,6 +55,14 @@ export default async function PrazosPage({
         <div className="flex flex-col items-end gap-3">
           <LogoutButton />
           <div className="flex flex-wrap justify-end gap-2">
+            {user?.is_admin ? (
+              <Link
+                href="/usuarios"
+                className="inline-flex h-11 items-center justify-center border border-border bg-surface px-4 text-sm font-medium"
+              >
+                Usuários
+              </Link>
+            ) : null}
             <Link
               href="/auditoria"
               className="inline-flex h-11 items-center justify-center border border-border bg-surface px-4 text-sm font-medium"
