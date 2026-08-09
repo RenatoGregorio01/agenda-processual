@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import { DashboardSection } from "@/components/dashboard-section";
+import { ExportPautaButtons } from "@/components/export-pauta-buttons";
 import { LogoutButton } from "@/components/logout-button";
 import { ResponsavelFilter } from "@/components/responsavel-filter";
 import { apiFetch } from "@/lib/api-server";
@@ -105,13 +106,14 @@ export default async function DashboardPage({
         </div>
       </div>
 
-      <div className="mt-8">
+      <div className="mt-8 space-y-4">
         <ResponsavelFilter
           basePath="/dashboard"
           usuarios={usuarios}
           currentUserId={user?.id}
           currentResponsavelId={responsavelId}
         />
+        <ExportPautaButtons filtro="7dias" responsavelId={responsavelId} />
       </div>
 
       <DashboardSection
