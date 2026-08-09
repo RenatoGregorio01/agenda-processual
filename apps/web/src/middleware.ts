@@ -2,7 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 
 import { AUTH_COOKIE } from "@/lib/auth";
 
-const protectedPrefixes = ["/dashboard", "/prazos", "/auditoria", "/usuarios"];
+const protectedPrefixes = ["/dashboard", "/prazos", "/auditoria", "/usuarios", "/feriados"];
 
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
@@ -25,5 +25,12 @@ export function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/dashboard", "/prazos/:path*", "/auditoria", "/usuarios", "/login"],
+  matcher: [
+    "/dashboard",
+    "/prazos/:path*",
+    "/auditoria",
+    "/usuarios",
+    "/feriados",
+    "/login",
+  ],
 };
