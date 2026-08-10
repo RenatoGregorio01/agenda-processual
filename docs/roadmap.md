@@ -13,7 +13,8 @@ Visão de produto após o MVP (`v0.1.0`). Ordem sugerida; prioridades podem muda
 
 ## Próximo (produto operacional)
 
-- [ ] Histórico no prazo (timeline de alterações / cumprimento / restauração)
+- [x] Ficha do processo (cadastro único + vários prazos + histórico visível)
+- [ ] Histórico dedicado por prazo (além do agregado na ficha do processo)
 - [x] Convite por e-mail (criar usuário sem passar senha no WhatsApp)
 - [ ] SMTP de produção (provedor real além do Mailpit)
 - [ ] Seed opcional de feriados nacionais BR

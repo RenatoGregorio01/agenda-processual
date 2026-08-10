@@ -8,6 +8,7 @@ from app.core.permissions import sync_admin_flag
 from app.core.security import hash_password
 from app.models.prazo import Prazo
 from app.models.user import Role, User
+from app.services.processos import get_or_create_processo
 
 
 async def seed_admin_user(session: AsyncSession, settings: Settings) -> User | None:
@@ -60,33 +61,54 @@ async def seed_example_prazos(session: AsyncSession) -> None:
 
     today = date.today()
     exemplos = [
-        Prazo(
-            numero_processo="0001234-56.2024.4.01.0000",
-            cliente="Maria Souza",
-            acao="Protocolar contestação",
-            data_disponibilizacao=today - timedelta(days=20),
-            data_vencimento=today - timedelta(days=1),
-            responsavel=admin.nome,
-            responsavel_id=admin.id,
+        (
+            "0001234-56.2024.4.01.0000",
+            "Maria Souza",
+            "Protocolar contestação",
+            today - timedelta(days=20),
+            today - timedelta(days=1),
         ),
-        Prazo(
-            numero_processo="0009876-12.2023.8.05.0001",
-            cliente="João Lima",
-            acao="Juntar procuração",
-            data_disponibilizacao=today - timedelta(days=10),
-            data_vencimento=today + timedelta(days=1),
-            responsavel=admin.nome,
-            responsavel_id=admin.id,
+        (
+            "0001234-56.2024.4.01.0000",
+            "Maria Souza",
+            "Juntar documentos",
+            today - timedelta(days=5),
+            today + timedelta(days=7),
         ),
-        Prazo(
-            numero_processo="0005555-00.2025.4.01.3300",
-            cliente="Ana Dias",
-            acao="Interpor recurso",
-            data_disponibilizacao=today - timedelta(days=5),
-            data_vencimento=today + timedelta(days=3),
-            responsavel=admin.nome,
-            responsavel_id=admin.id,
+        (
+            "0009876-12.2023.8.05.0001",
+            "João Lima",
+            "Juntar procuração",
+            today - timedelta(days=10),
+            today + timedelta(days=1),
+        ),
+        (
+            "0005555-00.2025.4.01.3300",
+            "Ana Dias",
+            "Interpor recurso",
+            today - timedelta(days=5),
+            today + timedelta(days=3),
         ),
     ]
-    session.add_all(exemplos)
+
+    for numero, cliente, acao, disponibilizacao, vencimento in exemplos:
+        processo, _ = await get_or_create_processo(
+            session,
+            numero_processo=numero,
+            cliente=cliente,
+            usuario=admin,
+        )
+        session.add(
+            Prazo(
+                processo_id=processo.id,
+                numero_processo=processo.numero_processo,
+                cliente=processo.cliente,
+                acao=acao,
+                data_disponibilizacao=disponibilizacao,
+                data_vencimento=vencimento,
+                responsavel=admin.nome,
+                responsavel_id=admin.id,
+            )
+        )
+
     await session.commit()

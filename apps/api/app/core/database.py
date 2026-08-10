@@ -6,7 +6,15 @@ from sqlmodel import SQLModel
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from app.core.config import get_settings
-from app.models import AlertaEnvio, AuditLog, Convite, Feriado, Prazo, User  # noqa: F401
+from app.models import (  # noqa: F401
+    AlertaEnvio,
+    AuditLog,
+    Convite,
+    Feriado,
+    Prazo,
+    Processo,
+    User,
+)
 
 settings = get_settings()
 
@@ -85,3 +93,18 @@ async def init_db() -> None:
                 "AND EXISTS (SELECT 1 FROM users WHERE is_admin = true)"
             )
         )
+        await conn.execute(
+            text("ALTER TABLE prazos ADD COLUMN IF NOT EXISTS processo_id UUID NULL")
+        )
+        await conn.execute(
+            text(
+                "CREATE INDEX IF NOT EXISTS ix_prazos_processo_id ON prazos (processo_id)"
+            )
+        )
+
+
+async def run_processo_backfill() -> None:
+    from app.services.processos import backfill_processos
+
+    async with AsyncSessionLocal() as session:
+        await backfill_processos(session)

@@ -47,7 +47,12 @@ export async function createPrazo(
     };
   }
 
+  const created = (await response.json()) as { id: string; processo_id?: string | null };
   revalidatePath("/prazos");
+  if (created.processo_id) {
+    revalidatePath(`/processos/${created.processo_id}`);
+    redirect(`/processos/${created.processo_id}`);
+  }
   redirect("/prazos");
 }
 

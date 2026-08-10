@@ -72,7 +72,16 @@ export default async function PrazoDetalhePage({
       <section className="mt-8 space-y-2 text-sm">
         <p>
           <span className="text-muted">Processo:</span>{" "}
-          <span className="font-medium">{prazo.numero_processo}</span>
+          {prazo.processo_id ? (
+            <Link
+              href={`/processos/${prazo.processo_id}`}
+              className="font-medium text-primary underline-offset-4 hover:underline"
+            >
+              {prazo.numero_processo}
+            </Link>
+          ) : (
+            <span className="font-medium">{prazo.numero_processo}</span>
+          )}
         </p>
         <p>
           <span className="text-muted">Cliente:</span>{" "}

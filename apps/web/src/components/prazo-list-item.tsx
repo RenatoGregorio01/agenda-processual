@@ -17,7 +17,15 @@ export function PrazoListItem({ prazo }: { prazo: Prazo }) {
         </div>
         <p className="mt-3 text-lg font-medium text-foreground">{prazo.acao}</p>
         <p className="mt-1 text-sm text-muted">
-          {prazo.numero_processo} · {prazo.cliente} · {prazo.responsavel}
+          {prazo.processo_id ? (
+            <>
+              <span className="text-primary">{prazo.numero_processo}</span>
+              {" · "}
+            </>
+          ) : (
+            <>{prazo.numero_processo} · </>
+          )}
+          {prazo.cliente} · {prazo.responsavel}
         </p>
       </Link>
     </li>

@@ -5,7 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.v1.router import api_router
 from app.core.config import get_settings
-from app.core.database import AsyncSessionLocal, init_db
+from app.core.database import AsyncSessionLocal, init_db, run_processo_backfill
 from app.core.scheduler import start_scheduler, stop_scheduler
 from app.core.seed import seed_admin_user, seed_example_prazos
 
@@ -14,9 +14,11 @@ from app.core.seed import seed_admin_user, seed_example_prazos
 async def lifespan(_: FastAPI):
     settings = get_settings()
     await init_db()
+    await run_processo_backfill()
     async with AsyncSessionLocal() as session:
         await seed_admin_user(session, settings)
         await seed_example_prazos(session)
+    await run_processo_backfill()
     start_scheduler()
     yield
     stop_scheduler()

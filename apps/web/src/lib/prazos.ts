@@ -2,6 +2,7 @@ export type StatusPrazo = "pendente" | "cumprido";
 
 export type Prazo = {
   id: string;
+  processo_id?: string | null;
   numero_processo: string;
   cliente: string;
   acao: string;

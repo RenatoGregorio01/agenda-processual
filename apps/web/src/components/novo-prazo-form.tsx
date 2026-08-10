@@ -1,19 +1,63 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState, useState } from "react";
+import { useActionState, useEffect, useState, useTransition } from "react";
 
 import { createPrazo, type ActionState } from "@/app/prazos/actions";
 import { CalculoDiasUteis } from "@/components/calculo-dias-uteis";
 import type { UserOption } from "@/lib/auth";
+import type { ProcessoDetail } from "@/lib/processos";
 
 const initialState: ActionState = {};
 
-export function NovoPrazoForm({ usuarios }: { usuarios: UserOption[] }) {
+type NovoPrazoFormProps = {
+  usuarios: UserOption[];
+  initialNumero?: string;
+  initialCliente?: string;
+};
+
+export function NovoPrazoForm({
+  usuarios,
+  initialNumero = "",
+  initialCliente = "",
+}: NovoPrazoFormProps) {
   const [state, formAction, pending] = useActionState(createPrazo, initialState);
   const defaultResponsavel = usuarios[0]?.id ?? "";
+  const [numeroProcesso, setNumeroProcesso] = useState(initialNumero);
+  const [cliente, setCliente] = useState(initialCliente);
   const [dataDisponibilizacao, setDataDisponibilizacao] = useState("");
   const [dataVencimento, setDataVencimento] = useState("");
+  const [existing, setExisting] = useState<ProcessoDetail | null>(null);
+  const [lookupPending, startLookup] = useTransition();
+
+  useEffect(() => {
+    const numero = numeroProcesso.trim();
+    if (numero.length < 5) {
+      setExisting(null);
+      return;
+    }
+
+    const handle = window.setTimeout(() => {
+      startLookup(async () => {
+        const response = await fetch(
+          `/api/processos/lookup?numero=${encodeURIComponent(numero)}`,
+        );
+        if (response.status === 404) {
+          setExisting(null);
+          return;
+        }
+        if (!response.ok) {
+          setExisting(null);
+          return;
+        }
+        const detail = (await response.json()) as ProcessoDetail;
+        setExisting(detail);
+        setCliente((current) => current.trim() || detail.processo.cliente);
+      });
+    }, 400);
+
+    return () => window.clearTimeout(handle);
+  }, [numeroProcesso]);
 
   return (
     <form action={formAction} className="flex flex-col gap-5">
@@ -22,9 +66,31 @@ export function NovoPrazoForm({ usuarios }: { usuarios: UserOption[] }) {
         <input
           name="numero_processo"
           required
+          value={numeroProcesso}
+          onChange={(event) => setNumeroProcesso(event.target.value)}
           className="h-11 border border-border bg-background px-3 outline-none ring-primary focus:ring-2"
           placeholder="0001234-56.2024.4.01.0000"
         />
+        {lookupPending ? (
+          <span className="text-xs text-muted">Verificando processo…</span>
+        ) : null}
+        {existing ? (
+          <span className="text-xs text-foreground">
+            Processo já cadastrado com {existing.processo.prazos_count} prazo
+            {existing.processo.prazos_count === 1 ? "" : "s"}.{" "}
+            <Link
+              href={`/processos/${existing.processo.id}`}
+              className="text-primary underline-offset-4 hover:underline"
+            >
+              Abrir ficha
+            </Link>
+            . Este formulário adiciona um novo prazo ao mesmo processo.
+          </span>
+        ) : (
+          <span className="text-xs text-muted">
+            Se o número já existir, o novo prazo entra na ficha do processo.
+          </span>
+        )}
       </label>
 
       <label className="flex flex-col gap-1.5 text-sm">
@@ -32,6 +98,8 @@ export function NovoPrazoForm({ usuarios }: { usuarios: UserOption[] }) {
         <input
           name="cliente"
           required
+          value={cliente}
+          onChange={(event) => setCliente(event.target.value)}
           className="h-11 border border-border bg-background px-3 outline-none ring-primary focus:ring-2"
         />
       </label>
@@ -120,7 +188,7 @@ export function NovoPrazoForm({ usuarios }: { usuarios: UserOption[] }) {
           disabled={pending || usuarios.length === 0}
           className="inline-flex h-12 items-center justify-center bg-primary px-6 text-base font-semibold text-primary-foreground transition hover:brightness-110 disabled:opacity-60"
         >
-          {pending ? "Salvando…" : "Salvar prazo"}
+          {pending ? "Salvando…" : existing ? "Adicionar prazo ao processo" : "Salvar prazo"}
         </button>
         <Link
           href="/prazos"

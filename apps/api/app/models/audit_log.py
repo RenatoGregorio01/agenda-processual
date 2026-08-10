@@ -23,6 +23,8 @@ class AuditAction(StrEnum):
     convite_reenviado = "convite_reenviado"
     convite_revogado = "convite_revogado"
     convite_aceito = "convite_aceito"
+    processo_criado = "processo_criado"
+    processo_atualizado = "processo_atualizado"
 
 
 class AuditLog(SQLModel, table=True):

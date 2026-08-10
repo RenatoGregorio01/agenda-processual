@@ -17,11 +17,15 @@ async function listUsuariosOpcoes(): Promise<UserOption[]> {
   return (await response.json()) as UserOption[];
 }
 
-export default async function NovoPrazoPage() {
+export default async function NovoPrazoPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ processo?: string; cliente?: string }>;
+}) {
   const user = await getCurrentUser();
   if (!hasPermission(user, "prazos_criar")) redirect("/prazos");
 
-  const usuarios = await listUsuariosOpcoes();
+  const [usuarios, params] = await Promise.all([listUsuariosOpcoes(), searchParams]);
 
   return (
     <main className="mx-auto flex w-full max-w-xl flex-1 flex-col px-6 py-10 sm:px-10">
@@ -29,9 +33,15 @@ export default async function NovoPrazoPage() {
         ← Voltar para prazos
       </Link>
       <h1 className="mt-6 text-3xl font-semibold tracking-tight text-foreground">Novo prazo</h1>
-      <p className="mt-2 text-muted">Cadastre em menos de 1 minuto.</p>
+      <p className="mt-2 text-muted">
+        Cadastre a obrigação. Se o número do processo já existir, o prazo entra na mesma ficha.
+      </p>
       <div className="mt-8 border border-border bg-surface p-5 sm:p-7">
-        <NovoPrazoForm usuarios={usuarios} />
+        <NovoPrazoForm
+          usuarios={usuarios}
+          initialNumero={params.processo ?? ""}
+          initialCliente={params.cliente ?? ""}
+        />
       </div>
     </main>
   );

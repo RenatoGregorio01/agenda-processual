@@ -35,6 +35,7 @@ class PrazoRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     id: UUID
+    processo_id: UUID | None = None
     numero_processo: str
     cliente: str
     acao: str

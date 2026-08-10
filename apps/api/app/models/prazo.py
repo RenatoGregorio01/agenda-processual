@@ -16,6 +16,7 @@ class Prazo(SQLModel, table=True):
     __tablename__ = "prazos"
 
     id: UUID = Field(default_factory=uuid4, primary_key=True)
+    processo_id: UUID | None = Field(default=None, index=True)
     numero_processo: str = Field(index=True, max_length=64)
     cliente: str = Field(max_length=255)
     acao: str = Field(max_length=255)

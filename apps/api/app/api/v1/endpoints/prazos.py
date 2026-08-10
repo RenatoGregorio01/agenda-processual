@@ -18,6 +18,7 @@ from app.services.alertas import status_alertas_enviados
 from app.services.audit import montar_auditoria
 from app.services.export_pauta import build_csv, build_pdf
 from app.services.prazos_query import FiltroPrazo, listar_prazos_filtrados
+from app.services.processos import get_or_create_processo
 
 router = APIRouter()
 
@@ -129,13 +130,26 @@ async def criar_prazo(
     current_user: User = Depends(require_permission(Permission.prazos_criar)),
 ) -> Prazo:
     responsavel = await _resolve_responsavel(session, payload.responsavel_id)
+    processo, _ = await get_or_create_processo(
+        session,
+        numero_processo=payload.numero_processo,
+        cliente=payload.cliente,
+        usuario=current_user,
+    )
     data = payload.model_dump()
+    data.pop("numero_processo", None)
+    data.pop("cliente", None)
     prazo = Prazo(
         **data,
+        processo_id=processo.id,
+        numero_processo=processo.numero_processo,
+        cliente=processo.cliente,
         responsavel=responsavel.nome,
     )
     session.add(prazo)
     await session.flush()
+    processo.atualizado_em = utc_now()
+    session.add(processo)
     session.add(
         montar_auditoria(
             usuario=current_user,
@@ -180,6 +194,21 @@ async def atualizar_prazo(
         prazo.responsavel_id = responsavel.id
         prazo.responsavel = responsavel.nome
         data.pop("responsavel_id")
+
+    numero = data.pop("numero_processo", None)
+    cliente = data.pop("cliente", None)
+    if numero is not None or cliente is not None:
+        processo, _ = await get_or_create_processo(
+            session,
+            numero_processo=numero if numero is not None else prazo.numero_processo,
+            cliente=cliente if cliente is not None else prazo.cliente,
+            usuario=current_user,
+        )
+        prazo.processo_id = processo.id
+        prazo.numero_processo = processo.numero_processo
+        prazo.cliente = processo.cliente
+        processo.atualizado_em = utc_now()
+        session.add(processo)
 
     for field, value in data.items():
         setattr(prazo, field, value)
