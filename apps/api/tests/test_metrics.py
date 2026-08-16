@@ -1,5 +1,6 @@
-from app.core.metrics import record_alertas_result
 from prometheus_client import REGISTRY
+
+from app.core.metrics import record_alertas_result
 
 
 def _counter_value(name: str) -> float:

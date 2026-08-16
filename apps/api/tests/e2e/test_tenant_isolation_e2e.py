@@ -12,6 +12,9 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 from app.api.v1.router import api_router
 from app.core.config import Settings
 from app.core.database import get_session
+from app.core.permissions import sync_admin_flag
+from app.core.security import hash_password
+from app.integrations.datajud.cnj import montar_cnj
 from app.models import (  # noqa: F401
     AlertaEnvio,
     AuditLog,
@@ -23,9 +26,6 @@ from app.models import (  # noqa: F401
     Processo,
     User,
 )
-from app.core.permissions import sync_admin_flag
-from app.core.security import hash_password
-from app.integrations.datajud.cnj import montar_cnj
 from app.models.user import Role
 from tests.e2e.conftest import auth_headers, login
 
