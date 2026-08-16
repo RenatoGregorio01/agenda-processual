@@ -32,13 +32,13 @@ export function AppShell({ user, children }: AppShellProps) {
   }
 
   return (
-    <div className="flex min-h-full flex-1 bg-background">
+    <div className="flex min-h-full min-h-dvh flex-1 overflow-x-hidden bg-background">
       <AppSidebar
         user={user}
         open={ready ? sidebarOpen : true}
         onToggle={toggleSidebar}
       />
-      <div className="flex min-w-0 flex-1 flex-col pb-20 lg:pb-0">
+      <div className="flex min-w-0 flex-1 flex-col pb-[calc(4.5rem+env(safe-area-inset-bottom))] lg:pb-0">
         <AppTopbar user={user} />
         {children}
       </div>
@@ -54,15 +54,17 @@ type PageHeaderProps = {
 
 export function PageHeader({ title, description, actions }: PageHeaderProps) {
   return (
-    <header className="flex flex-col gap-3 px-5 pb-1 pt-6 sm:px-8 lg:flex-row lg:items-start lg:justify-between">
+    <header className="flex flex-col gap-3 px-4 pb-1 pt-5 sm:px-8 sm:pt-6 lg:flex-row lg:items-start lg:justify-between">
       <div className="min-w-0">
-        <h1 className="font-[family-name:var(--font-display)] text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">
+        <h1 className="break-words font-[family-name:var(--font-display)] text-xl font-semibold tracking-tight text-foreground sm:text-3xl">
           {title}
         </h1>
         {description ? <div className="mt-1.5 text-sm text-muted">{description}</div> : null}
       </div>
       {actions ? (
-        <div className="flex shrink-0 flex-wrap items-center justify-end gap-3">{actions}</div>
+        <div className="flex w-full shrink-0 flex-wrap items-center gap-2 sm:w-auto sm:justify-end sm:gap-3">
+          {actions}
+        </div>
       ) : null}
     </header>
   );
@@ -82,7 +84,7 @@ export function PageContent({ children, narrow, wide }: PageContentProps) {
       : "w-full max-w-3xl";
 
   return (
-    <main className="flex-1 px-5 py-6 sm:px-8">
+    <main className="flex-1 px-4 py-5 sm:px-8 sm:py-6">
       <div className={widthClass}>{children}</div>
     </main>
   );

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import { hasPermission, type User } from "@/lib/auth";
 
@@ -18,6 +18,15 @@ function IconHoje({ className }: { className?: string }) {
       <rect x="3" y="5" width="18" height="16" rx="2" stroke="currentColor" strokeWidth="1.6" />
       <path d="M3 10h18" stroke="currentColor" strokeWidth="1.6" />
       <path d="M8 3v4M16 3v4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function IconPrazos({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" aria-hidden>
+      <path d="M8 6h13M8 12h13M8 18h13" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+      <path d="M4 6h.01M4 12h.01M4 18h.01" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" />
     </svg>
   );
 }
@@ -101,8 +110,14 @@ function BrandMark({ className }: { className?: string }) {
 
 function navClass(active: boolean) {
   return active
-    ? "flex items-center gap-3 rounded-md bg-primary/10 px-3 py-2 text-sm font-semibold text-primary"
-    : "flex items-center gap-3 rounded-md px-3 py-2 text-sm text-muted transition hover:bg-[#f1efe9] hover:text-foreground";
+    ? "flex min-h-11 items-center gap-3 rounded-md bg-primary/10 px-3 py-2.5 text-sm font-semibold text-primary"
+    : "flex min-h-11 items-center gap-3 rounded-md px-3 py-2.5 text-sm text-muted transition hover:bg-[#f1efe9] hover:text-foreground";
+}
+
+function mobileTabClass(active: boolean) {
+  return `flex min-h-12 flex-1 flex-col items-center justify-center gap-0.5 px-1 py-2 text-[11px] font-medium ${
+    active ? "text-primary" : "text-muted"
+  }`;
 }
 
 export function AppSidebar({ user, open = true, onToggle }: AppSidebarProps) {
@@ -111,10 +126,24 @@ export function AppSidebar({ user, open = true, onToggle }: AppSidebarProps) {
   const isAdmin = hasPermission(user, "usuarios_gerenciar");
 
   const activeHoje = pathname === "/dashboard";
+  const activePrazos = pathname.startsWith("/prazos") || pathname.startsWith("/processos/");
   const activeUsuarios = pathname.startsWith("/usuarios");
   const activeFeriados = pathname.startsWith("/feriados");
   const activeAuditoria = pathname.startsWith("/auditoria");
   const activeMais = activeUsuarios || activeFeriados || activeAuditoria;
+
+  useEffect(() => {
+    setMaisOpen(false);
+  }, [pathname]);
+
+  useEffect(() => {
+    if (!maisOpen) return;
+    function onKey(event: KeyboardEvent) {
+      if (event.key === "Escape") setMaisOpen(false);
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [maisOpen]);
 
   async function logout() {
     await fetch("/api/auth/logout", { method: "POST" });
@@ -130,7 +159,7 @@ export function AppSidebar({ user, open = true, onToggle }: AppSidebarProps) {
             className={navClass(activeUsuarios)}
             onClick={() => setMaisOpen(false)}
           >
-            <IconUsuarios className="h-5 w-5" />
+            <IconUsuarios className="h-5 w-5 shrink-0" />
             Usuários
           </Link>
           <Link
@@ -138,7 +167,7 @@ export function AppSidebar({ user, open = true, onToggle }: AppSidebarProps) {
             className={navClass(activeFeriados)}
             onClick={() => setMaisOpen(false)}
           >
-            <IconFeriados className="h-5 w-5" />
+            <IconFeriados className="h-5 w-5 shrink-0" />
             Feriados
           </Link>
         </>
@@ -148,11 +177,11 @@ export function AppSidebar({ user, open = true, onToggle }: AppSidebarProps) {
         className={navClass(activeAuditoria)}
         onClick={() => setMaisOpen(false)}
       >
-        <IconAuditoria className="h-5 w-5" />
+        <IconAuditoria className="h-5 w-5 shrink-0" />
         Auditoria
       </Link>
       <button type="button" onClick={logout} className={`${navClass(false)} w-full text-left`}>
-        <IconSair className="h-5 w-5" />
+        <IconSair className="h-5 w-5 shrink-0" />
         Sair
       </button>
     </>
@@ -186,8 +215,12 @@ export function AppSidebar({ user, open = true, onToggle }: AppSidebarProps) {
 
           <nav className="flex flex-1 flex-col gap-1 px-3">
             <Link href="/dashboard" className={navClass(activeHoje)}>
-              <IconHoje className="h-5 w-5" />
+              <IconHoje className="h-5 w-5 shrink-0" />
               Dashboard
+            </Link>
+            <Link href="/prazos" className={navClass(activePrazos)}>
+              <IconPrazos className="h-5 w-5 shrink-0" />
+              Prazos
             </Link>
             {secondaryNav}
           </nav>
@@ -221,29 +254,50 @@ export function AppSidebar({ user, open = true, onToggle }: AppSidebarProps) {
         </aside>
       )}
 
-      <nav className="fixed inset-x-0 bottom-0 z-20 flex border-t border-border bg-surface lg:hidden">
-        <Link
-          href="/dashboard"
-          className={`flex flex-1 flex-col items-center gap-1 py-2.5 text-xs ${activeHoje ? "text-primary" : "text-muted"}`}
-        >
+      {maisOpen ? (
+        <button
+          type="button"
+          aria-label="Fechar menu"
+          className="fixed inset-0 z-30 bg-foreground/25 lg:hidden"
+          onClick={() => setMaisOpen(false)}
+        />
+      ) : null}
+
+      {maisOpen ? (
+        <div className="fixed inset-x-0 bottom-[calc(3.5rem+env(safe-area-inset-bottom))] z-40 mx-3 mb-2 rounded-lg border border-border bg-surface p-3 shadow-[0_-4px_24px_rgba(26,26,26,0.08)] lg:hidden">
+          <div className="mb-2 border-b border-border pb-2">
+            <p className="truncate text-sm font-medium text-foreground">{user?.nome ?? "Usuário"}</p>
+            <p className="truncate text-[11px] text-muted">
+              {user?.escritorio_nome || "Escritório"}
+              {user?.role ? ` · ${user.role}` : ""}
+            </p>
+          </div>
+          <nav className="flex flex-col gap-1">{secondaryNav}</nav>
+        </div>
+      ) : null}
+
+      <nav
+        className="fixed inset-x-0 bottom-0 z-40 flex border-t border-border bg-surface pb-[env(safe-area-inset-bottom)] lg:hidden"
+        aria-label="Navegação principal"
+      >
+        <Link href="/dashboard" className={mobileTabClass(activeHoje)}>
           <IconHoje className="h-5 w-5" />
-          Dashboard
+          Pauta
+        </Link>
+        <Link href="/prazos" className={mobileTabClass(activePrazos && !activeHoje)}>
+          <IconPrazos className="h-5 w-5" />
+          Prazos
         </Link>
         <button
           type="button"
           onClick={() => setMaisOpen((value) => !value)}
-          className={`flex flex-1 flex-col items-center gap-1 py-2.5 text-xs ${maisOpen || activeMais ? "text-primary" : "text-muted"}`}
+          className={mobileTabClass(maisOpen || activeMais)}
+          aria-expanded={maisOpen}
         >
           <IconMais className="h-5 w-5" />
           Mais
         </button>
       </nav>
-
-      {maisOpen ? (
-        <div className="fixed inset-x-0 bottom-14 z-20 border-t border-border bg-surface p-3 lg:hidden">
-          <nav className="flex flex-col gap-1">{secondaryNav}</nav>
-        </div>
-      ) : null}
     </>
   );
 }

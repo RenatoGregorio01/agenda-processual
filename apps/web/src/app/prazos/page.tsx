@@ -99,7 +99,9 @@ export default async function PrazosPage({
         }
         actions={
           hasPermission(user, "prazos_criar") ? (
-            <ButtonLink href="/prazos/novo">+ Novo prazo</ButtonLink>
+            <ButtonLink href="/prazos/novo" className="w-full sm:w-auto">
+              + Novo prazo
+            </ButtonLink>
           ) : null
         }
       />

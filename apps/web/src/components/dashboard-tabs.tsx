@@ -16,12 +16,12 @@ type DashboardTabsProps = {
   counts: Record<DashboardAba, number>;
 };
 
-const TABS: { id: DashboardAba; label: string; tone: TabTone }[] = [
-  { id: "futuros", label: "Vencimentos Futuros", tone: "neutro" },
-  { id: "hoje", label: "Vence Hoje", tone: "urgente" },
-  { id: "atrasados", label: "Atrasados", tone: "atrasado" },
-  { id: "todos", label: "Todos", tone: "neutro" },
-  { id: "concluidos", label: "Concluídos", tone: "neutro" },
+const TABS: { id: DashboardAba; label: string; labelShort: string; tone: TabTone }[] = [
+  { id: "futuros", label: "Vencimentos Futuros", labelShort: "Futuros", tone: "neutro" },
+  { id: "hoje", label: "Vence Hoje", labelShort: "Hoje", tone: "urgente" },
+  { id: "atrasados", label: "Atrasados", labelShort: "Atrasados", tone: "atrasado" },
+  { id: "todos", label: "Todos", labelShort: "Todos", tone: "neutro" },
+  { id: "concluidos", label: "Concluídos", labelShort: "Feitos", tone: "neutro" },
 ];
 
 function resolveAba(value: string | null): DashboardAba {
@@ -94,7 +94,7 @@ export function DashboardTabs({
   return (
     <div>
       <div
-        className="flex gap-1 overflow-x-auto border-b border-border bg-surface/40 px-1"
+        className="scroll-x-touch flex gap-1 overflow-x-auto border-b border-border bg-surface/40 px-1"
         role="tablist"
         aria-label="Vencimentos do dashboard"
       >
@@ -109,7 +109,8 @@ export function DashboardTabs({
               onClick={() => selectAba(tab.id)}
               className={tabClass(active, tab.tone)}
             >
-              {tab.label}
+              <span className="sm:hidden">{tab.labelShort}</span>
+              <span className="hidden sm:inline">{tab.label}</span>
               <span className={countClass(active, tab.tone)}>{counts[tab.id]}</span>
             </button>
           );
