@@ -63,13 +63,28 @@ def test_payload_ordena_andamentos_recentes() -> None:
         "orgaoJulgador": {"nome": "1ª Vara Cível"},
         "movimentos": [
             {"dataHora": "2024-01-01T10:00:00", "codigo": 1, "nome": "Distribuição"},
-            {"dataHora": "2024-03-10T12:00:00", "codigo": 2, "nome": "Juntada de petição"},
+            {
+                "dataHora": "2024-03-10T12:00:00",
+                "codigo": 2,
+                "nome": "Juntada de petição",
+                "complementosTabelados": [
+                    {
+                        "codigo": 19,
+                        "descricao": "tipo_de_peticao",
+                        "valor": 57,
+                        "nome": "Petição (outras)",
+                    }
+                ],
+                "orgaoJulgador": {"nome": "1ª Vara Cível"},
+            },
         ],
     }
     payload = _payload_from_source("tjsp", source)
     assert payload["status"] == "ok"
     assert payload["andamentos"][0]["nome"] == "Juntada de petição"
     assert payload["andamentos"][0]["data_hora"] == datetime(2024, 3, 10, 12, 0, 0)
+    assert payload["andamentos"][0]["complemento"] == "Petição (outras)"
+    assert payload["andamentos"][0]["orgao"] == "1ª Vara Cível"
 
 
 def test_payload_sem_hits() -> None:

@@ -28,6 +28,8 @@ class DatajudAndamentoRead(BaseModel):
     data_hora: datetime | None = None
     codigo: int | None = None
     nome: str
+    complemento: str | None = None
+    orgao: str | None = None
 
 
 class DatajudSyncRead(BaseModel):
