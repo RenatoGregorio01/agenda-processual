@@ -48,6 +48,34 @@ def _parse_data_hora(value: Any) -> datetime | None:
     return parsed.replace(tzinfo=None) if parsed.tzinfo else parsed
 
 
+def _complemento_from_movimento(movimento: dict[str, Any]) -> str | None:
+    raw = movimento.get("complementosTabelados") or []
+    if not isinstance(raw, list):
+        return None
+    parts: list[str] = []
+    for item in raw:
+        if not isinstance(item, dict):
+            continue
+        nome = str(item.get("nome") or "").strip()
+        if nome:
+            parts.append(nome)
+            continue
+        descricao = str(item.get("descricao") or "").strip().replace("_", " ")
+        if descricao:
+            parts.append(descricao)
+    if not parts:
+        return None
+    return " · ".join(parts)[:500]
+
+
+def _orgao_from_movimento(movimento: dict[str, Any]) -> str | None:
+    orgao = movimento.get("orgaoJulgador")
+    if not isinstance(orgao, dict):
+        return None
+    nome = str(orgao.get("nome") or orgao.get("nomeOrgao") or "").strip()
+    return nome[:255] or None
+
+
 def _andamentos_from_source(source: dict[str, Any]) -> list[dict[str, Any]]:
     raw = source.get("movimentos") or []
     if not isinstance(raw, list):
@@ -65,6 +93,8 @@ def _andamentos_from_source(source: dict[str, Any]) -> list[dict[str, Any]]:
                 "data_hora": _parse_data_hora(movimento.get("dataHora")),
                 "codigo": int(codigo) if isinstance(codigo, int) else None,
                 "nome": nome[:255],
+                "complemento": _complemento_from_movimento(movimento),
+                "orgao": _orgao_from_movimento(movimento),
             }
         )
     items.sort(key=lambda item: item["data_hora"] or datetime.min, reverse=True)
@@ -110,6 +140,8 @@ def _jsonable_payload(payload: dict[str, Any]) -> dict[str, Any]:
                 ),
                 "codigo": item.get("codigo"),
                 "nome": item["nome"],
+                "complemento": item.get("complemento"),
+                "orgao": item.get("orgao"),
             }
         )
     return {**payload, "andamentos": andamentos}
@@ -123,6 +155,8 @@ def _normalize_payload(payload: dict[str, Any]) -> dict[str, Any]:
                 "data_hora": _parse_data_hora(item.get("data_hora")),
                 "codigo": item.get("codigo"),
                 "nome": item["nome"],
+                "complemento": item.get("complemento"),
+                "orgao": item.get("orgao"),
             }
         )
     return {**payload, "andamentos": andamentos}
@@ -146,6 +180,8 @@ async def _replace_andamentos(
                 data_hora=andamento.get("data_hora"),
                 codigo=andamento.get("codigo"),
                 nome=andamento["nome"],
+                complemento=andamento.get("complemento"),
+                orgao=andamento.get("orgao"),
                 ordem=ordem,
             )
         )
