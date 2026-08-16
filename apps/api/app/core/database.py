@@ -141,6 +141,18 @@ async def init_db() -> None:
                 "ALTER TABLE processos ADD COLUMN IF NOT EXISTS datajud_mensagem VARCHAR(500)"
             )
         )
+        await conn.execute(
+            text(
+                "ALTER TABLE processo_andamentos "
+                "ADD COLUMN IF NOT EXISTS complemento VARCHAR(500)"
+            )
+        )
+        await conn.execute(
+            text(
+                "ALTER TABLE processo_andamentos "
+                "ADD COLUMN IF NOT EXISTS orgao VARCHAR(255)"
+            )
+        )
         if conn.dialect.name == "postgresql":
             for value in AuditAction:
                 await conn.execute(

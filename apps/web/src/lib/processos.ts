@@ -14,6 +14,8 @@ export type DatajudAndamento = {
   data_hora: string | null;
   codigo: number | null;
   nome: string;
+  complemento: string | null;
+  orgao: string | null;
 };
 
 export type DatajudSync = {
