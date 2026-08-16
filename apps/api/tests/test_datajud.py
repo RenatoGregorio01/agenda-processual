@@ -31,7 +31,7 @@ def test_so_digitos_remove_mascara() -> None:
         ("0001234-56.2024.5.02.0001", "trt2"),
         ("0001234-56.2024.5.00.0000", "tst"),
         ("0001234-56.2024.3.00.0000", "stj"),
-        ("0001234-56.2024.6.26.0000", "sp"),
+        ("0001234-56.2024.6.26.0000", "tre-sp"),
         ("0001234-56.2024.9.26.0000", "tjmsp"),
     ],
 )
@@ -39,6 +39,11 @@ def test_alias_do_cnj(numero: str, alias: str) -> None:
     digitos, got = alias_do_cnj(numero)
     assert len(digitos) == 20
     assert got == alias
+
+
+def test_alias_rejeita_stf() -> None:
+    with pytest.raises(CnjError, match="STF"):
+        alias_do_cnj("0001234-56.2024.1.00.0000")
 
 
 def test_alias_rejeita_tamanho_invalido() -> None:

@@ -26,7 +26,7 @@ function statusMessage(data: DatajudSync): string {
     return when ? `Atualizado em ${when}` : "Andamentos do tribunal";
   }
   if (data.status === "indisponivel") {
-    return "Não encontramos este processo na base pública do tribunal.";
+    return data.mensagem || "Não encontramos este processo na base pública do tribunal.";
   }
   if (data.status === "tribunal_nao_suportado") {
     return data.mensagem || "Tribunal não suportado para consulta automática.";

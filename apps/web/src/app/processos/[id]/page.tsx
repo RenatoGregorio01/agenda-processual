@@ -7,7 +7,7 @@ import { ButtonLink, EmptyState, SectionHeading } from "@/components/ui";
 import { apiFetch } from "@/lib/api-server";
 import { formatAuditDate, labelAcao, type AuditLog } from "@/lib/auditoria";
 import { hasPermission, type User } from "@/lib/auth";
-import type { ProcessoDetail } from "@/lib/processos";
+import type { DatajudSync, ProcessoDetail } from "@/lib/processos";
 
 async function getCurrentUser(): Promise<User | null> {
   const response = await apiFetch("/api/v1/auth/me");
@@ -22,6 +22,18 @@ async function getProcesso(id: string): Promise<ProcessoDetail | null> {
   return (await response.json()) as ProcessoDetail;
 }
 
+async function syncAndamentos(processoId: string): Promise<DatajudSync | null> {
+  const response = await apiFetch(
+    `/api/v1/processos/${processoId}/datajud/sync?force=true`,
+    {
+      method: "POST",
+    },
+  );
+  if (response.status === 404) return null;
+  if (!response.ok) return null;
+  return (await response.json()) as DatajudSync;
+}
+
 export default async function ProcessoPage({
   params,
 }: {
@@ -31,7 +43,9 @@ export default async function ProcessoPage({
   const [user, detail] = await Promise.all([getCurrentUser(), getProcesso(id)]);
   if (!detail) notFound();
 
-  const { processo, prazos, historico, datajud } = detail;
+  const datajud =
+    (await syncAndamentos(detail.processo.id)) ?? detail.datajud ?? null;
+  const { processo, prazos, historico } = detail;
   const ativos = prazos.filter((item) => !item.excluido_em);
   const excluidos = prazos.filter((item) => item.excluido_em);
 
