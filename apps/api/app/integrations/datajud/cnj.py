@@ -33,33 +33,33 @@ TJ_ESTADUAL = {
 }
 
 TRE = {
-    "01": "ac",
-    "02": "al",
-    "03": "ap",
-    "04": "am",
-    "05": "ba",
-    "06": "ce",
-    "07": "df",
-    "08": "es",
-    "09": "go",
-    "10": "ma",
-    "11": "mt",
-    "12": "ms",
-    "13": "mg",
-    "14": "pa",
-    "15": "pb",
-    "16": "pr",
-    "17": "pe",
-    "18": "pi",
-    "19": "rj",
-    "20": "rn",
-    "21": "rs",
-    "22": "ro",
-    "23": "rr",
-    "24": "sc",
-    "25": "se",
-    "26": "sp",
-    "27": "to",
+    "01": "tre-ac",
+    "02": "tre-al",
+    "03": "tre-ap",
+    "04": "tre-am",
+    "05": "tre-ba",
+    "06": "tre-ce",
+    "07": "tre-df",
+    "08": "tre-es",
+    "09": "tre-go",
+    "10": "tre-ma",
+    "11": "tre-mt",
+    "12": "tre-ms",
+    "13": "tre-mg",
+    "14": "tre-pa",
+    "15": "tre-pb",
+    "16": "tre-pr",
+    "17": "tre-pe",
+    "18": "tre-pi",
+    "19": "tre-rj",
+    "20": "tre-rn",
+    "21": "tre-rs",
+    "22": "tre-ro",
+    "23": "tre-rr",
+    "24": "tre-sc",
+    "25": "tre-se",
+    "26": "tre-sp",
+    "27": "tre-to",
 }
 
 TJM = {"13": "tjmmg", "21": "tjmrs", "26": "tjmsp"}
@@ -145,7 +145,8 @@ def alias_do_cnj(numero: str) -> tuple[str, str]:
     tr = digitos[14:16]
 
     if ramo == "1":
-        return digitos, "stf"
+        # STF não tem endpoint na API pública do DataJud.
+        raise CnjError("Consulta automática ao STF não está disponível na base pública.")
     if ramo == "3":
         return digitos, "stj"
     if ramo == "4":

@@ -40,9 +40,12 @@ async function listChecklist(prazoId: string): Promise<ChecklistItem[]> {
 }
 
 async function syncAndamentos(processoId: string): Promise<DatajudSync | null> {
-  const response = await apiFetch(`/api/v1/processos/${processoId}/datajud/sync`, {
-    method: "POST",
-  });
+  const response = await apiFetch(
+    `/api/v1/processos/${processoId}/datajud/sync?force=true`,
+    {
+      method: "POST",
+    },
+  );
   if (response.status === 404) return null;
   if (!response.ok) return null;
   return (await response.json()) as DatajudSync;
