@@ -17,7 +17,7 @@ from app.models.user import User
 from app.schemas.prazo import PrazoCreate, PrazoRead, PrazoUpdate
 from app.services.alertas import replace_alertas, to_prazo_read, to_prazos_read
 from app.services.audit import montar_auditoria
-from app.services.export_pauta import build_csv, build_pdf
+from app.services.export_pauta import build_csv, build_pdf, describe_export
 from app.services.prazos_query import FiltroPrazo, listar_prazos_filtrados
 from app.services.processos import get_or_create_processo
 
@@ -108,15 +108,11 @@ async def exportar_prazos(
         data_inicio=data_inicio,
         data_fim=data_fim,
     )
-    hoje = utc_now().strftime("%Y%m%d")
-    if using_range:
-        inicio_label = data_inicio.isoformat() if data_inicio else "inicio"
-        fim_label = data_fim.isoformat() if data_fim else "fim"
-        titulo = f"Pauta ({inicio_label} a {fim_label})"
-        filename_base = f"pauta-{inicio_label}-{fim_label}"
-    else:
-        titulo = f"Pauta ({filtro})"
-        filename_base = f"pauta-{filtro}-{hoje}"
+    titulo, filename_base = describe_export(
+        filtro=None if using_range else filtro,
+        data_inicio=data_inicio if using_range else None,
+        data_fim=data_fim if using_range else None,
+    )
 
     if formato == "pdf":
         content = build_pdf(prazos, titulo=titulo)
