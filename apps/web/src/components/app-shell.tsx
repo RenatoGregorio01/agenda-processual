@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, type ReactNode } from "react";
+import { useSyncExternalStore, type ReactNode } from "react";
 
 import { AppSidebar } from "@/components/app-sidebar";
 import { AppTopbar } from "@/components/app-topbar";
@@ -8,36 +8,47 @@ import type { User } from "@/lib/auth";
 
 const SIDEBAR_STORAGE_KEY = "agenda.sidebar.open";
 
+const sidebarListeners = new Set<() => void>();
+
+function subscribeSidebar(onStoreChange: () => void) {
+  sidebarListeners.add(onStoreChange);
+  return () => {
+    sidebarListeners.delete(onStoreChange);
+  };
+}
+
+function getSidebarOpen(): boolean {
+  return window.localStorage.getItem(SIDEBAR_STORAGE_KEY) !== "0";
+}
+
+function getSidebarServerSnapshot(): boolean {
+  return true;
+}
+
+function setSidebarOpenPersisted(next: boolean) {
+  window.localStorage.setItem(SIDEBAR_STORAGE_KEY, next ? "1" : "0");
+  sidebarListeners.forEach((listener) => listener());
+}
+
 type AppShellProps = {
   user: User | null;
   children: ReactNode;
 };
 
 export function AppShell({ user, children }: AppShellProps) {
-  const [sidebarOpen, setSidebarOpen] = useState(true);
-  const [ready, setReady] = useState(false);
-
-  useEffect(() => {
-    const stored = window.localStorage.getItem(SIDEBAR_STORAGE_KEY);
-    if (stored === "0") setSidebarOpen(false);
-    setReady(true);
-  }, []);
+  const sidebarOpen = useSyncExternalStore(
+    subscribeSidebar,
+    getSidebarOpen,
+    getSidebarServerSnapshot,
+  );
 
   function toggleSidebar() {
-    setSidebarOpen((value) => {
-      const next = !value;
-      window.localStorage.setItem(SIDEBAR_STORAGE_KEY, next ? "1" : "0");
-      return next;
-    });
+    setSidebarOpenPersisted(!sidebarOpen);
   }
 
   return (
     <div className="flex min-h-full min-h-dvh flex-1 overflow-x-hidden bg-background">
-      <AppSidebar
-        user={user}
-        open={ready ? sidebarOpen : true}
-        onToggle={toggleSidebar}
-      />
+      <AppSidebar user={user} open={sidebarOpen} onToggle={toggleSidebar} />
       <div className="flex min-w-0 flex-1 flex-col pb-[calc(4.5rem+env(safe-area-inset-bottom))] lg:pb-0">
         <AppTopbar user={user} />
         {children}
