@@ -1,11 +1,11 @@
-# Override de produção no homelab (HTTPS via Cloudflare Tunnel).
+# Override de produção no servidor Ubuntu (homelab).
 #
 # Pré-requisitos:
-#   1. Domínio no Cloudflare
-#   2. Tunnel criado no Zero Trust → Networks → Tunnels → token copiado
+#   1. Domínio no Cloudflare + Tunnel `agenda` com token
+#   2. Rede Docker externa `observability` (Prometheus/Grafana do homelab)
 #   3. docker/homelab.env e (opcional) docker/smtp.env preenchidos
 #
-# Subir:
+# Subir no servidor:
 #   docker compose --env-file docker/homelab.env \
 #     -f docker/docker-compose.yml \
 #     -f docker/compose.homelab.yml \
@@ -17,9 +17,22 @@
 #   https://agendaprocessual.com.br      → http://web:3000
 #   https://api.agendaprocessual.com.br  → http://api:8000
 #
-# NÃO publique no túnel: db, redis, mailpit.
+# Sem publicação de portas no host (Grafana já usa :3000, Postgres do homelab :5432).
+# Métricas: Prometheus scrapea agenda-api:8000 na rede `observability`.
 
 services:
+  db:
+    # Só rede interna Docker — não conflitar com postgres do homelab (:5432).
+    ports: !reset []
+    # Dados em docker/data/postgres no clone do servidor.
+
+  redis:
+    ports: !reset []
+
+  mailpit:
+    # UI/SMTP só internos; produção real usa compose.smtp.yml.
+    ports: !reset []
+
   api:
     environment:
       APP_ENV: production
@@ -31,10 +44,13 @@ services:
       SEED_ADMIN_PASSWORD: ${SEED_ADMIN_PASSWORD:-}
       METRICS_ENABLED: "true"
       ALERTAS_ENABLED: "true"
-    # Sem bind-mount nem --reload: usa a imagem buildada.
     volumes: !reset []
+    ports: !reset []
     command: >
       uvicorn app.main:app --host 0.0.0.0 --port 8000
+    networks:
+      - default
+      - observability
 
   web:
     image: agenda-web:homelab
@@ -49,9 +65,8 @@ services:
       APP_PUBLIC_URL: ${APP_PUBLIC_URL:?defina APP_PUBLIC_URL em docker/homelab.env}
       NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:?defina NEXT_PUBLIC_API_URL em docker/homelab.env}
       API_URL: http://api:8000
-    # Remove volume de código + node_modules do compose base (modo dev).
     volumes: !reset []
-    # Imagem standalone: node server.js (sem next dev / badge "N").
+    ports: !reset []
     command: ["node", "server.js"]
 
   cloudflared:
@@ -64,3 +79,7 @@ services:
     depends_on:
       - api
       - web
+
+networks:
+  observability:
+    external: true
