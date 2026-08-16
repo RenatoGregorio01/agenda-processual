@@ -55,6 +55,7 @@ class Settings(BaseSettings):
     datajud_cache_ttl_seconds: int = 60 * 60 * 12
     datajud_empty_ttl_seconds: int = 60 * 60 * 6
     datajud_lock_ttl_seconds: int = 45
+    datajud_rate_limit_per_minute: int = 60
     cors_origins: str = "http://localhost:3000,http://127.0.0.1:3000"
     seed_example_data: bool = True
     metrics_enabled: bool = True

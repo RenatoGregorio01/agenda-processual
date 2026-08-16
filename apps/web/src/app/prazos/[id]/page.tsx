@@ -39,6 +39,13 @@ async function listChecklist(prazoId: string): Promise<ChecklistItem[]> {
   return (await response.json()) as ChecklistItem[];
 }
 
+async function getAndamentosSalvos(processoId: string): Promise<DatajudSync | null> {
+  const response = await apiFetch(`/api/v1/processos/${processoId}`);
+  if (!response.ok) return null;
+  const body = (await response.json()) as { datajud?: DatajudSync };
+  return body.datajud ?? null;
+}
+
 async function syncAndamentos(processoId: string): Promise<DatajudSync | null> {
   const response = await apiFetch(
     `/api/v1/processos/${processoId}/datajud/sync?force=true`,
@@ -46,9 +53,11 @@ async function syncAndamentos(processoId: string): Promise<DatajudSync | null> {
       method: "POST",
     },
   );
-  if (response.status === 404) return null;
-  if (!response.ok) return null;
-  return (await response.json()) as DatajudSync;
+  if (response.ok) {
+    return (await response.json()) as DatajudSync;
+  }
+  // Se a sync falhar, ainda exibe andamentos já gravados na ficha.
+  return getAndamentosSalvos(processoId);
 }
 
 export default async function PrazoDetalhePage({
