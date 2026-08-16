@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
 import { hasPermission, type User } from "@/lib/auth";
@@ -122,8 +122,15 @@ function mobileTabClass(active: boolean) {
 
 export function AppSidebar({ user, open = true, onToggle }: AppSidebarProps) {
   const pathname = usePathname();
+  const router = useRouter();
   const [maisOpen, setMaisOpen] = useState(false);
+  const [pathWhenMaisOpen, setPathWhenMaisOpen] = useState(pathname);
   const isAdmin = hasPermission(user, "usuarios_gerenciar");
+
+  if (maisOpen && pathWhenMaisOpen !== pathname) {
+    setMaisOpen(false);
+    setPathWhenMaisOpen(pathname);
+  }
 
   const activeHoje = pathname === "/dashboard";
   const activePrazos = pathname.startsWith("/prazos") || pathname.startsWith("/processos/");
@@ -131,10 +138,6 @@ export function AppSidebar({ user, open = true, onToggle }: AppSidebarProps) {
   const activeFeriados = pathname.startsWith("/feriados");
   const activeAuditoria = pathname.startsWith("/auditoria");
   const activeMais = activeUsuarios || activeFeriados || activeAuditoria;
-
-  useEffect(() => {
-    setMaisOpen(false);
-  }, [pathname]);
 
   useEffect(() => {
     if (!maisOpen) return;
@@ -147,7 +150,7 @@ export function AppSidebar({ user, open = true, onToggle }: AppSidebarProps) {
 
   async function logout() {
     await fetch("/api/auth/logout", { method: "POST" });
-    window.location.href = "/login";
+    router.replace("/login");
   }
 
   const secondaryNav = (
@@ -157,7 +160,10 @@ export function AppSidebar({ user, open = true, onToggle }: AppSidebarProps) {
           <Link
             href="/usuarios"
             className={navClass(activeUsuarios)}
-            onClick={() => setMaisOpen(false)}
+            onClick={() => {
+              setMaisOpen(false);
+              setPathWhenMaisOpen(pathname);
+            }}
           >
             <IconUsuarios className="h-5 w-5 shrink-0" />
             Usuários
@@ -290,7 +296,10 @@ export function AppSidebar({ user, open = true, onToggle }: AppSidebarProps) {
         </Link>
         <button
           type="button"
-          onClick={() => setMaisOpen((value) => !value)}
+          onClick={() => {
+            setPathWhenMaisOpen(pathname);
+            setMaisOpen((value) => !value);
+          }}
           className={mobileTabClass(maisOpen || activeMais)}
           aria-expanded={maisOpen}
         >
