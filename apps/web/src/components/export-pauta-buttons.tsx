@@ -89,15 +89,6 @@ export function ExportPautaButtons({
 
   useEffect(() => {
     if (!open) return;
-    const range = defaultRangeFromFiltro(filtro, dataInicioProp, dataFimProp);
-    setDataInicio(range.inicio);
-    setDataFim(range.fim);
-    setSelectedResponsavelId(responsavelId ?? "");
-    setError(null);
-  }, [open, filtro, dataInicioProp, dataFimProp, responsavelId]);
-
-  useEffect(() => {
-    if (!open) return;
     function onKeyDown(event: KeyboardEvent) {
       if (event.key === "Escape") setOpen(false);
     }
@@ -106,8 +97,13 @@ export function ExportPautaButtons({
   }, [open]);
 
   function openDialog(nextFormat: ExportFormat) {
+    const range = defaultRangeFromFiltro(filtro, dataInicioProp, dataFimProp);
     setFormato(nextFormat);
     setMenuOpen(false);
+    setDataInicio(range.inicio);
+    setDataFim(range.fim);
+    setSelectedResponsavelId(responsavelId ?? "");
+    setError(null);
     setOpen(true);
   }
 

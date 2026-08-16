@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useTransition } from "react";
+import { useState, useTransition } from "react";
 
 type FeriadoNoIntervalo = {
   data: string;
@@ -28,16 +28,18 @@ export function CalculoDiasUteis({
   defaultDataBase = "",
 }: CalculoDiasUteisProps) {
   const [dataBase, setDataBase] = useState(defaultDataBase);
+  const [prevDefaultDataBase, setPrevDefaultDataBase] = useState(defaultDataBase);
   const [dias, setDias] = useState("15");
   const [result, setResult] = useState<CalculoResult | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
-  useEffect(() => {
+  if (defaultDataBase !== prevDefaultDataBase) {
+    setPrevDefaultDataBase(defaultDataBase);
     if (defaultDataBase) {
       setDataBase(defaultDataBase);
     }
-  }, [defaultDataBase]);
+  }
 
   function calcular() {
     setError(null);
