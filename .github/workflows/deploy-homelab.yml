@@ -1,7 +1,8 @@
 name: Deploy Homelab
 
-# Publica no Mac/servidor do homelab depois que API + Web passam no CI.
-# Requer self-hosted runner com label `homelab` e variável HOMELAB_REPO_PATH.
+# Publica no servidor Ubuntu do homelab depois que API + Web passam no CI.
+# Requer self-hosted runner com label `homelab` e variável HOMELAB_REPO_PATH
+# apontando para o clone no Ubuntu (ex.: /home/renato/agenda-processual).
 # Ver docs/homelab-deploy.md (seção CI/CD).
 
 on:
