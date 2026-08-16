@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useRef, useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 
 import { dvCnjValido, mascararCnj, soDigitos } from "@/lib/cnj";
 import type { ProcessoValidar } from "@/lib/processos";
@@ -26,12 +26,6 @@ export function NumeroProcessoField({
   const [pending, startLookup] = useTransition();
   const [result, setResult] = useState<ProcessoValidar | null>(null);
   const [resultFor, setResultFor] = useState("");
-  const onClienteHintRef = useRef(onClienteHint);
-  const onInvalidChangeRef = useRef(onInvalidChange);
-  const onCadastradoChangeRef = useRef(onCadastradoChange);
-  onClienteHintRef.current = onClienteHint;
-  onInvalidChangeRef.current = onInvalidChange;
-  onCadastradoChangeRef.current = onCadastradoChange;
 
   const digits = soDigitos(value);
   const dvInvalido = digits.length === 20 && !dvCnjValido(value);
@@ -39,19 +33,21 @@ export function NumeroProcessoField({
   const invalido = dvInvalido || atual?.valido === false;
 
   useEffect(() => {
-    onInvalidChangeRef.current?.(invalido);
-  }, [invalido]);
+    onInvalidChange?.(invalido);
+  }, [invalido, onInvalidChange]);
 
   useEffect(() => {
     const numero = value.trim();
-    if (soDigitos(numero).length < 5) {
-      setResult(null);
-      setResultFor("");
-      onCadastradoChangeRef.current?.(false);
-      return;
-    }
+    const nextDigits = soDigitos(numero);
 
     const handle = window.setTimeout(() => {
+      if (nextDigits.length < 5) {
+        setResult(null);
+        setResultFor("");
+        onCadastradoChange?.(false);
+        return;
+      }
+
       startLookup(async () => {
         const response = await fetch(
           `/api/processos/validar?numero=${encodeURIComponent(numero)}`,
@@ -62,15 +58,15 @@ export function NumeroProcessoField({
         const next = (await response.json()) as ProcessoValidar;
         setResult(next);
         setResultFor(soDigitos(numero));
-        onCadastradoChangeRef.current?.(Boolean(next.cadastrado));
+        onCadastradoChange?.(Boolean(next.cadastrado));
         if (next.cadastrado && next.cliente) {
-          onClienteHintRef.current?.(next.cliente);
+          onClienteHint?.(next.cliente);
         }
       });
-    }, 400);
+    }, nextDigits.length < 5 ? 0 : 400);
 
     return () => window.clearTimeout(handle);
-  }, [value]);
+  }, [value, onCadastradoChange, onClienteHint]);
 
   function handleBlur() {
     const masked = mascararCnj(value);
