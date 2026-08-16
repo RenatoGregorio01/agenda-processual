@@ -9,7 +9,6 @@ Create Date: 2026-08-12
 from collections.abc import Sequence
 
 from alembic import op
-
 from app.models.audit_log import AuditAction
 
 revision: str = "20260812_0007"

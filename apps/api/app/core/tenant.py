@@ -1,4 +1,3 @@
-from typing import TypeVar
 from uuid import UUID
 
 from fastapi import HTTPException, status
@@ -6,14 +5,12 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 
 from app.models.user import User
 
-T = TypeVar("T")
-
 
 def escritorio_id(user: User) -> UUID:
     return user.escritorio_id
 
 
-async def get_owned(
+async def get_owned[T](
     session: AsyncSession,
     model: type[T],
     row_id: UUID,
