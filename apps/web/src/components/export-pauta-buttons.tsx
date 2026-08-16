@@ -172,12 +172,12 @@ export function ExportPautaButtons({
   return (
     <>
       {variant === "menu" ? (
-        <div className="relative">
+        <div className="relative w-full sm:w-auto">
           <Button
             type="button"
             variant="secondary"
             onClick={() => setMenuOpen((value) => !value)}
-            className="gap-2"
+            className="w-full gap-2 sm:w-auto"
             aria-expanded={menuOpen}
             aria-haspopup="menu"
           >
@@ -202,13 +202,13 @@ export function ExportPautaButtons({
               />
               <div
                 role="menu"
-                className="absolute right-0 z-40 mt-1 min-w-[9rem] border border-border bg-surface py-1 shadow-sm"
+                className="absolute left-0 right-0 z-40 mt-1 border border-border bg-surface py-1 shadow-sm sm:left-auto sm:right-0 sm:min-w-[9rem]"
               >
                 <button
                   type="button"
                   role="menuitem"
                   onClick={() => openDialog("pdf")}
-                  className="block w-full px-3 py-2 text-left text-sm text-foreground hover:bg-background"
+                  className="block min-h-11 w-full px-3 py-2.5 text-left text-sm text-foreground hover:bg-background sm:min-h-0 sm:py-2"
                 >
                   PDF
                 </button>
@@ -216,7 +216,7 @@ export function ExportPautaButtons({
                   type="button"
                   role="menuitem"
                   onClick={() => openDialog("csv")}
-                  className="block w-full px-3 py-2 text-left text-sm text-foreground hover:bg-background"
+                  className="block min-h-11 w-full px-3 py-2.5 text-left text-sm text-foreground hover:bg-background sm:min-h-0 sm:py-2"
                 >
                   CSV
                 </button>
@@ -225,18 +225,18 @@ export function ExportPautaButtons({
           ) : null}
         </div>
       ) : (
-        <div className="flex flex-wrap gap-2">
+        <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:flex-wrap">
           <button
             type="button"
             onClick={() => openDialog("csv")}
-            className="inline-flex h-10 items-center justify-center border border-border bg-surface px-3.5 text-sm text-foreground"
+            className="inline-flex h-11 w-full items-center justify-center border border-border bg-surface px-3.5 text-sm text-foreground sm:h-10 sm:w-auto"
           >
             Exportar CSV
           </button>
           <button
             type="button"
             onClick={() => openDialog("pdf")}
-            className="inline-flex h-10 items-center justify-center border border-border bg-surface px-3.5 text-sm text-foreground"
+            className="inline-flex h-11 w-full items-center justify-center border border-border bg-surface px-3.5 text-sm text-foreground sm:h-10 sm:w-auto"
           >
             Exportar PDF
           </button>
@@ -253,7 +253,7 @@ export function ExportPautaButtons({
             role="dialog"
             aria-modal="true"
             aria-labelledby={titleId}
-            className="w-full max-w-md border border-border bg-background p-5 shadow-sm"
+            className="max-h-[min(90dvh,40rem)] w-full max-w-md overflow-y-auto border border-border bg-background p-5 shadow-sm"
             onClick={(event) => event.stopPropagation()}
           >
             <h2 id={titleId} className="text-lg font-semibold text-foreground">
@@ -288,7 +288,7 @@ export function ExportPautaButtons({
                     setDataInicio(event.target.value);
                     setError(null);
                   }}
-                  className="h-11 border border-border bg-surface px-3 outline-none ring-primary focus:ring-2"
+                  className="h-11 w-full border border-border bg-surface px-3 text-base outline-none ring-primary focus:ring-2 sm:text-sm"
                 />
               </label>
               <label className="flex flex-col gap-1.5 text-sm">
@@ -300,7 +300,7 @@ export function ExportPautaButtons({
                     setDataFim(event.target.value);
                     setError(null);
                   }}
-                  className="h-11 border border-border bg-surface px-3 outline-none ring-primary focus:ring-2"
+                  className="h-11 w-full border border-border bg-surface px-3 text-base outline-none ring-primary focus:ring-2 sm:text-sm"
                 />
               </label>
             </div>

@@ -62,7 +62,7 @@ export function PageHeader({ title, description, actions }: PageHeaderProps) {
         {description ? <div className="mt-1.5 text-sm text-muted">{description}</div> : null}
       </div>
       {actions ? (
-        <div className="flex w-full shrink-0 flex-wrap items-center gap-2 sm:w-auto sm:justify-end sm:gap-3">
+        <div className="flex w-full shrink-0 flex-wrap items-center justify-end gap-2 sm:w-auto sm:gap-3">
           {actions}
         </div>
       ) : null}
