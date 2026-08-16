@@ -2,16 +2,23 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { cumprirPrazo } from "@/app/prazos/actions";
+import { AppShell, PageContent, PageHeader } from "@/components/app-shell";
 import { ExcluirPrazoButton } from "@/components/excluir-prazo-button";
+import { PrazoAlertasEditor } from "@/components/prazo-alertas-editor";
 import { PrazoBadge } from "@/components/prazo-badge";
+import { PrazoChecklist } from "@/components/prazo-checklist";
+import { AndamentosEmpty, ProcessoAndamentos } from "@/components/processo-andamentos";
 import { RestaurarPrazoButton } from "@/components/restaurar-prazo-button";
+import { Button, ButtonLink, Card } from "@/components/ui";
 import { apiFetch } from "@/lib/api-server";
 import { hasPermission, type User } from "@/lib/auth";
+import { tituloFromChecklist, type ChecklistItem } from "@/lib/checklist";
 import {
   formatVencimentoLongo,
   getUrgencyBadge,
   type Prazo,
 } from "@/lib/prazos";
+import type { DatajudSync } from "@/lib/processos";
 
 async function getCurrentUser(): Promise<User | null> {
   const response = await apiFetch("/api/v1/auth/me");
@@ -26,6 +33,21 @@ async function getPrazo(id: string): Promise<Prazo | null> {
   return (await response.json()) as Prazo;
 }
 
+async function listChecklist(prazoId: string): Promise<ChecklistItem[]> {
+  const response = await apiFetch(`/api/v1/prazos/${prazoId}/checklist`);
+  if (!response.ok) return [];
+  return (await response.json()) as ChecklistItem[];
+}
+
+async function syncAndamentos(processoId: string): Promise<DatajudSync | null> {
+  const response = await apiFetch(`/api/v1/processos/${processoId}/datajud/sync`, {
+    method: "POST",
+  });
+  if (response.status === 404) return null;
+  if (!response.ok) return null;
+  return (await response.json()) as DatajudSync;
+}
+
 export default async function PrazoDetalhePage({
   params,
 }: {
@@ -35,150 +57,144 @@ export default async function PrazoDetalhePage({
   const [user, prazo] = await Promise.all([getCurrentUser(), getPrazo(id)]);
   if (!prazo) notFound();
 
+  const [checklist, datajud] = await Promise.all([
+    listChecklist(prazo.id),
+    prazo.processo_id ? syncAndamentos(prazo.processo_id) : Promise.resolve(null),
+  ]);
+  const titulo = tituloFromChecklist(checklist) ?? prazo.acao;
   const badge = getUrgencyBadge(prazo);
   const isExcluded = Boolean(prazo.excluido_em);
   const cumprir = cumprirPrazo.bind(null, prazo.id);
-  const backHref = isExcluded ? "/prazos?filtro=excluidos" : "/prazos";
+  const canEditChecklist = !isExcluded && hasPermission(user, "prazos_alterar");
 
   return (
-    <main className="mx-auto flex w-full max-w-2xl flex-1 flex-col px-6 py-10 sm:px-10">
-      <Link href={backHref} className="text-sm text-muted underline-offset-4 hover:underline">
-        ← Voltar para prazos
-      </Link>
+    <AppShell user={user}>
+      <PageHeader
+        title="Detalhes do Prazo"
+        actions={
+          <ButtonLink href="/dashboard" variant="link" size="sm">
+            ← Voltar ao dashboard
+          </ButtonLink>
+        }
+      />
 
-      <section className="mt-8">
-        <p className="text-sm uppercase tracking-wide text-muted">Vence em</p>
-        <h1 className="mt-2 text-4xl font-bold tracking-tight text-foreground sm:text-5xl">
-          {formatVencimentoLongo(prazo.data_vencimento)}
-        </h1>
-        <div className="mt-3">
-          <PrazoBadge badge={badge} />
-        </div>
-      </section>
-
-      <section className="mt-10 border-t border-border pt-6">
-        <h2 className="text-2xl font-semibold text-foreground">{prazo.acao}</h2>
-        <p className="mt-2 text-muted">
-          {isExcluded
-            ? "Este prazo foi excluído e pode ser restaurado."
-            : badge.label === "ATRASADO"
-              ? "Prazo vencido. Protocolar o quanto antes."
-              : badge.label === "AMANHÃ" || badge.label === "HOJE"
-                ? `${badge.label === "HOJE" ? "Hoje" : "Amanhã"} vence. Protocolar no prazo.`
-                : "Acompanhe o vencimento e a ação necessária."}
-        </p>
-      </section>
-
-      <section className="mt-8 space-y-2 text-sm">
-        <p>
-          <span className="text-muted">Processo:</span>{" "}
-          {prazo.processo_id ? (
-            <Link
-              href={`/processos/${prazo.processo_id}`}
-              className="font-medium text-primary underline-offset-4 hover:underline"
-            >
-              {prazo.numero_processo}
-            </Link>
-          ) : (
-            <span className="font-medium">{prazo.numero_processo}</span>
-          )}
-        </p>
-        <p>
-          <span className="text-muted">Cliente:</span>{" "}
-          <span className="font-medium">{prazo.cliente}</span>
-        </p>
-        <p>
-          <span className="text-muted">Responsável:</span>{" "}
-          <span className="font-medium">{prazo.responsavel}</span>
-        </p>
-        {prazo.data_disponibilizacao ? (
-          <p>
-            <span className="text-muted">Disponibilização no diário:</span>{" "}
-            <span className="font-medium">
-              {new Date(prazo.data_disponibilizacao + "T12:00:00").toLocaleDateString("pt-BR")}
-            </span>
-          </p>
-        ) : null}
-      </section>
-
-      <section className="mt-8 border-t border-border pt-6">
-        <h3 className="text-sm font-medium text-foreground">Alertas por e-mail</h3>
-        <ul className="mt-3 space-y-2 text-sm">
-          {(
-            [
-              {
-                label: "3 dias antes",
-                ativo: prazo.alerta_3_dias,
-                enviado: Boolean(prazo.alerta_3_dias_enviado),
-              },
-              {
-                label: "2 dias antes",
-                ativo: prazo.alerta_2_dias,
-                enviado: Boolean(prazo.alerta_2_dias_enviado),
-              },
-              {
-                label: "1 dia antes",
-                ativo: prazo.alerta_1_dia,
-                enviado: Boolean(prazo.alerta_1_dia_enviado),
-              },
-            ] as const
-          ).map((item) => (
-            <li
-              key={item.label}
-              className="flex flex-wrap items-center justify-between gap-2 border border-border px-3 py-2"
-            >
-              <span className="text-foreground">{item.label}</span>
-              <span className="text-muted">
-                {!item.ativo ? (
-                  "Desativado"
-                ) : item.enviado ? (
-                  <span className="font-medium text-no-prazo">Enviado ✓</span>
-                ) : (
-                  "Aguardando envio"
-                )}
+      <PageContent>
+        <Card className="px-4 py-3">
+          <div className="flex items-center justify-between gap-3">
+            <h2 className="min-w-0 text-base font-semibold tracking-tight text-foreground sm:text-lg">
+              <span className="font-medium uppercase tracking-wide text-muted">Vence em </span>
+              <span className="font-[family-name:var(--font-display)]">
+                {formatVencimentoLongo(prazo.data_vencimento)}
               </span>
-            </li>
-          ))}
-        </ul>
-      </section>
+            </h2>
+            <div className="shrink-0">
+              <PrazoBadge badge={badge} />
+            </div>
+          </div>
+        </Card>
 
-      <div className="mt-10 flex flex-col gap-3">
-        {isExcluded ? (
-          hasPermission(user, "prazos_restaurar") ? (
-            <RestaurarPrazoButton prazoId={prazo.id} />
-          ) : (
-            <p className="text-sm text-muted">Você não tem permissão para restaurar prazos.</p>
-          )
+        <section className="mt-5">
+          <h3 className="text-lg font-semibold text-foreground">{titulo}</h3>
+          <p className="mt-1 text-sm text-muted">
+            {isExcluded
+              ? "Este prazo foi excluído e pode ser restaurado."
+              : badge.label === "ATRASADO"
+                ? "Prazo vencido. Protocolar o quanto antes."
+                : badge.label === "AMANHÃ" || badge.label === "HOJE"
+                  ? `${badge.label === "HOJE" ? "Hoje" : "Amanhã"} vence. Protocolar no prazo.`
+                  : "Acompanhe o vencimento e a ação necessária."}
+          </p>
+        </section>
+
+        <Card className="mt-5 p-4 text-sm">
+          <dl className="grid grid-cols-[minmax(7rem,auto)_1fr] items-baseline gap-x-4 gap-y-2">
+            <dt className="text-muted">Processo</dt>
+            <dd className="min-w-0 font-medium">
+              {prazo.processo_id ? (
+                <Link
+                  href={`/processos/${prazo.processo_id}`}
+                  className="text-primary underline-offset-4 hover:underline"
+                >
+                  {prazo.numero_processo}
+                </Link>
+              ) : (
+                prazo.numero_processo
+              )}
+            </dd>
+            <dt className="text-muted">Cliente</dt>
+            <dd className="min-w-0 font-medium">{prazo.cliente}</dd>
+            <dt className="text-muted">Responsável</dt>
+            <dd className="min-w-0 font-medium">{prazo.responsavel}</dd>
+            {prazo.data_disponibilizacao ? (
+              <>
+                <dt className="text-muted">Disponibilização</dt>
+                <dd className="min-w-0 font-medium">
+                  {new Date(prazo.data_disponibilizacao + "T12:00:00").toLocaleDateString("pt-BR")}
+                </dd>
+              </>
+            ) : null}
+          </dl>
+        </Card>
+
+        <div className="mt-5">
+          <PrazoChecklist
+            prazoId={prazo.id}
+            initialItems={checklist}
+            canEdit={canEditChecklist}
+          />
+        </div>
+
+        {datajud ? (
+          <ProcessoAndamentos data={datajud} />
         ) : (
-          <>
-            {prazo.status !== "cumprido" ? (
-              hasPermission(user, "prazos_cumprir") ? (
-                <form action={cumprir}>
-                  <button
-                    type="submit"
-                    className="inline-flex h-12 w-full items-center justify-center bg-primary px-6 text-base font-semibold text-primary-foreground transition hover:brightness-110"
-                  >
-                    Marcar como cumprido
-                  </button>
-                </form>
-              ) : null
-            ) : (
-              <p className="text-sm font-medium text-no-prazo">Este prazo já foi cumprido.</p>
-            )}
-            {hasPermission(user, "prazos_alterar") ? (
-              <Link
-                href={`/prazos/${prazo.id}/editar`}
-                className="inline-flex h-12 w-full items-center justify-center border border-border bg-surface px-6 text-base font-medium text-foreground transition hover:bg-background"
-              >
-                Editar
-              </Link>
-            ) : null}
-            {hasPermission(user, "prazos_excluir") ? (
-              <ExcluirPrazoButton prazoId={prazo.id} acao={prazo.acao} />
-            ) : null}
-          </>
+          <AndamentosEmpty
+            message={
+              prazo.processo_id
+                ? "Não encontramos a ficha deste processo. Os andamentos do tribunal ficam indisponíveis por enquanto."
+                : "Este prazo ainda não está vinculado a uma ficha de processo, então não dá para buscar andamentos no tribunal."
+            }
+          />
         )}
-      </div>
-    </main>
+
+        <div className="mt-5">
+          <PrazoAlertasEditor
+            prazo={prazo}
+            canEdit={!isExcluded && hasPermission(user, "prazos_alterar")}
+          />
+        </div>
+
+        <div className="mt-6 flex flex-col gap-2">
+          {isExcluded ? (
+            hasPermission(user, "prazos_restaurar") ? (
+              <RestaurarPrazoButton prazoId={prazo.id} />
+            ) : (
+              <p className="text-sm text-muted">Você não tem permissão para restaurar prazos.</p>
+            )
+          ) : (
+            <>
+              {prazo.status !== "cumprido" ? (
+                hasPermission(user, "prazos_cumprir") ? (
+                  <form action={cumprir}>
+                    <Button type="submit" fullWidth>
+                      Marcar como cumprido
+                    </Button>
+                  </form>
+                ) : null
+              ) : (
+                <p className="text-sm font-medium text-no-prazo">Este prazo já foi cumprido.</p>
+              )}
+              {hasPermission(user, "prazos_alterar") ? (
+                <ButtonLink href={`/prazos/${prazo.id}/editar`} variant="secondary" fullWidth>
+                  Editar
+                </ButtonLink>
+              ) : null}
+              {hasPermission(user, "prazos_excluir") ? (
+                <ExcluirPrazoButton prazoId={prazo.id} acao={prazo.acao} />
+              ) : null}
+            </>
+          )}
+        </div>
+      </PageContent>
+    </AppShell>
   );
 }

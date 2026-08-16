@@ -8,12 +8,14 @@ from app.api.deps import get_current_admin, get_current_user
 from app.core.database import get_session
 from app.core.permissions import Permission, sync_admin_flag, user_has_permission
 from app.core.security import hash_password
+from app.core.tenant import get_owned
 from app.core.timeutils import utc_now
 from app.models.audit_log import AuditAction
+from app.models.escritorio import Escritorio
 from app.models.user import Role, User
 from app.schemas.user import UserCreate, UserOption, UserRead, UserUpdate
 from app.services.audit import montar_auditoria
-from app.services.users import to_user_read
+from app.services.users import to_user_read, to_user_read_with_escritorio
 
 router = APIRouter()
 
@@ -34,19 +36,29 @@ async def listar_opcoes_usuarios(
         )
 
     result = await session.exec(
-        select(User).where(col(User.ativo).is_(True)).order_by(col(User.nome).asc())
+        select(User)
+        .where(
+            col(User.ativo).is_(True),
+            User.escritorio_id == current_user.escritorio_id,
+        )
+        .order_by(col(User.nome).asc())
     )
-    return [
-        UserOption(id=user.id, nome=user.nome, email=user.email) for user in result.all()
-    ]
+    return [UserOption(id=user.id, nome=user.nome) for user in result.all()]
 
 
-@router.get("", response_model=list[UserRead], dependencies=[Depends(get_current_admin)])
+@router.get("", response_model=list[UserRead])
 async def listar_usuarios(
     session: AsyncSession = Depends(get_session),
+    current_admin: User = Depends(get_current_admin),
 ) -> list[UserRead]:
-    result = await session.exec(select(User).order_by(col(User.nome).asc()))
-    return [to_user_read(user) for user in result.all()]
+    escritorio = await session.get(Escritorio, current_admin.escritorio_id)
+    nome = escritorio.nome if escritorio else ""
+    result = await session.exec(
+        select(User)
+        .where(User.escritorio_id == current_admin.escritorio_id)
+        .order_by(col(User.nome).asc())
+    )
+    return [to_user_read(user, escritorio_nome=nome) for user in result.all()]
 
 
 @router.post(
@@ -69,6 +81,7 @@ async def criar_usuario(
         )
 
     user = User(
+        escritorio_id=current_admin.escritorio_id,
         email=email,
         nome=payload.nome.strip(),
         hashed_password=hash_password(payload.password),
@@ -90,13 +103,12 @@ async def criar_usuario(
     )
     await session.commit()
     await session.refresh(user)
-    return to_user_read(user)
+    return await to_user_read_with_escritorio(session, user)
 
 
 @router.patch(
     "/{user_id}",
     response_model=UserRead,
-    dependencies=[Depends(get_current_admin)],
 )
 async def atualizar_usuario(
     user_id: UUID,
@@ -104,9 +116,9 @@ async def atualizar_usuario(
     session: AsyncSession = Depends(get_session),
     current_admin: User = Depends(get_current_admin),
 ) -> UserRead:
-    user = await session.get(User, user_id)
-    if user is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Usuário não encontrado")
+    user = await get_owned(
+        session, User, user_id, current_admin.escritorio_id, detail="Usuário não encontrado"
+    )
 
     data = payload.model_dump(exclude_unset=True)
 
@@ -157,4 +169,4 @@ async def atualizar_usuario(
     )
     await session.commit()
     await session.refresh(user)
-    return to_user_read(user)
+    return await to_user_read_with_escritorio(session, user)

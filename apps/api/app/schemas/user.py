@@ -12,7 +12,7 @@ class UserCreate(BaseModel):
     password: str = Field(min_length=6, max_length=128)
     role: Role = Role.editor
     ativo: bool = True
-    receber_alertas: bool = True
+    receber_alertas: bool = False
 
 
 class UserUpdate(BaseModel):
@@ -28,6 +28,8 @@ class UserRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     id: UUID
+    escritorio_id: UUID
+    escritorio_nome: str = ""
     email: EmailStr
     nome: str
     ativo: bool
@@ -40,7 +42,6 @@ class UserRead(BaseModel):
 class UserOption(BaseModel):
     id: UUID
     nome: str
-    email: EmailStr
 
 
 class RoleInfo(BaseModel):

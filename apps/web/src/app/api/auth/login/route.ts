@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 
 import { getServerApiBaseUrl } from "@/lib/api";
 import { AUTH_COOKIE, type LoginPayload } from "@/lib/auth";
+import { authCookieSecure } from "@/lib/cookie";
 
 export async function POST(request: Request) {
   let payload: LoginPayload;
@@ -46,7 +47,7 @@ export async function POST(request: Request) {
     value: data.access_token,
     httpOnly: true,
     sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
+    secure: authCookieSecure(),
     path: "/",
     maxAge: 60 * 60 * 12,
   });

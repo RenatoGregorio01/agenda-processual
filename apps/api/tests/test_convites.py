@@ -26,7 +26,9 @@ def test_generate_invite_token_unique() -> None:
 
 def test_invite_status_pendente_expirado_aceito() -> None:
     agora = datetime(2026, 8, 9, 12, 0, 0)
+    tenant = uuid4()
     pendente = Convite(
+        escritorio_id=tenant,
         email="a@b.com",
         nome="A",
         role=Role.editor,
@@ -38,6 +40,7 @@ def test_invite_status_pendente_expirado_aceito() -> None:
     assert is_invite_usable(pendente, now=agora)
 
     expirado = Convite(
+        escritorio_id=tenant,
         email="a@b.com",
         nome="A",
         role=Role.editor,
@@ -49,6 +52,7 @@ def test_invite_status_pendente_expirado_aceito() -> None:
     assert not is_invite_usable(expirado, now=agora)
 
     aceito = Convite(
+        escritorio_id=tenant,
         email="a@b.com",
         nome="A",
         role=Role.editor,

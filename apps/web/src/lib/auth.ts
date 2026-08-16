@@ -14,6 +14,8 @@ export type Permission =
 
 export type User = {
   id: string;
+  escritorio_id: string;
+  escritorio_nome: string;
   email: string;
   nome: string;
   ativo: boolean;
@@ -26,7 +28,6 @@ export type User = {
 export type UserOption = {
   id: string;
   nome: string;
-  email: string;
 };
 
 export type LoginPayload = {

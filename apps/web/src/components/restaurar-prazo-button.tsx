@@ -3,15 +3,17 @@
 import { useTransition } from "react";
 
 import { restaurarPrazo } from "@/app/prazos/actions";
+import { Button } from "@/components/ui";
 
 export function RestaurarPrazoButton({ prazoId }: { prazoId: string }) {
   const [pending, startTransition] = useTransition();
 
   return (
-    <button
+    <Button
       type="button"
+      size="lg"
+      fullWidth
       disabled={pending}
-      className="inline-flex h-12 w-full items-center justify-center bg-primary px-6 text-base font-semibold text-primary-foreground transition hover:brightness-110 disabled:opacity-60"
       onClick={() => {
         startTransition(async () => {
           await restaurarPrazo(prazoId);
@@ -19,6 +21,6 @@ export function RestaurarPrazoButton({ prazoId }: { prazoId: string }) {
       }}
     >
       {pending ? "Restaurando…" : "Restaurar prazo"}
-    </button>
+    </Button>
   );
 }

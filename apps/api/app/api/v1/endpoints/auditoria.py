@@ -18,7 +18,12 @@ async def listar_auditoria(
     session: AsyncSession = Depends(get_session),
     current_user: User = Depends(get_current_user),
 ) -> list[AuditLog]:
-    query = select(AuditLog).order_by(col(AuditLog.criado_em).desc()).limit(limit)
+    query = (
+        select(AuditLog)
+        .where(AuditLog.escritorio_id == current_user.escritorio_id)
+        .order_by(col(AuditLog.criado_em).desc())
+        .limit(limit)
+    )
 
     if not user_has_permission(current_user, Permission.auditoria_ver_tudo):
         query = query.where(AuditLog.usuario_id == current_user.id)

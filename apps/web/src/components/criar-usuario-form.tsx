@@ -3,6 +3,7 @@
 import { useActionState, useEffect, useMemo, useRef, useState } from "react";
 
 import { createConvite, type ActionState } from "@/app/usuarios/actions";
+import { Button, Card, Field, Input, SectionHeading, Select } from "@/components/ui";
 import type { RoleInfo } from "@/lib/auth";
 
 const initialState: ActionState = {};
@@ -22,65 +23,51 @@ export function CriarUsuarioForm({ roles }: { roles: RoleInfo[] }) {
 
   return (
     <form ref={formRef} action={formAction} className="flex flex-col gap-4">
-      <h2 className="text-lg font-semibold text-foreground">Convidar por e-mail</h2>
-      <p className="text-sm text-muted">
-        A pessoa recebe um link para definir a própria senha. Não é preciso enviar senha pelo
-        WhatsApp.
-      </p>
+      <SectionHeading description="A pessoa recebe um link para definir a própria senha. Não é preciso enviar senha pelo WhatsApp.">
+        Convidar por e-mail
+      </SectionHeading>
 
-      <label className="flex flex-col gap-1.5 text-sm">
-        <span className="font-medium">Nome</span>
-        <input
-          name="nome"
-          required
-          className="h-11 border border-border bg-background px-3 outline-none ring-primary focus:ring-2"
-        />
-      </label>
+      <Field label="Nome">
+        <Input name="nome" required />
+      </Field>
 
-      <label className="flex flex-col gap-1.5 text-sm">
-        <span className="font-medium">E-mail</span>
-        <input
-          name="email"
-          type="email"
-          required
-          className="h-11 border border-border bg-background px-3 outline-none ring-primary focus:ring-2"
-        />
-      </label>
+      <Field label="E-mail">
+        <Input name="email" type="email" required />
+      </Field>
 
-      <label className="flex flex-col gap-1.5 text-sm">
-        <span className="font-medium">Perfil (role)</span>
-        <select
+      <Field label="Perfil (role)">
+        <Select
           name="role"
           required
           value={role}
           onChange={(event) => setRole(event.target.value as RoleInfo["id"])}
-          className="h-11 border border-border bg-background px-3 outline-none ring-primary focus:ring-2"
         >
           {roles.map((item) => (
             <option key={item.id} value={item.id}>
               {item.label}
             </option>
           ))}
-        </select>
-      </label>
+        </Select>
+      </Field>
 
       {selected ? (
-        <div className="border border-border bg-background p-3 text-sm">
+        <Card className="bg-background p-3 text-sm">
           <p className="text-muted">{selected.description}</p>
           <ul className="mt-2 list-disc space-y-1 pl-5 text-foreground">
             {selected.permission_labels.map((label) => (
               <li key={label}>{label}</li>
             ))}
           </ul>
-        </div>
+        </Card>
       ) : null}
 
       <label className="flex items-start gap-2 text-sm">
-        <input name="receber_alertas" type="checkbox" defaultChecked className="mt-0.5" />
+        <input name="receber_alertas" type="checkbox" className="mt-0.5" />
         <span>
           Receber alertas de prazos por e-mail
           <span className="mt-0.5 block text-xs text-muted">
-            Além do responsável do prazo, quem estiver marcado recebe os avisos 3/2/1 dia.
+            Só dos prazos em que a pessoa for a responsável. O e-mail não inclui nome do
+            cliente nem número do processo.
           </span>
         </span>
       </label>
@@ -90,13 +77,9 @@ export function CriarUsuarioForm({ roles }: { roles: RoleInfo[] }) {
         <p className="text-sm text-no-prazo">Convite enviado. Confira o e-mail no Mailpit.</p>
       ) : null}
 
-      <button
-        type="submit"
-        disabled={pending}
-        className="inline-flex h-12 items-center justify-center bg-primary px-6 text-base font-semibold text-primary-foreground transition hover:brightness-110 disabled:opacity-60"
-      >
+      <Button type="submit" size="lg" disabled={pending}>
         {pending ? "Enviando…" : "Enviar convite"}
-      </button>
+      </Button>
     </form>
   );
 }

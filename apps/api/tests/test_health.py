@@ -1,9 +1,13 @@
-from app.core.config import Settings
-from app.schemas.health import HealthResponse
+from app.schemas.health import HealthChecks, HealthResponse
 
 
 def test_health_response_shape() -> None:
-    settings = Settings()
-    payload = HealthResponse(status="ok", app=settings.app_name, env=settings.app_env)
+    payload = HealthResponse(
+        status="ok",
+        app="Agenda Processual API",
+        env="development",
+        checks=HealthChecks(database="ok", redis="ok"),
+    )
     assert payload.status == "ok"
+    assert payload.checks.database == "ok"
     assert "Agenda" in payload.app

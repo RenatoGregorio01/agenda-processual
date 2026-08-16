@@ -7,33 +7,20 @@ from sqlmodel import col, select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from app.core.config import Settings, get_settings
-from app.models.alerta_envio import AlertaEnvio, TipoAlerta
+from app.core.metrics import record_alertas_result
+from app.models.alerta_envio import AlertaEnvio
 from app.models.prazo import Prazo, StatusPrazo
+from app.models.prazo_alerta import PrazoAlerta
 from app.models.user import User
+from app.schemas.prazo import PrazoAlertaRead, PrazoRead
 from app.services.email import send_email
 
 logger = logging.getLogger(__name__)
 
 
-async def status_alertas_enviados(
-    session: AsyncSession,
-    prazo_id: UUID,
-) -> dict[str, bool]:
-    result = await session.exec(
-        select(AlertaEnvio.tipo).where(AlertaEnvio.prazo_id == prazo_id).distinct()
-    )
-    tipos = {item.value if isinstance(item, TipoAlerta) else str(item) for item in result.all()}
-    return {
-        "alerta_3_dias_enviado": TipoAlerta.dias_3.value in tipos,
-        "alerta_2_dias_enviado": TipoAlerta.dias_2.value in tipos,
-        "alerta_1_dia_enviado": TipoAlerta.dias_1.value in tipos,
-    }
-
-
 @dataclass(frozen=True)
 class AlertaCandidato:
     prazo: Prazo
-    tipo: TipoAlerta
     dias: int
 
 
@@ -45,73 +32,92 @@ class ProcessamentoAlertasResult:
     erros: int = 0
 
 
-def _tipos_alerta() -> list[tuple[TipoAlerta, int, str]]:
+async def list_alertas_read(session: AsyncSession, prazo_id: UUID) -> list[PrazoAlertaRead]:
+    result = await session.exec(
+        select(PrazoAlerta)
+        .where(PrazoAlerta.prazo_id == prazo_id)
+        .order_by(col(PrazoAlerta.dias_antes).desc())
+    )
+    enviados_result = await session.exec(
+        select(AlertaEnvio.dias_antes).where(AlertaEnvio.prazo_id == prazo_id).distinct()
+    )
+    enviados = set(enviados_result.all())
     return [
-        (TipoAlerta.dias_3, 3, "alerta_3_dias"),
-        (TipoAlerta.dias_2, 2, "alerta_2_dias"),
-        (TipoAlerta.dias_1, 1, "alerta_1_dia"),
+        PrazoAlertaRead(dias_antes=item.dias_antes, enviado=item.dias_antes in enviados)
+        for item in result.all()
     ]
 
 
-def selecionar_candidatos(prazos: list[Prazo], hoje: date | None = None) -> list[AlertaCandidato]:
+async def to_prazo_read(session: AsyncSession, prazo: Prazo) -> PrazoRead:
+    return PrazoRead.model_validate(prazo, from_attributes=True).model_copy(
+        update={"alertas": await list_alertas_read(session, prazo.id)}
+    )
+
+
+async def to_prazos_read(session: AsyncSession, prazos: list[Prazo]) -> list[PrazoRead]:
+    return [await to_prazo_read(session, prazo) for prazo in prazos]
+
+
+async def replace_alertas(
+    session: AsyncSession,
+    prazo_id: UUID,
+    dias: list[int],
+) -> None:
+    result = await session.exec(select(PrazoAlerta).where(PrazoAlerta.prazo_id == prazo_id))
+    for item in result.all():
+        await session.delete(item)
+    await session.flush()
+    for value in dias:
+        session.add(PrazoAlerta(prazo_id=prazo_id, dias_antes=value))
+
+
+def selecionar_candidatos(
+    prazos: list[tuple[Prazo, list[int]]],
+    hoje: date | None = None,
+) -> list[AlertaCandidato]:
     ref = hoje or date.today()
     candidatos: list[AlertaCandidato] = []
-    for prazo in prazos:
+    for prazo, dias_list in prazos:
         if prazo.status != StatusPrazo.pendente or prazo.excluido_em is not None:
             continue
         if prazo.responsavel_id is None:
             continue
-        for tipo, dias, flag in _tipos_alerta():
-            if not getattr(prazo, flag):
-                continue
+        for dias in dias_list:
             if prazo.data_vencimento == ref + timedelta(days=dias):
-                candidatos.append(AlertaCandidato(prazo=prazo, tipo=tipo, dias=dias))
+                candidatos.append(AlertaCandidato(prazo=prazo, dias=dias))
     return candidatos
 
 
 async def _destinatarios(session: AsyncSession, prazo: Prazo) -> list[str]:
-    emails: set[str] = set()
-
-    if prazo.responsavel_id is not None:
-        responsavel = await session.get(User, prazo.responsavel_id)
-        if responsavel is not None and responsavel.ativo:
-            emails.add(responsavel.email.lower())
-
-    result = await session.exec(
-        select(User).where(col(User.ativo).is_(True), col(User.receber_alertas).is_(True))
-    )
-    for user in result.all():
-        emails.add(user.email.lower())
-
-    return sorted(emails)
+    if prazo.responsavel_id is None:
+        return []
+    responsavel = await session.get(User, prazo.responsavel_id)
+    if (
+        responsavel is None
+        or not responsavel.ativo
+        or not responsavel.receber_alertas
+        or responsavel.escritorio_id != prazo.escritorio_id
+    ):
+        return []
+    return [responsavel.email.lower()]
 
 
 def _montar_corpo(prazo: Prazo, dias: int, settings: Settings) -> tuple[str, str, str]:
     vencimento = prazo.data_vencimento.strftime("%d/%m/%Y")
     label_dias = "1 dia" if dias == 1 else f"{dias} dias"
-    subject = f"[Agenda Processual] Prazo em {label_dias}: {prazo.acao}"
+    subject = f"[Agenda Processual] Prazo em {label_dias}"
     link = f"{settings.app_public_url.rstrip('/')}/prazos/{prazo.id}"
 
     text_body = (
         f"Olá,\n\n"
-        f"Há um prazo vencendo em {label_dias}.\n\n"
-        f"Processo: {prazo.numero_processo}\n"
-        f"Cliente: {prazo.cliente}\n"
-        f"Ação: {prazo.acao}\n"
-        f"Vencimento: {vencimento}\n"
-        f"Responsável: {prazo.responsavel}\n\n"
+        f"Há um prazo vencendo em {label_dias} ({vencimento}).\n\n"
+        f"Os detalhes estão no sistema, após o login.\n\n"
         f"Abrir no sistema: {link}\n"
     )
     html_body = (
         f"<p>Olá,</p>"
-        f"<p>Há um prazo vencendo em <strong>{label_dias}</strong>.</p>"
-        f"<ul>"
-        f"<li><strong>Processo:</strong> {prazo.numero_processo}</li>"
-        f"<li><strong>Cliente:</strong> {prazo.cliente}</li>"
-        f"<li><strong>Ação:</strong> {prazo.acao}</li>"
-        f"<li><strong>Vencimento:</strong> {vencimento}</li>"
-        f"<li><strong>Responsável:</strong> {prazo.responsavel}</li>"
-        f"</ul>"
+        f"<p>Há um prazo vencendo em <strong>{label_dias}</strong> ({vencimento}).</p>"
+        f"<p>Os detalhes estão no sistema, após o login.</p>"
         f'<p><a href="{link}">Abrir no sistema</a></p>'
     )
     return subject, text_body, html_body
@@ -120,13 +126,13 @@ def _montar_corpo(prazo: Prazo, dias: int, settings: Settings) -> tuple[str, str
 async def _ja_enviado(
     session: AsyncSession,
     prazo_id: UUID,
-    tipo: TipoAlerta,
+    dias_antes: int,
     email: str,
 ) -> bool:
     result = await session.exec(
         select(AlertaEnvio).where(
             AlertaEnvio.prazo_id == prazo_id,
-            AlertaEnvio.tipo == tipo,
+            AlertaEnvio.dias_antes == dias_antes,
             AlertaEnvio.destinatario_email == email,
         )
     )
@@ -149,7 +155,20 @@ async def processar_alertas(
             col(Prazo.responsavel_id).is_not(None),
         )
     )
-    candidatos = selecionar_candidatos(list(prazos_result.all()), hoje=ref)
+    prazos = list(prazos_result.all())
+    ids = [prazo.id for prazo in prazos]
+    alertas_por_prazo: dict[UUID, list[int]] = {prazo.id: [] for prazo in prazos}
+    if ids:
+        alertas_result = await session.exec(
+            select(PrazoAlerta).where(col(PrazoAlerta.prazo_id).in_(ids))
+        )
+        for item in alertas_result.all():
+            alertas_por_prazo.setdefault(item.prazo_id, []).append(item.dias_antes)
+
+    candidatos = selecionar_candidatos(
+        [(prazo, alertas_por_prazo.get(prazo.id, [])) for prazo in prazos],
+        hoje=ref,
+    )
     result.candidatos = len(candidatos)
 
     for candidato in candidatos:
@@ -157,7 +176,7 @@ async def processar_alertas(
         subject, text_body, html_body = _montar_corpo(candidato.prazo, candidato.dias, cfg)
 
         for email in destinatarios:
-            if await _ja_enviado(session, candidato.prazo.id, candidato.tipo, email):
+            if await _ja_enviado(session, candidato.prazo.id, candidato.dias, email):
                 result.ignorados += 1
                 continue
             try:
@@ -170,22 +189,28 @@ async def processar_alertas(
                 )
             except Exception:
                 logger.exception(
-                    "Falha ao enviar alerta %s do prazo %s para %s",
-                    candidato.tipo,
+                    "Falha ao enviar alerta de %s dias do prazo %s",
+                    candidato.dias,
                     candidato.prazo.id,
-                    email,
                 )
                 result.erros += 1
                 continue
 
             session.add(
                 AlertaEnvio(
+                    escritorio_id=candidato.prazo.escritorio_id,
                     prazo_id=candidato.prazo.id,
-                    tipo=candidato.tipo,
+                    dias_antes=candidato.dias,
                     destinatario_email=email,
                 )
             )
             result.enviados += 1
 
     await session.commit()
+    record_alertas_result(
+        candidatos=result.candidatos,
+        enviados=result.enviados,
+        erros=result.erros,
+        ignorados=result.ignorados,
+    )
     return result

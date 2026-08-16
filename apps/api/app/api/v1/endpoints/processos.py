@@ -7,15 +7,28 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 from app.api.deps import require_permission
 from app.core.database import get_session
 from app.core.permissions import Permission
+from app.core.tenant import get_owned
 from app.core.timeutils import utc_now
+from app.integrations.datajud.cnj import CnjError, so_digitos, validar_cnj
 from app.models.audit_log import AuditAction
 from app.models.processo import Processo
 from app.models.user import User
 from app.schemas.audit import AuditLogRead
 from app.schemas.prazo import PrazoRead
-from app.schemas.processo import ProcessoDetail, ProcessoRead, ProcessoUpdate
-from app.services.alertas import status_alertas_enviados
+from app.schemas.processo import (
+    DatajudSyncRead,
+    ProcessoDetail,
+    ProcessoRead,
+    ProcessoUpdate,
+    ProcessoValidarRead,
+)
+from app.services.alertas import to_prazo_read
 from app.services.audit import montar_auditoria
+from app.services.datajud import (
+    consultar_existencia_datajud,
+    sincronizar_datajud,
+    to_datajud_read,
+)
 from app.services.processos import (
     count_prazos_processo,
     get_processo_by_numero,
@@ -38,8 +51,7 @@ async def _to_processo_read(session: AsyncSession, processo: Processo) -> Proces
 
 
 async def _to_prazo_read(session: AsyncSession, prazo) -> PrazoRead:
-    enviados = await status_alertas_enviados(session, prazo.id)
-    return PrazoRead.model_validate(prazo, from_attributes=True).model_copy(update=enviados)
+    return await to_prazo_read(session, prazo)
 
 
 async def _detail(session: AsyncSession, processo: Processo) -> ProcessoDetail:
@@ -52,19 +64,24 @@ async def _detail(session: AsyncSession, processo: Processo) -> ProcessoDetail:
         historico=[
             AuditLogRead.model_validate(item, from_attributes=True) for item in historico
         ],
+        datajud=await to_datajud_read(session, processo),
     )
 
 
 @router.get(
     "",
     response_model=list[ProcessoRead],
-    dependencies=[Depends(require_permission(Permission.prazos_visualizar))],
 )
 async def listar_processos(
     q: str | None = Query(default=None, max_length=120),
     session: AsyncSession = Depends(get_session),
+    current_user: User = Depends(require_permission(Permission.prazos_visualizar)),
 ) -> list[ProcessoRead]:
-    query = select(Processo).order_by(col(Processo.atualizado_em).desc())
+    query = (
+        select(Processo)
+        .where(Processo.escritorio_id == current_user.escritorio_id)
+        .order_by(col(Processo.atualizado_em).desc())
+    )
     if q and q.strip():
         term = f"%{q.strip().lower()}%"
         query = query.where(
@@ -76,15 +93,75 @@ async def listar_processos(
 
 
 @router.get(
+    "/validar",
+    response_model=ProcessoValidarRead,
+)
+async def validar_numero_processo(
+    numero: str = Query(..., min_length=1, max_length=64),
+    session: AsyncSession = Depends(get_session),
+    current_user: User = Depends(require_permission(Permission.prazos_visualizar)),
+) -> ProcessoValidarRead:
+    async def _cadastrado(processo: Processo | None) -> ProcessoValidarRead:
+        if processo is None:
+            return ProcessoValidarRead()
+        return ProcessoValidarRead(
+            cadastrado=True,
+            processo_id=processo.id,
+            cliente=processo.cliente,
+            prazos_count=await count_prazos_processo(session, processo.id),
+        )
+
+    digitos = so_digitos(numero)
+    if len(digitos) < 20:
+        existing = await get_processo_by_numero(
+            session, numero, escritorio_id=current_user.escritorio_id
+        )
+        local = await _cadastrado(existing)
+        local.incompleto = True
+        return local
+
+    try:
+        mascarado = validar_cnj(numero)
+    except CnjError as exc:
+        return ProcessoValidarRead(valido=False, mensagem=str(exc))
+
+    existing = await get_processo_by_numero(
+        session, mascarado, escritorio_id=current_user.escritorio_id
+    )
+    local = await _cadastrado(existing)
+    local.valido = True
+    local.mascarado = mascarado
+
+    consulta = await consultar_existencia_datajud(mascarado)
+    encontrado = consulta.get("encontrado")
+    if encontrado is True:
+        local.datajud = "encontrado"
+        local.datajud_mensagem = "Processo encontrado na base pública do tribunal."
+    elif encontrado is False:
+        local.datajud = "nao_encontrado"
+        local.datajud_mensagem = (
+            "Este número não aparece na base pública. Pode estar em sigilo, "
+            "ainda não indexado ou ser uma numeração interna. Você pode salvar mesmo assim."
+        )
+    elif consulta.get("status") in {"limite", "erro"}:
+        local.datajud = str(consulta["status"])
+        local.datajud_mensagem = "Não foi possível consultar a base pública agora."
+
+    return local
+
+
+@router.get(
     "/by-numero/{numero_processo:path}",
     response_model=ProcessoDetail,
-    dependencies=[Depends(require_permission(Permission.prazos_visualizar))],
 )
 async def obter_processo_por_numero(
     numero_processo: str,
     session: AsyncSession = Depends(get_session),
+    current_user: User = Depends(require_permission(Permission.prazos_visualizar)),
 ) -> ProcessoDetail:
-    processo = await get_processo_by_numero(session, numero_processo)
+    processo = await get_processo_by_numero(
+        session, numero_processo, escritorio_id=current_user.escritorio_id
+    )
     if processo is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -96,18 +173,19 @@ async def obter_processo_por_numero(
 @router.get(
     "/{processo_id}",
     response_model=ProcessoDetail,
-    dependencies=[Depends(require_permission(Permission.prazos_visualizar))],
 )
 async def obter_processo(
     processo_id: UUID,
     session: AsyncSession = Depends(get_session),
+    current_user: User = Depends(require_permission(Permission.prazos_visualizar)),
 ) -> ProcessoDetail:
-    processo = await session.get(Processo, processo_id)
-    if processo is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Processo não encontrado",
-        )
+    processo = await get_owned(
+        session,
+        Processo,
+        processo_id,
+        current_user.escritorio_id,
+        detail="Processo não encontrado",
+    )
     return await _detail(session, processo)
 
 
@@ -118,12 +196,13 @@ async def atualizar_processo(
     session: AsyncSession = Depends(get_session),
     current_user: User = Depends(require_permission(Permission.prazos_alterar)),
 ) -> ProcessoRead:
-    processo = await session.get(Processo, processo_id)
-    if processo is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Processo não encontrado",
-        )
+    processo = await get_owned(
+        session,
+        Processo,
+        processo_id,
+        current_user.escritorio_id,
+        detail="Processo não encontrado",
+    )
 
     data = payload.model_dump(exclude_unset=True)
     if "cliente" in data and data["cliente"] is not None:
@@ -147,3 +226,23 @@ async def atualizar_processo(
     await session.commit()
     await session.refresh(processo)
     return await _to_processo_read(session, processo)
+
+
+@router.post(
+    "/{processo_id}/datajud/sync",
+    response_model=DatajudSyncRead,
+)
+async def sincronizar_andamentos_datajud(
+    processo_id: UUID,
+    force: bool = Query(default=False),
+    session: AsyncSession = Depends(get_session),
+    current_user: User = Depends(require_permission(Permission.prazos_visualizar)),
+) -> DatajudSyncRead:
+    processo = await get_owned(
+        session,
+        Processo,
+        processo_id,
+        current_user.escritorio_id,
+        detail="Processo não encontrado",
+    )
+    return await sincronizar_datajud(session, processo, force=force)

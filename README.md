@@ -6,7 +6,8 @@ Validação inicial: destacar a **data de vencimento** e alertar em 3 / 2 / 1 di
 
 ## Design
 
-Brief para Figma AI/Make: [docs/figma-brief-mvp.md](docs/figma-brief-mvp.md)
+Brief para Figma AI/Make: [docs/figma-brief-mvp.md](docs/figma-brief-mvp.md)  
+Brief para Google Stitch (UI das telas): [docs/stitch-brief-ui.md](docs/stitch-brief-ui.md)
 
 ## Roadmap
 
@@ -17,6 +18,7 @@ Próximos temas de produto (incluindo compra de acesso e melhoria de UI): [docs/
 - API: FastAPI (Python)
 - Web: Next.js + TypeScript
 - Banco: PostgreSQL
+- Cache: Redis (andamentos Datajud)
 - Deploy: Docker no homelab
 
 ## Estrutura
@@ -50,9 +52,14 @@ docker compose -f docker/docker-compose.yml up --build
 | Serviço | URL |
 |---------|-----|
 | Web | http://localhost:3000 |
-| API | http://localhost:8000 |
-| Docs OpenAPI | http://localhost:8000/docs |
+| API | http://localhost:8001 |
+| Docs OpenAPI | http://localhost:8001/docs |
+| Mailpit | http://localhost:8025 |
 | Postgres | `localhost:5432` |
+| Redis | `localhost:6379` |
+
+SMTP real (Gmail etc.) e como expor na internet: [docs/smtp-e-acesso.md](docs/smtp-e-acesso.md).  
+Homelab + Cloudflare Tunnel + Grafana: [docs/homelab-deploy.md](docs/homelab-deploy.md).
 
 Web isolado:
 

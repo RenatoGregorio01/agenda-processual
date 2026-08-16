@@ -1,4 +1,5 @@
 from datetime import date, timedelta
+from uuid import uuid4
 
 from app.models.prazo import Prazo, StatusPrazo
 from app.services.export_pauta import build_csv, build_pdf
@@ -6,6 +7,7 @@ from app.services.export_pauta import build_csv, build_pdf
 
 def _prazo(**kwargs) -> Prazo:
     base = {
+        "escritorio_id": uuid4(),
         "numero_processo": "0001234-56.2024.4.01.0000",
         "cliente": "Maria Souza",
         "acao": "Protocolar contestação",

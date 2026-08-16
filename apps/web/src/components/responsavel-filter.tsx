@@ -31,13 +31,13 @@ export function ResponsavelFilter({
   }
 
   return (
-    <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
+    <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:gap-3">
       <label className="flex min-w-0 flex-1 flex-col gap-1.5 text-sm sm:max-w-xs">
-        <span className="font-medium text-foreground">Responsável</span>
+        <span className="text-muted">Responsável</span>
         <select
           value={currentResponsavelId ?? ""}
           onChange={(event) => navigate(event.target.value)}
-          className="h-10 border border-border bg-background px-3 outline-none ring-primary focus:ring-2"
+          className="h-11 w-full border border-border bg-surface px-3 text-foreground outline-none ring-primary focus:ring-2"
         >
           <option value="">Todos</option>
           {usuarios.map((user) => (
@@ -53,8 +53,8 @@ export function ResponsavelFilter({
           onClick={() => navigate(currentUserId)}
           className={
             currentResponsavelId === currentUserId
-              ? "mt-0 h-10 border border-primary bg-primary px-3 text-sm font-medium text-primary-foreground sm:mt-6"
-              : "mt-0 h-10 border border-border bg-surface px-3 text-sm text-muted transition hover:border-primary/40 hover:text-foreground sm:mt-6"
+              ? "h-11 border border-primary bg-primary px-4 text-sm font-medium text-primary-foreground"
+              : "h-11 border border-border bg-surface px-4 text-sm text-muted transition hover:border-primary/40 hover:text-foreground"
           }
         >
           Meus prazos

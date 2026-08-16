@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 
+import { listChecklist } from "@/app/prazos/checklist-actions";
+import { AppShell, PageContent, PageHeader } from "@/components/app-shell";
 import { EditarPrazoForm } from "@/components/editar-prazo-form";
 import { apiFetch } from "@/lib/api-server";
 import { hasPermission, type User, type UserOption } from "@/lib/auth";
@@ -31,30 +33,41 @@ export default async function EditarPrazoPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const [user, prazo, usuarios] = await Promise.all([
+  const [user, prazo, usuarios, checklist] = await Promise.all([
     getCurrentUser(),
     getPrazo(id),
     listUsuariosOpcoes(),
+    listChecklist(id),
   ]);
-  if (!hasPermission(user, "prazos_alterar")) redirect("/prazos");
+  if (!hasPermission(user, "prazos_alterar")) redirect("/dashboard");
   if (!prazo) notFound();
   if (prazo.excluido_em) {
     redirect(`/prazos/${id}`);
   }
 
   return (
-    <main className="mx-auto flex w-full max-w-xl flex-1 flex-col px-6 py-10 sm:px-10">
-      <Link
-        href={`/prazos/${prazo.id}`}
-        className="text-sm text-muted underline-offset-4 hover:underline"
-      >
-        ← Voltar ao detalhe
-      </Link>
-      <h1 className="mt-6 text-3xl font-semibold tracking-tight text-foreground">Editar prazo</h1>
-      <p className="mt-2 text-muted">Ajuste os dados sem perder o histórico do cadastro.</p>
-      <div className="mt-8 border border-border bg-surface p-5 sm:p-7">
-        <EditarPrazoForm prazo={prazo} usuarios={usuarios} />
-      </div>
-    </main>
+    <AppShell user={user}>
+      <PageHeader
+        title="Editar prazo"
+        description="Ajuste os dados sem perder o histórico do cadastro."
+        actions={
+          <Link
+            href={`/prazos/${prazo.id}`}
+            className="text-sm text-muted underline-offset-4 hover:underline"
+          >
+            Cancelar
+          </Link>
+        }
+      />
+      <PageContent>
+        <div className="border border-border bg-surface p-5 sm:p-7">
+          <EditarPrazoForm
+            prazo={prazo}
+            usuarios={usuarios}
+            checklistItems={checklist.map((item) => item.texto)}
+          />
+        </div>
+      </PageContent>
+    </AppShell>
   );
 }

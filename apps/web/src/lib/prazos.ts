@@ -1,5 +1,10 @@
 export type StatusPrazo = "pendente" | "cumprido";
 
+export type PrazoAlerta = {
+  dias_antes: number;
+  enviado: boolean;
+};
+
 export type Prazo = {
   id: string;
   processo_id?: string | null;
@@ -11,29 +16,30 @@ export type Prazo = {
   responsavel: string;
   responsavel_id: string | null;
   status: StatusPrazo;
-  alerta_3_dias: boolean;
-  alerta_2_dias: boolean;
-  alerta_1_dia: boolean;
-  alerta_3_dias_enviado?: boolean;
-  alerta_2_dias_enviado?: boolean;
-  alerta_1_dia_enviado?: boolean;
+  alertas: PrazoAlerta[];
   excluido_em: string | null;
   criado_em: string;
   atualizado_em: string;
 };
 
+export const DEFAULT_ALERTA_DIAS = [3, 1];
+export const ALERTA_DIAS_MIN = 1;
+export const ALERTA_DIAS_MAX = 365;
+
+export function labelAlertaDias(dias: number): string {
+  return dias === 1 ? "1 dia antes" : `${dias} dias antes`;
+}
+
 export type FiltroPrazo =
   | "todos"
   | "atrasados"
   | "hoje"
-  | "amanha"
-  | "7dias"
   | "cumpridos"
   | "excluidos";
 
 export type UrgencyBadge = {
   label: string;
-  tone: "atrasado" | "urgente" | "no-prazo" | "neutro";
+  tone: "atrasado" | "urgente" | "no-prazo" | "cumprido" | "neutro";
 };
 
 const MONTHS_PT = [
@@ -61,6 +67,29 @@ export function formatVencimento(value: string): string {
   return `${date.getDate()} ${MONTHS_PT[date.getMonth()]} ${date.getFullYear()}`;
 }
 
+const MONTHS_LONG_PT = [
+  "janeiro",
+  "fevereiro",
+  "março",
+  "abril",
+  "maio",
+  "junho",
+  "julho",
+  "agosto",
+  "setembro",
+  "outubro",
+  "novembro",
+  "dezembro",
+] as const;
+
+export function formatVencimentoParts(value: string): { day: string; monthYear: string } {
+  const date = parseDateOnly(value);
+  return {
+    day: String(date.getDate()),
+    monthYear: `${MONTHS_LONG_PT[date.getMonth()]}, ${date.getFullYear()}`,
+  };
+}
+
 export function formatVencimentoLongo(value: string): string {
   const date = parseDateOnly(value);
   return date.toLocaleDateString("pt-BR", {
@@ -82,7 +111,7 @@ export function getUrgencyBadge(prazo: Prazo, today = new Date()): UrgencyBadge 
     return { label: "EXCLUÍDO", tone: "neutro" };
   }
   if (prazo.status === "cumprido") {
-    return { label: "CUMPRIDO", tone: "neutro" };
+    return { label: "CUMPRIDO", tone: "cumprido" };
   }
 
   const days = daysUntil(prazo.data_vencimento, today);
@@ -97,8 +126,7 @@ export const FILTROS: { id: FiltroPrazo; label: string }[] = [
   { id: "todos", label: "Todos" },
   { id: "atrasados", label: "Atrasados" },
   { id: "hoje", label: "Hoje" },
-  { id: "amanha", label: "Amanhã" },
-  { id: "7dias", label: "7 dias" },
   { id: "cumpridos", label: "Cumpridos" },
   { id: "excluidos", label: "Excluídos" },
 ];
+

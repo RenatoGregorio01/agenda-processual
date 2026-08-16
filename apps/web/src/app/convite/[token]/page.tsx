@@ -31,6 +31,13 @@ export default async function ConvitePage({ params }: PageProps) {
       </h1>
       <p className="mt-2 text-muted">Defina sua senha para começar a usar o sistema.</p>
 
+      <p className="mt-3 text-sm text-muted">
+        Ao ativar o acesso, seus dados ficam no escritório que te convidou.{" "}
+        <Link href="/privacidade" className="text-primary underline-offset-4 hover:underline">
+          Privacidade
+        </Link>
+      </p>
+
       <section className="mt-8 border border-border bg-surface p-5 sm:p-7">
         {convite ? (
           <AceitarConviteForm token={token} convite={convite} />

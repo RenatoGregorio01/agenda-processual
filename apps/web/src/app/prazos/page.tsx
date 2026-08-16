@@ -1,11 +1,11 @@
-import Link from "next/link";
-
+import { AppShell, PageContent, PageHeader } from "@/components/app-shell";
 import { ExportPautaButtons } from "@/components/export-pauta-buttons";
-import { LogoutButton } from "@/components/logout-button";
+import { PrazoDateRange } from "@/components/prazo-date-range";
 import { PrazoFilters } from "@/components/prazo-filters";
 import { PrazoListItem } from "@/components/prazo-list-item";
 import { PrazoSearch } from "@/components/prazo-search";
 import { ResponsavelFilter } from "@/components/responsavel-filter";
+import { ButtonLink, EmptyState } from "@/components/ui";
 import { apiFetch } from "@/lib/api-server";
 import { hasPermission, type User, type UserOption } from "@/lib/auth";
 import { FILTROS, type FiltroPrazo, type Prazo } from "@/lib/prazos";
@@ -27,11 +27,16 @@ async function listPrazos(
   filtro: FiltroPrazo,
   responsavelId?: string,
   q?: string,
+  dataInicio?: string,
+  dataFim?: string,
 ): Promise<Prazo[]> {
+  const usingRange = Boolean(dataInicio || dataFim);
   const query = buildQuery({
-    filtro: filtro === "todos" ? undefined : filtro,
+    filtro: usingRange || filtro === "todos" ? undefined : filtro,
     responsavel_id: responsavelId,
     q,
+    data_inicio: dataInicio,
+    data_fim: dataFim,
   });
   const response = await apiFetch(`/api/v1/prazos${query}`);
   if (!response.ok) {
@@ -45,111 +50,138 @@ function resolveFiltro(value?: string): FiltroPrazo {
   return found?.id ?? "todos";
 }
 
+function formatDateBr(iso?: string): string | null {
+  if (!iso) return null;
+  const [y, m, d] = iso.split("-");
+  if (!y || !m || !d) return iso;
+  return `${d}/${m}/${y}`;
+}
+
 export default async function PrazosPage({
   searchParams,
 }: {
-  searchParams: Promise<{ filtro?: string; responsavel_id?: string; q?: string }>;
+  searchParams: Promise<{
+    filtro?: string;
+    responsavel_id?: string;
+    q?: string;
+    data_inicio?: string;
+    data_fim?: string;
+    periodo?: string;
+  }>;
 }) {
   const params = await searchParams;
-  const filtro = resolveFiltro(params.filtro);
+  const dataInicio = params.data_inicio?.trim() || undefined;
+  const dataFim = params.data_fim?.trim() || undefined;
+  const usingRange = Boolean(dataInicio || dataFim);
+  const periodoOpen = params.periodo === "1" || usingRange;
+  const filtro = usingRange ? "todos" : resolveFiltro(params.filtro);
   const responsavelId = params.responsavel_id || undefined;
   const q = params.q?.trim() || undefined;
   const [user, usuarios, prazos] = await Promise.all([
     getCurrentUser(),
     listUsuariosOpcoes(),
-    listPrazos(filtro, responsavelId, q),
+    listPrazos(filtro, responsavelId, q, dataInicio, dataFim),
   ]);
 
+  const inicioLabel = formatDateBr(dataInicio);
+  const fimLabel = formatDateBr(dataFim);
+
   return (
-    <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col px-6 py-10 sm:px-10">
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <p className="font-[family-name:var(--font-display)] text-2xl font-semibold text-primary">
-            Agenda Processual
-          </p>
-          <h1 className="mt-5 text-3xl font-semibold tracking-tight text-foreground">Prazos</h1>
-          <p className="mt-2 text-muted">
-            {q
-              ? `Resultados para “${q}” · ${prazos.length} encontrado${prazos.length === 1 ? "" : "s"}`
-              : "Ordenados por vencimento"}
-          </p>
-        </div>
-        <div className="flex flex-col items-end gap-3">
-          <LogoutButton />
-          <div className="flex flex-wrap justify-end gap-2">
-            <Link
-              href={`/dashboard${buildQuery({ responsavel_id: responsavelId })}`}
-              className="inline-flex h-11 items-center justify-center border border-border bg-surface px-4 text-sm font-medium"
-            >
-              Hoje
-            </Link>
-            {hasPermission(user, "usuarios_gerenciar") ? (
-              <>
-                <Link
-                  href="/usuarios"
-                  className="inline-flex h-11 items-center justify-center border border-border bg-surface px-4 text-sm font-medium"
-                >
-                  Usuários
-                </Link>
-                <Link
-                  href="/feriados"
-                  className="inline-flex h-11 items-center justify-center border border-border bg-surface px-4 text-sm font-medium"
-                >
-                  Feriados
-                </Link>
-              </>
-            ) : null}
-            <Link
-              href="/auditoria"
-              className="inline-flex h-11 items-center justify-center border border-border bg-surface px-4 text-sm font-medium"
-            >
-              Auditoria
-            </Link>
-            {hasPermission(user, "prazos_criar") ? (
-              <Link
-                href="/prazos/novo"
-                className="inline-flex h-11 items-center justify-center bg-primary px-4 text-sm font-semibold text-primary-foreground transition hover:brightness-110"
-              >
-                Novo prazo
-              </Link>
-            ) : null}
+    <AppShell user={user}>
+      <PageHeader
+        title="Prazos"
+        description={
+          q
+            ? `Resultados para “${q}” · ${prazos.length} encontrado${prazos.length === 1 ? "" : "s"}`
+            : usingRange
+              ? `Vencimento de ${inicioLabel ?? "…"} a ${fimLabel ?? "…"} · ${prazos.length} prazo${prazos.length === 1 ? "" : "s"}`
+              : "Ordenados por vencimento"
+        }
+        actions={
+          hasPermission(user, "prazos_criar") ? (
+            <ButtonLink href="/prazos/novo">+ Novo prazo</ButtonLink>
+          ) : null
+        }
+      />
+
+      <PageContent wide>
+        <div className="space-y-4">
+          <div className="flex flex-col gap-4 lg:items-end">
+            <div className="w-full max-w-2xl lg:ml-auto">
+              <PrazoSearch
+                q={q}
+                filtro={filtro}
+                responsavelId={responsavelId}
+                dataInicio={dataInicio}
+                dataFim={dataFim}
+              />
+            </div>
+            <div className="w-full lg:flex lg:justify-end">
+              <PrazoFilters
+                current={filtro}
+                responsavelId={responsavelId}
+                q={q}
+                dataInicio={dataInicio}
+                dataFim={dataFim}
+                periodoOpen={periodoOpen}
+              />
+            </div>
+            <div className="w-full max-w-2xl lg:ml-auto">
+              <PrazoDateRange
+                open={periodoOpen}
+                dataInicio={dataInicio}
+                dataFim={dataFim}
+                responsavelId={responsavelId}
+                q={q}
+              />
+            </div>
+            <div className="flex w-full flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end sm:justify-end">
+              <ResponsavelFilter
+                basePath="/prazos"
+                usuarios={usuarios}
+                currentUserId={user?.id}
+                currentResponsavelId={responsavelId}
+                extraParams={{
+                  filtro: usingRange || filtro === "todos" ? undefined : filtro,
+                  q,
+                  data_inicio: dataInicio,
+                  data_fim: dataFim,
+                  periodo: periodoOpen ? "1" : undefined,
+                }}
+              />
+              <ExportPautaButtons
+                filtro={filtro}
+                responsavelId={responsavelId}
+                q={q}
+                dataInicio={dataInicio}
+                dataFim={dataFim}
+                isAdmin={Boolean(user?.is_admin)}
+                usuarios={usuarios}
+              />
+            </div>
           </div>
         </div>
-      </div>
 
-      <div className="mt-8 space-y-4">
-        <PrazoSearch q={q} filtro={filtro} responsavelId={responsavelId} />
-        <PrazoFilters current={filtro} responsavelId={responsavelId} q={q} />
-        <ResponsavelFilter
-          basePath="/prazos"
-          usuarios={usuarios}
-          currentUserId={user?.id}
-          currentResponsavelId={responsavelId}
-          extraParams={{
-            filtro: filtro === "todos" ? undefined : filtro,
-            q,
-          }}
-        />
-        <ExportPautaButtons filtro={filtro} responsavelId={responsavelId} q={q} />
-      </div>
-
-      {prazos.length === 0 ? (
-        <p className="mt-12 max-w-md text-muted">
-          {q
-            ? "Nenhum prazo encontrado para essa busca."
-            : filtro === "excluidos"
-              ? "Nenhum prazo excluído. Itens removidos ficam aqui para restauração."
-              : responsavelId
-                ? "Nenhum prazo para este responsável com o filtro atual."
-                : "Nenhum prazo por enquanto. Cadastre o primeiro para sair do memoriômetro."}
-        </p>
-      ) : (
-        <ul className="mt-8 divide-y divide-border border-y border-border">
-          {prazos.map((prazo) => (
-            <PrazoListItem key={prazo.id} prazo={prazo} />
-          ))}
-        </ul>
-      )}
-    </main>
+        {prazos.length === 0 ? (
+          <EmptyState className="mt-10">
+            {q
+              ? "Nenhum prazo encontrado para essa busca."
+              : usingRange
+                ? "Nenhum prazo pendente neste período."
+                : filtro === "excluidos"
+                  ? "Nenhum prazo excluído. Itens removidos ficam aqui para restauração."
+                  : responsavelId
+                    ? "Nenhum prazo para este responsável com o filtro atual."
+                    : "Nenhum prazo por enquanto. Cadastre o primeiro para sair do memoriômetro."}
+          </EmptyState>
+        ) : (
+          <ul className="mt-8 space-y-2">
+            {prazos.map((prazo) => (
+              <PrazoListItem key={prazo.id} prazo={prazo} />
+            ))}
+          </ul>
+        )}
+      </PageContent>
+    </AppShell>
   );
 }

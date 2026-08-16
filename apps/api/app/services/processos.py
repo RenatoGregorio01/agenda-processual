@@ -4,6 +4,7 @@ from sqlmodel import col, select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from app.core.timeutils import utc_now
+from app.integrations.datajud.cnj import CnjError, mascarar_cnj
 from app.models.audit_log import AuditAction, AuditLog
 from app.models.prazo import Prazo
 from app.models.processo import Processo
@@ -18,10 +19,30 @@ def normalize_numero_processo(numero: str) -> str:
 async def get_processo_by_numero(
     session: AsyncSession,
     numero_processo: str,
+    *,
+    escritorio_id: UUID,
 ) -> Processo | None:
     numero = normalize_numero_processo(numero_processo)
     result = await session.exec(
-        select(Processo).where(Processo.numero_processo == numero)
+        select(Processo).where(
+            Processo.escritorio_id == escritorio_id,
+            Processo.numero_processo == numero,
+        )
+    )
+    found = result.first()
+    if found is not None:
+        return found
+    try:
+        mascarado = mascarar_cnj(numero)
+    except CnjError:
+        return None
+    if mascarado == numero:
+        return None
+    result = await session.exec(
+        select(Processo).where(
+            Processo.escritorio_id == escritorio_id,
+            Processo.numero_processo == mascarado,
+        )
     )
     return result.first()
 
@@ -34,8 +55,14 @@ async def get_or_create_processo(
     usuario: User,
 ) -> tuple[Processo, bool]:
     numero = normalize_numero_processo(numero_processo)
+    try:
+        numero = mascarar_cnj(numero)
+    except CnjError:
+        pass
     cliente_limpo = cliente.strip()
-    existing = await get_processo_by_numero(session, numero)
+    existing = await get_processo_by_numero(
+        session, numero, escritorio_id=usuario.escritorio_id
+    )
     if existing is not None:
         if cliente_limpo and existing.cliente != cliente_limpo:
             existing.cliente = cliente_limpo
@@ -52,7 +79,11 @@ async def get_or_create_processo(
             )
         return existing, False
 
-    processo = Processo(numero_processo=numero, cliente=cliente_limpo)
+    processo = Processo(
+        escritorio_id=usuario.escritorio_id,
+        numero_processo=numero,
+        cliente=cliente_limpo,
+    )
     session.add(processo)
     await session.flush()
     session.add(
@@ -142,11 +173,15 @@ async def backfill_processos(session: AsyncSession) -> int:
 
     created = 0
     for numero, grupo in by_numero.items():
-        existing = await get_processo_by_numero(session, numero)
+        tenant_id = grupo[0].escritorio_id
+        existing = await get_processo_by_numero(
+            session, numero, escritorio_id=tenant_id
+        )
         if existing is None:
             cliente = next((p.cliente for p in grupo if p.cliente), "Cliente")
             existing = Processo(
                 id=uuid4(),
+                escritorio_id=tenant_id,
                 numero_processo=numero,
                 cliente=cliente.strip() or "Cliente",
             )

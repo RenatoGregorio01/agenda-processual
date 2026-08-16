@@ -17,6 +17,18 @@ services:
       timeout: 5s
       retries: 10
 
+  redis:
+    image: redis:7-alpine
+    container_name: agenda-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
   mailpit:
     image: axllent/mailpit:latest
     container_name: agenda-mailpit
@@ -44,17 +56,26 @@ services:
       SEED_ADMIN_EMAIL: veronica@escritorio.com
       SEED_ADMIN_PASSWORD: agenda123
       SEED_ADMIN_NAME: Verônica
+      SEED_ESCRITORIO_NOME: Escritório
+      SEED_ESCRITORIO_SLUG: escritorio
       SMTP_HOST: mailpit
       SMTP_PORT: "1025"
       SMTP_FROM: agenda@local.test
+      SMTP_FROM_NAME: Agenda Processual
       SMTP_TLS: "false"
+      SMTP_SSL: "false"
       ALERTAS_ENABLED: "true"
       ALERTAS_CRON_HOUR: "8"
       INVITE_EXPIRE_HOURS: "72"
+      REDIS_URL: redis://redis:6379/0
+      DATAJUD_API_KEY: cDZHYzlZa0JadVREZDJCendQbXY6SkJlTzNjLV9TRENyQk1RdnFKZGRQdw==
     ports:
-      - "8000:8000"
+      # Host 8001: a 8000 costuma estar ocupada por outros projetos locais
+      - "8001:8000"
     depends_on:
       db:
+        condition: service_healthy
+      redis:
         condition: service_healthy
       mailpit:
         condition: service_started
@@ -70,7 +91,7 @@ services:
     restart: unless-stopped
     environment:
       # Browser (host) fala com a API no localhost publicado
-      NEXT_PUBLIC_API_URL: http://localhost:8000
+      NEXT_PUBLIC_API_URL: http://localhost:8001
       # Server Components / Route Handlers falam com o serviço na rede Docker
       API_URL: http://api:8000
       WATCHPACK_POLLING: "true"

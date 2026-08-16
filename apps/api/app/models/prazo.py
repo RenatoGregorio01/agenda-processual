@@ -16,6 +16,7 @@ class Prazo(SQLModel, table=True):
     __tablename__ = "prazos"
 
     id: UUID = Field(default_factory=uuid4, primary_key=True)
+    escritorio_id: UUID = Field(index=True, foreign_key="escritorios.id")
     processo_id: UUID | None = Field(default=None, index=True)
     numero_processo: str = Field(index=True, max_length=64)
     cliente: str = Field(max_length=255)
@@ -25,9 +26,6 @@ class Prazo(SQLModel, table=True):
     responsavel: str = Field(max_length=120)
     responsavel_id: UUID | None = Field(default=None, index=True)
     status: StatusPrazo = Field(default=StatusPrazo.pendente, index=True)
-    alerta_3_dias: bool = True
-    alerta_2_dias: bool = True
-    alerta_1_dia: bool = True
     excluido_em: datetime | None = Field(default=None, index=True)
     criado_em: datetime = Field(default_factory=utc_now)
     atualizado_em: datetime = Field(default_factory=utc_now)
