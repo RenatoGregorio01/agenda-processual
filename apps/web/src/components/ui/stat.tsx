@@ -19,12 +19,12 @@ export function Stat({ label, value, tone = "muted" }: StatProps) {
   return (
     <div
       className={cn(
-        "rounded-md border border-border bg-surface border-l-[3px] px-4 py-3",
+        "rounded-md border border-border bg-surface border-l-[3px] px-3 py-2.5 sm:px-4 sm:py-3",
         toneClass[tone],
       )}
     >
-      <p className="text-[11px] font-medium uppercase tracking-wide text-muted">{label}</p>
-      <p className="mt-1 font-[family-name:var(--font-display)] text-2xl font-semibold leading-none">
+      <p className="text-[10px] font-medium uppercase tracking-wide text-muted sm:text-[11px]">{label}</p>
+      <p className="mt-1 font-[family-name:var(--font-display)] text-xl font-semibold leading-none sm:text-2xl">
         {value}
       </p>
     </div>

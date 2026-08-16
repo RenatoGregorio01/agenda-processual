@@ -22,17 +22,19 @@ export function AppTopbar({ user }: AppTopbarProps) {
     hasPermission(user, "prazos_criar") && !hideNovoPrazoCta(pathname);
 
   return (
-    <div className="sticky top-0 z-10 flex items-center gap-3 border-b border-border bg-surface/95 px-5 py-3 backdrop-blur-sm sm:px-8">
+    <div className="sticky top-0 z-10 flex items-center gap-2 border-b border-border bg-surface/95 px-4 py-2.5 backdrop-blur-sm pt-[max(0.625rem,env(safe-area-inset-top))] sm:gap-3 sm:px-8 sm:py-3">
       <form action="/prazos" method="get" className="min-w-0 flex-1 sm:max-w-md">
         <SearchField
           name="q"
-          placeholder="Buscar processo, cliente ou responsável…"
+          placeholder="Buscar prazos…"
           aria-label="Buscar prazos"
+          className="h-10 text-base sm:h-11 sm:text-sm"
         />
       </form>
       {showNovoPrazo ? (
-        <ButtonLink href="/prazos/novo" className="shrink-0">
-          + Novo prazo
+        <ButtonLink href="/prazos/novo" size="sm" className="shrink-0 px-3 sm:h-11 sm:px-4 sm:text-sm">
+          <span className="sm:hidden">+ Novo</span>
+          <span className="hidden sm:inline">+ Novo prazo</span>
         </ButtonLink>
       ) : null}
     </div>

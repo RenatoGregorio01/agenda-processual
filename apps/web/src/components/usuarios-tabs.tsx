@@ -52,7 +52,7 @@ export function UsuariosTabs({
   return (
     <div>
       <div
-        className="flex gap-1 overflow-x-auto border-b border-border bg-surface/40 px-1"
+        className="scroll-x-touch flex gap-1 overflow-x-auto border-b border-border bg-surface/40 px-1"
         role="tablist"
         aria-label="Seções de usuários"
       >
@@ -72,7 +72,8 @@ export function UsuariosTabs({
           onClick={() => selectAba("enviados")}
           className={`whitespace-nowrap ${tabClass(aba === "enviados")}`}
         >
-          Convites enviados
+          <span className="sm:hidden">Enviados</span>
+          <span className="hidden sm:inline">Convites enviados</span>
           <span className="ml-2 text-xs font-medium text-muted">{convitesCount}</span>
         </button>
         <button
@@ -82,7 +83,8 @@ export function UsuariosTabs({
           onClick={() => selectAba("contas")}
           className={`whitespace-nowrap ${tabClass(aba === "contas")}`}
         >
-          Contas cadastradas
+          <span className="sm:hidden">Contas</span>
+          <span className="hidden sm:inline">Contas cadastradas</span>
           <span className="ml-2 text-xs font-medium text-muted">{contasCount}</span>
         </button>
       </div>

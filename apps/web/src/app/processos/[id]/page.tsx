@@ -51,11 +51,12 @@ export default async function ProcessoPage({
         }
         actions={
           <>
-            <ButtonLink href="/dashboard" variant="link" size="sm">
+            <ButtonLink href="/dashboard" variant="link" size="sm" className="mr-auto sm:mr-0">
               ← Dashboard
             </ButtonLink>
             {hasPermission(user, "prazos_criar") ? (
               <ButtonLink
+                className="w-full sm:w-auto"
                 href={`/prazos/novo?processo=${encodeURIComponent(processo.numero_processo)}&cliente=${encodeURIComponent(processo.cliente)}`}
               >
                 + Novo prazo

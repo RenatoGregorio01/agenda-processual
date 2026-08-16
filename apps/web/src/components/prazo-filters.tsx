@@ -21,7 +21,7 @@ export function PrazoFilters({
   const rangeActive = periodoOpen || Boolean(dataInicio || dataFim);
 
   return (
-    <div className="flex justify-end gap-2 overflow-x-auto pb-1">
+    <div className="scroll-x-touch flex justify-start gap-2 overflow-x-auto pb-1 sm:justify-end">
       {FILTROS.map((filtro) => {
         const active = !rangeActive && filtro.id === current;
         const href = `/prazos${buildQuery({
