@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
 import { hasPermission, type User } from "@/lib/auth";
@@ -122,6 +122,7 @@ function mobileTabClass(active: boolean) {
 
 export function AppSidebar({ user, open = true, onToggle }: AppSidebarProps) {
   const pathname = usePathname();
+  const router = useRouter();
   const [maisOpen, setMaisOpen] = useState(false);
   const isAdmin = hasPermission(user, "usuarios_gerenciar");
 
@@ -147,7 +148,7 @@ export function AppSidebar({ user, open = true, onToggle }: AppSidebarProps) {
 
   async function logout() {
     await fetch("/api/auth/logout", { method: "POST" });
-    window.location.href = "/login";
+    router.replace("/login");
   }
 
   const secondaryNav = (

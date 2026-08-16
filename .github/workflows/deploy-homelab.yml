@@ -55,7 +55,6 @@ jobs:
           cache-dependency-path: apps/web/package-lock.json
       - run: npm ci
       - name: ESLint
-        continue-on-error: true
         run: npm run lint
       - name: Production build
         env:
