@@ -3,6 +3,7 @@
 import { useActionState, useMemo, useState } from "react";
 
 import { updateUsuario, type ActionState } from "@/app/usuarios/actions";
+import { Badge, Button, Card, Field, Input, Select } from "@/components/ui";
 import type { RoleInfo, User } from "@/lib/auth";
 
 const initialState: ActionState = {};
@@ -20,106 +21,92 @@ export function EditarUsuarioForm({ user, roles, isSelf }: EditarUsuarioFormProp
   const selected = useMemo(() => roles.find((item) => item.id === role), [role, roles]);
 
   return (
-    <form action={formAction} className="flex flex-col gap-3 border border-border bg-surface p-4">
-      <div className="flex flex-wrap items-baseline justify-between gap-2">
-        <p className="font-medium text-foreground">{user.nome}</p>
-        <p className="text-xs text-muted">{user.email}</p>
-      </div>
+    <Card className="p-4">
+      <form action={formAction} className="flex flex-col gap-3">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <p className="font-medium text-foreground">{user.nome}</p>
+            <Badge tone={user.ativo ? "cumprido" : "atrasado"}>
+              {user.ativo ? "ATIVO" : "INATIVO"}
+            </Badge>
+          </div>
+          <p className="text-xs text-muted">{user.email}</p>
+        </div>
 
-      <label className="flex flex-col gap-1.5 text-sm">
-        <span className="font-medium">Nome</span>
-        <input
-          name="nome"
-          required
-          defaultValue={user.nome}
-          className="h-10 border border-border bg-background px-3 outline-none ring-primary focus:ring-2"
-        />
-      </label>
+        <Field label="Nome">
+          <Input name="nome" required defaultValue={user.nome} className="h-10" />
+        </Field>
 
-      <label className="flex flex-col gap-1.5 text-sm">
-        <span className="font-medium">E-mail</span>
-        <input
-          name="email"
-          type="email"
-          required
-          defaultValue={user.email}
-          className="h-10 border border-border bg-background px-3 outline-none ring-primary focus:ring-2"
-        />
-      </label>
+        <Field label="E-mail">
+          <Input name="email" type="email" required defaultValue={user.email} className="h-10" />
+        </Field>
 
-      <label className="flex flex-col gap-1.5 text-sm">
-        <span className="font-medium">Nova senha (opcional)</span>
-        <input
-          name="password"
-          type="password"
-          minLength={6}
-          placeholder="Deixe em branco para manter"
-          className="h-10 border border-border bg-background px-3 outline-none ring-primary focus:ring-2"
-        />
-      </label>
+        <Field label="Nova senha (opcional)" hint="Deixe em branco para manter">
+          <Input
+            name="password"
+            type="password"
+            minLength={6}
+            placeholder="Deixe em branco para manter"
+            className="h-10"
+          />
+        </Field>
 
-      {isSelf ? (
-        <>
-          <input type="hidden" name="role" value={user.role} />
-          {user.ativo ? <input type="hidden" name="ativo" value="on" /> : null}
-          <p className="text-sm text-muted">
-            Perfil: {roles.find((item) => item.id === user.role)?.label ?? user.role} · Status:{" "}
-            {user.ativo ? "Ativo" : "Inativo"} (não alterável na própria conta)
-          </p>
-        </>
-      ) : (
-        <>
-          <label className="flex flex-col gap-1.5 text-sm">
-            <span className="font-medium">Perfil (role)</span>
-            <select
-              name="role"
-              required
-              value={role}
-              onChange={(event) => setRole(event.target.value as User["role"])}
-              className="h-10 border border-border bg-background px-3 outline-none ring-primary focus:ring-2"
-            >
-              {roles.map((item) => (
-                <option key={item.id} value={item.id}>
-                  {item.label}
-                </option>
-              ))}
-            </select>
-          </label>
-          {selected ? (
-            <p className="text-xs text-muted">{selected.description}</p>
-          ) : null}
-          <label className="flex items-center gap-2 text-sm">
-            <input name="ativo" type="checkbox" defaultChecked={user.ativo} />
-            Ativo
-          </label>
-        </>
-      )}
+        {isSelf ? (
+          <>
+            <input type="hidden" name="role" value={user.role} />
+            {user.ativo ? <input type="hidden" name="ativo" value="on" /> : null}
+            <p className="text-sm text-muted">
+              Perfil: {roles.find((item) => item.id === user.role)?.label ?? user.role} · Status:{" "}
+              {user.ativo ? "Ativo" : "Inativo"} (não alterável na própria conta)
+            </p>
+          </>
+        ) : (
+          <>
+            <Field label="Perfil (role)">
+              <Select
+                name="role"
+                required
+                value={role}
+                onChange={(event) => setRole(event.target.value as User["role"])}
+                className="h-10"
+              >
+                {roles.map((item) => (
+                  <option key={item.id} value={item.id}>
+                    {item.label}
+                  </option>
+                ))}
+              </Select>
+            </Field>
+            {selected ? <p className="text-xs text-muted">{selected.description}</p> : null}
+            <label className="flex items-center gap-2 text-sm">
+              <input name="ativo" type="checkbox" defaultChecked={user.ativo} />
+              Ativo
+            </label>
+          </>
+        )}
 
-      <label className="flex items-start gap-2 text-sm">
-        <input
-          name="receber_alertas"
-          type="checkbox"
-          defaultChecked={user.receber_alertas}
-          className="mt-0.5"
-        />
-        <span>
-          Receber alertas de prazos por e-mail
-          <span className="mt-0.5 block text-xs text-muted">
-            Inclui avisos de todos os prazos do escritório (3/2/1 dia).
+        <label className="flex items-start gap-2 text-sm">
+          <input
+            name="receber_alertas"
+            type="checkbox"
+            defaultChecked={user.receber_alertas}
+            className="mt-0.5"
+          />
+          <span>
+            Receber alertas de prazos por e-mail
+            <span className="mt-0.5 block text-xs text-muted">
+              Só dos prazos em que a pessoa for a responsável.
+            </span>
           </span>
-        </span>
-      </label>
+        </label>
 
-      {state.error ? <p className="text-sm text-atrasado">{state.error}</p> : null}
-      {state.ok ? <p className="text-sm text-no-prazo">Alterações salvas.</p> : null}
+        {state.error ? <p className="text-sm text-atrasado">{state.error}</p> : null}
+        {state.ok ? <p className="text-sm text-no-prazo">Alterações salvas.</p> : null}
 
-      <button
-        type="submit"
-        disabled={pending}
-        className="inline-flex h-11 items-center justify-center border border-primary bg-primary px-4 text-sm font-semibold text-primary-foreground disabled:opacity-60"
-      >
-        {pending ? "Salvando…" : "Salvar"}
-      </button>
-    </form>
+        <Button type="submit" disabled={pending}>
+          {pending ? "Salvando…" : "Salvar"}
+        </Button>
+      </form>
+    </Card>
   );
 }

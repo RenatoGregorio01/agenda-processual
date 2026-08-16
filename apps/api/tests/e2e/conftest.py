@@ -17,7 +17,18 @@ from app.api.v1.router import api_router
 from app.core.config import Settings, get_settings
 from app.core.database import get_session
 from app.core.seed import seed_admin_user
-from app.models import AlertaEnvio, AuditLog, Convite, Feriado, Prazo, User  # noqa: F401
+from app.models import (  # noqa: F401
+    AlertaEnvio,
+    AuditLog,
+    Convite,
+    Escritorio,
+    Feriado,
+    Prazo,
+    PrazoAlerta,
+    Processo,
+    ProcessoAndamento,
+    User,
+)
 from app.services.convites import montar_email_convite
 
 
@@ -30,6 +41,7 @@ def e2e_settings(monkeypatch: pytest.MonkeyPatch) -> Settings:
     monkeypatch.setenv("APP_PUBLIC_URL", "http://localhost:3000")
     monkeypatch.setenv("INVITE_EXPIRE_HOURS", "72")
     monkeypatch.setenv("ALERTAS_ENABLED", "false")
+    monkeypatch.setenv("DATAJUD_API_KEY", "")
     get_settings.cache_clear()
     settings = get_settings()
     yield settings

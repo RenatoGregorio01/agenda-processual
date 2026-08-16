@@ -9,13 +9,21 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 from app.models.prazo import Prazo, StatusPrazo
 
 FiltroPrazo = Literal[
-    "todos", "atrasados", "hoje", "amanha", "7dias", "cumpridos", "excluidos"
+    "todos",
+    "atrasados",
+    "hoje",
+    "amanha",
+    "futuros",
+    "7dias",
+    "cumpridos",
+    "excluidos",
 ]
 
 
 async def listar_prazos_filtrados(
     session: AsyncSession,
     *,
+    escritorio_id: UUID,
     filtro: FiltroPrazo = "todos",
     responsavel_id: UUID | None = None,
     q: str | None = None,
@@ -23,7 +31,7 @@ async def listar_prazos_filtrados(
     data_fim: date | None = None,
 ) -> list[Prazo]:
     today = date.today()
-    query = select(Prazo)
+    query = select(Prazo).where(Prazo.escritorio_id == escritorio_id)
     using_date_range = data_inicio is not None or data_fim is not None
 
     if using_date_range:
@@ -53,6 +61,11 @@ async def listar_prazos_filtrados(
             query = query.where(
                 Prazo.status == StatusPrazo.pendente,
                 Prazo.data_vencimento == today + timedelta(days=1),
+            )
+        elif filtro == "futuros":
+            query = query.where(
+                Prazo.status == StatusPrazo.pendente,
+                Prazo.data_vencimento > today,
             )
         elif filtro == "7dias":
             query = query.where(

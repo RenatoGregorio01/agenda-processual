@@ -13,7 +13,9 @@ export type AuditAction =
   | "convite_criado"
   | "convite_reenviado"
   | "convite_revogado"
-  | "convite_aceito";
+  | "convite_aceito"
+  | "processo_criado"
+  | "processo_atualizado";
 
 export type AuditLog = {
   id: string;
@@ -43,6 +45,8 @@ const ACTION_LABELS: Record<AuditAction, string> = {
   convite_reenviado: "Convite reenviado",
   convite_revogado: "Convite revogado",
   convite_aceito: "Convite aceito",
+  processo_criado: "Processo criado",
+  processo_atualizado: "Processo atualizado",
 };
 
 export function labelAcao(acao: AuditAction): string {

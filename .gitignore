@@ -6,6 +6,10 @@ Thumbs.db
 .env
 .env.*
 !.env.example
+smtp.env
+docker/smtp.env
+docker/homelab.env
+TUNNEL_TOKEN
 
 # Python
 __pycache__/
@@ -33,9 +37,11 @@ out/
 *.tsbuildinfo
 
 # IDE
-
 .idea/
 .vscode/
+.cursor/*
+!.cursor/rules/
+!.cursor/rules/**
 *.swp
 *.swo
 

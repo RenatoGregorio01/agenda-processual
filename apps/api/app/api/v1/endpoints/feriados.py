@@ -7,6 +7,7 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 from app.api.deps import get_current_admin, require_permission
 from app.core.database import get_session
 from app.core.permissions import Permission
+from app.core.tenant import get_owned
 from app.models.audit_log import AuditAction
 from app.models.feriado import Feriado
 from app.models.user import User
@@ -19,12 +20,16 @@ router = APIRouter()
 @router.get(
     "",
     response_model=list[FeriadoRead],
-    dependencies=[Depends(require_permission(Permission.prazos_visualizar))],
 )
 async def listar_feriados(
     session: AsyncSession = Depends(get_session),
+    current_user: User = Depends(require_permission(Permission.prazos_visualizar)),
 ) -> list[Feriado]:
-    result = await session.exec(select(Feriado).order_by(col(Feriado.data).asc()))
+    result = await session.exec(
+        select(Feriado)
+        .where(Feriado.escritorio_id == current_user.escritorio_id)
+        .order_by(col(Feriado.data).asc())
+    )
     return list(result.all())
 
 
@@ -39,14 +44,23 @@ async def criar_feriado(
     session: AsyncSession = Depends(get_session),
     current_admin: User = Depends(get_current_admin),
 ) -> Feriado:
-    existing = await session.exec(select(Feriado).where(Feriado.data == payload.data))
+    existing = await session.exec(
+        select(Feriado).where(
+            Feriado.escritorio_id == current_admin.escritorio_id,
+            Feriado.data == payload.data,
+        )
+    )
     if existing.first() is not None:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail="Já existe feriado nesta data",
         )
 
-    feriado = Feriado(data=payload.data, nome=payload.nome.strip())
+    feriado = Feriado(
+        escritorio_id=current_admin.escritorio_id,
+        data=payload.data,
+        nome=payload.nome.strip(),
+    )
     session.add(feriado)
     await session.flush()
     session.add(
@@ -74,15 +88,24 @@ async def atualizar_feriado(
     session: AsyncSession = Depends(get_session),
     current_admin: User = Depends(get_current_admin),
 ) -> Feriado:
-    feriado = await session.get(Feriado, feriado_id)
-    if feriado is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Feriado não encontrado")
+    feriado = await get_owned(
+        session,
+        Feriado,
+        feriado_id,
+        current_admin.escritorio_id,
+        detail="Feriado não encontrado",
+    )
 
     data = payload.model_dump(exclude_unset=True)
     if "nome" in data and data["nome"] is not None:
         data["nome"] = data["nome"].strip()
     if "data" in data and data["data"] is not None and data["data"] != feriado.data:
-        existing = await session.exec(select(Feriado).where(Feriado.data == data["data"]))
+        existing = await session.exec(
+            select(Feriado).where(
+                Feriado.escritorio_id == current_admin.escritorio_id,
+                Feriado.data == data["data"],
+            )
+        )
         if existing.first() is not None:
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT,
@@ -117,9 +140,13 @@ async def excluir_feriado(
     session: AsyncSession = Depends(get_session),
     current_admin: User = Depends(get_current_admin),
 ) -> None:
-    feriado = await session.get(Feriado, feriado_id)
-    if feriado is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Feriado não encontrado")
+    feriado = await get_owned(
+        session,
+        Feriado,
+        feriado_id,
+        current_admin.escritorio_id,
+        detail="Feriado não encontrado",
+    )
 
     session.add(
         montar_auditoria(

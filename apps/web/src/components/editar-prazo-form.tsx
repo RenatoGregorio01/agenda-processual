@@ -1,10 +1,13 @@
 "use client";
 
-import Link from "next/link";
 import { useActionState, useState } from "react";
 
 import { updatePrazo, type ActionState } from "@/app/prazos/actions";
+import { Button, ButtonLink } from "@/components/ui";
+import { AlertasDraftField } from "@/components/alertas-draft-field";
 import { CalculoDiasUteis } from "@/components/calculo-dias-uteis";
+import { ChecklistDraftField } from "@/components/checklist-draft-field";
+import { NumeroProcessoField } from "@/components/numero-processo-field";
 import type { UserOption } from "@/lib/auth";
 import type { Prazo } from "@/lib/prazos";
 
@@ -13,28 +16,38 @@ const initialState: ActionState = {};
 type EditarPrazoFormProps = {
   prazo: Prazo;
   usuarios: UserOption[];
+  checklistItems?: string[];
 };
 
-export function EditarPrazoForm({ prazo, usuarios }: EditarPrazoFormProps) {
+export function EditarPrazoForm({
+  prazo,
+  usuarios,
+  checklistItems = [],
+}: EditarPrazoFormProps) {
   const boundUpdate = updatePrazo.bind(null, prazo.id);
   const [state, formAction, pending] = useActionState(boundUpdate, initialState);
   const defaultResponsavel = prazo.responsavel_id ?? usuarios[0]?.id ?? "";
+  const [numeroProcesso, setNumeroProcesso] = useState(prazo.numero_processo);
+  const [numeroInvalido, setNumeroInvalido] = useState(false);
   const [dataDisponibilizacao, setDataDisponibilizacao] = useState(
     prazo.data_disponibilizacao ?? "",
   );
   const [dataVencimento, setDataVencimento] = useState(prazo.data_vencimento);
+  const initialChecklist =
+    checklistItems.length > 0
+      ? checklistItems
+      : prazo.acao.trim()
+        ? [prazo.acao]
+        : [""];
 
   return (
     <form action={formAction} className="flex flex-col gap-5">
-      <label className="flex flex-col gap-1.5 text-sm">
-        <span className="font-medium">Número do processo</span>
-        <input
-          name="numero_processo"
-          required
-          defaultValue={prazo.numero_processo}
-          className="h-11 border border-border bg-background px-3 outline-none ring-primary focus:ring-2"
-        />
-      </label>
+      <NumeroProcessoField
+        mode="edit"
+        value={numeroProcesso}
+        onChange={setNumeroProcesso}
+        onInvalidChange={setNumeroInvalido}
+      />
 
       <label className="flex flex-col gap-1.5 text-sm">
         <span className="font-medium">Cliente</span>
@@ -46,15 +59,7 @@ export function EditarPrazoForm({ prazo, usuarios }: EditarPrazoFormProps) {
         />
       </label>
 
-      <label className="flex flex-col gap-1.5 text-sm">
-        <span className="font-medium">O que precisa ser feito</span>
-        <input
-          name="acao"
-          required
-          defaultValue={prazo.acao}
-          className="h-11 border border-border bg-background px-3 outline-none ring-primary focus:ring-2"
-        />
-      </label>
+      <ChecklistDraftField initialItems={initialChecklist} />
 
       <label className="flex flex-col gap-1.5 text-sm">
         <span className="font-medium">Data de disponibilização no diário</span>
@@ -97,44 +102,29 @@ export function EditarPrazoForm({ prazo, usuarios }: EditarPrazoFormProps) {
         >
           {usuarios.map((user) => (
             <option key={user.id} value={user.id}>
-              {user.nome} ({user.email})
+              {user.nome}
             </option>
           ))}
         </select>
       </label>
 
-      <fieldset className="flex flex-col gap-2 border border-border p-4">
-        <legend className="px-1 text-sm font-medium">Alertas por e-mail</legend>
-        <label className="flex items-center gap-2 text-sm">
-          <input name="alerta_3_dias" type="checkbox" defaultChecked={prazo.alerta_3_dias} />
-          Alertar 3 dias antes
-        </label>
-        <label className="flex items-center gap-2 text-sm">
-          <input name="alerta_2_dias" type="checkbox" defaultChecked={prazo.alerta_2_dias} />
-          Alertar 2 dias antes
-        </label>
-        <label className="flex items-center gap-2 text-sm">
-          <input name="alerta_1_dia" type="checkbox" defaultChecked={prazo.alerta_1_dia} />
-          Alertar 1 dia antes
-        </label>
-      </fieldset>
+      <AlertasDraftField
+        initialDays={(prazo.alertas ?? []).map((item) => item.dias_antes)}
+      />
 
       {state.error ? <p className="text-sm text-atrasado">{state.error}</p> : null}
 
       <div className="flex flex-col gap-3 sm:flex-row">
-        <button
+        <Button
           type="submit"
-          disabled={pending || usuarios.length === 0}
-          className="inline-flex h-12 items-center justify-center bg-primary px-6 text-base font-semibold text-primary-foreground transition hover:brightness-110 disabled:opacity-60"
+          size="lg"
+          disabled={pending || usuarios.length === 0 || numeroInvalido}
         >
           {pending ? "Salvando…" : "Salvar alterações"}
-        </button>
-        <Link
-          href={`/prazos/${prazo.id}`}
-          className="inline-flex h-12 items-center justify-center border border-border bg-surface px-6 text-base font-medium"
-        >
+        </Button>
+        <ButtonLink href={`/prazos/${prazo.id}`} variant="secondary" size="lg">
           Cancelar
-        </Link>
+        </ButtonLink>
       </div>
     </form>
   );

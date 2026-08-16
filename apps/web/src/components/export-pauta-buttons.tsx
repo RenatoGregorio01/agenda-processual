@@ -2,6 +2,8 @@
 
 import { useEffect, useId, useMemo, useState, type MouseEvent } from "react";
 
+import { Button } from "@/components/ui";
+import type { UserOption } from "@/lib/auth";
 import { buildQuery } from "@/lib/query";
 
 type ExportFormat = "csv" | "pdf";
@@ -10,6 +12,13 @@ type ExportPautaButtonsProps = {
   filtro?: string;
   responsavelId?: string;
   q?: string;
+  dataInicio?: string;
+  dataFim?: string;
+  /** Quando true, exibe filtro de responsável (Todos / usuários). */
+  isAdmin?: boolean;
+  usuarios?: UserOption[];
+  /** `menu`: um botão Exportar com opções PDF/CSV */
+  variant?: "buttons" | "menu";
 };
 
 function toInputDate(value: Date): string {
@@ -25,7 +34,15 @@ function addDays(base: Date, days: number): Date {
   return next;
 }
 
-function defaultRangeFromFiltro(filtro?: string): { inicio: string; fim: string } {
+function defaultRangeFromFiltro(
+  filtro?: string,
+  dataInicio?: string,
+  dataFim?: string,
+): { inicio: string; fim: string } {
+  if (dataInicio && dataFim) {
+    return { inicio: dataInicio, fim: dataFim };
+  }
+
   const today = new Date();
   today.setHours(12, 0, 0, 0);
 
@@ -33,14 +50,9 @@ function defaultRangeFromFiltro(filtro?: string): { inicio: string; fim: string 
     const day = toInputDate(today);
     return { inicio: day, fim: day };
   }
-  if (filtro === "amanha") {
-    const day = toInputDate(addDays(today, 1));
-    return { inicio: day, fim: day };
-  }
   if (filtro === "atrasados") {
     return { inicio: toInputDate(addDays(today, -30)), fim: toInputDate(addDays(today, -1)) };
   }
-  // padrão e "7dias"
   return { inicio: toInputDate(today), fim: toInputDate(addDays(today, 7)) };
 }
 
@@ -55,21 +67,34 @@ export function ExportPautaButtons({
   filtro,
   responsavelId,
   q,
+  dataInicio: dataInicioProp,
+  dataFim: dataFimProp,
+  isAdmin = false,
+  usuarios = [],
+  variant = "buttons",
 }: ExportPautaButtonsProps) {
   const titleId = useId();
   const [open, setOpen] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
   const [formato, setFormato] = useState<ExportFormat>("pdf");
-  const [dataInicio, setDataInicio] = useState(() => defaultRangeFromFiltro(filtro).inicio);
-  const [dataFim, setDataFim] = useState(() => defaultRangeFromFiltro(filtro).fim);
+  const [dataInicio, setDataInicio] = useState(
+    () => defaultRangeFromFiltro(filtro, dataInicioProp, dataFimProp).inicio,
+  );
+  const [dataFim, setDataFim] = useState(
+    () => defaultRangeFromFiltro(filtro, dataInicioProp, dataFimProp).fim,
+  );
+  const [selectedResponsavelId, setSelectedResponsavelId] = useState(responsavelId ?? "");
   const [error, setError] = useState<string | null>(null);
+  const showResponsavelFilter = isAdmin && usuarios.length > 0;
 
   useEffect(() => {
     if (!open) return;
-    const range = defaultRangeFromFiltro(filtro);
+    const range = defaultRangeFromFiltro(filtro, dataInicioProp, dataFimProp);
     setDataInicio(range.inicio);
     setDataFim(range.fim);
+    setSelectedResponsavelId(responsavelId ?? "");
     setError(null);
-  }, [open, filtro]);
+  }, [open, filtro, dataInicioProp, dataFimProp, responsavelId]);
 
   useEffect(() => {
     if (!open) return;
@@ -82,6 +107,7 @@ export function ExportPautaButtons({
 
   function openDialog(nextFormat: ExportFormat) {
     setFormato(nextFormat);
+    setMenuOpen(false);
     setOpen(true);
   }
 
@@ -109,14 +135,25 @@ export function ExportPautaButtons({
   const rangeInvalid = Boolean(dataInicio && dataFim && dataInicio > dataFim);
 
   const exportHref = useMemo(() => {
+    const resolvedResponsavelId = showResponsavelFilter
+      ? selectedResponsavelId || undefined
+      : responsavelId;
     return `/api/prazos/export${buildQuery({
       formato,
       data_inicio: dataInicio || undefined,
       data_fim: dataFim || undefined,
-      responsavel_id: responsavelId,
+      responsavel_id: resolvedResponsavelId,
       q,
     })}`;
-  }, [formato, dataInicio, dataFim, responsavelId, q]);
+  }, [
+    formato,
+    dataInicio,
+    dataFim,
+    showResponsavelFilter,
+    selectedResponsavelId,
+    responsavelId,
+    q,
+  ]);
 
   function handleDownload(event: MouseEvent<HTMLAnchorElement>) {
     if (!dataInicio || !dataFim) {
@@ -134,22 +171,77 @@ export function ExportPautaButtons({
 
   return (
     <>
-      <div className="flex flex-wrap gap-2">
-        <button
-          type="button"
-          onClick={() => openDialog("csv")}
-          className="inline-flex h-10 items-center justify-center border border-border bg-surface px-3 text-sm font-medium text-foreground transition hover:border-primary/40"
-        >
-          Exportar CSV
-        </button>
-        <button
-          type="button"
-          onClick={() => openDialog("pdf")}
-          className="inline-flex h-10 items-center justify-center border border-border bg-surface px-3 text-sm font-medium text-foreground transition hover:border-primary/40"
-        >
-          Exportar PDF
-        </button>
-      </div>
+      {variant === "menu" ? (
+        <div className="relative">
+          <Button
+            type="button"
+            variant="secondary"
+            onClick={() => setMenuOpen((value) => !value)}
+            className="gap-2"
+            aria-expanded={menuOpen}
+            aria-haspopup="menu"
+          >
+            Exportar
+            <svg className="h-3.5 w-3.5 text-muted" viewBox="0 0 24 24" fill="none" aria-hidden>
+              <path
+                d="M6 9l6 6 6-6"
+                stroke="currentColor"
+                strokeWidth="1.8"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
+          </Button>
+          {menuOpen ? (
+            <>
+              <button
+                type="button"
+                className="fixed inset-0 z-30 cursor-default"
+                aria-label="Fechar menu de exportação"
+                onClick={() => setMenuOpen(false)}
+              />
+              <div
+                role="menu"
+                className="absolute right-0 z-40 mt-1 min-w-[9rem] border border-border bg-surface py-1 shadow-sm"
+              >
+                <button
+                  type="button"
+                  role="menuitem"
+                  onClick={() => openDialog("pdf")}
+                  className="block w-full px-3 py-2 text-left text-sm text-foreground hover:bg-background"
+                >
+                  PDF
+                </button>
+                <button
+                  type="button"
+                  role="menuitem"
+                  onClick={() => openDialog("csv")}
+                  className="block w-full px-3 py-2 text-left text-sm text-foreground hover:bg-background"
+                >
+                  CSV
+                </button>
+              </div>
+            </>
+          ) : null}
+        </div>
+      ) : (
+        <div className="flex flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={() => openDialog("csv")}
+            className="inline-flex h-10 items-center justify-center border border-border bg-surface px-3.5 text-sm text-foreground"
+          >
+            Exportar CSV
+          </button>
+          <button
+            type="button"
+            onClick={() => openDialog("pdf")}
+            className="inline-flex h-10 items-center justify-center border border-border bg-surface px-3.5 text-sm text-foreground"
+          >
+            Exportar PDF
+          </button>
+        </div>
+      )}
 
       {open ? (
         <div
@@ -168,8 +260,9 @@ export function ExportPautaButtons({
               Exportar {formato.toUpperCase()}
             </h2>
             <p className="mt-2 text-sm text-muted">
-              Escolha o intervalo de vencimento. A exportação mantém o responsável e a
-              busca atuais, se houver.
+              Escolha o intervalo de vencimento
+              {showResponsavelFilter ? " e o responsável" : ""}
+              {q ? ". A busca atual também é aplicada." : "."}
             </p>
 
             <div className="mt-4 flex flex-wrap gap-2">
@@ -211,6 +304,24 @@ export function ExportPautaButtons({
                 />
               </label>
             </div>
+
+            {showResponsavelFilter ? (
+              <label className="mt-4 flex flex-col gap-1.5 text-sm">
+                <span className="font-medium text-foreground">Responsável</span>
+                <select
+                  value={selectedResponsavelId}
+                  onChange={(event) => setSelectedResponsavelId(event.target.value)}
+                  className="h-11 border border-border bg-surface px-3 text-foreground outline-none ring-primary focus:ring-2"
+                >
+                  <option value="">Todos</option>
+                  {usuarios.map((user) => (
+                    <option key={user.id} value={user.id}>
+                      {user.nome}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            ) : null}
 
             {error ? <p className="mt-3 text-sm text-atrasado">{error}</p> : null}
 

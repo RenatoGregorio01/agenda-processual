@@ -10,7 +10,7 @@ class ConviteCreate(BaseModel):
     email: EmailStr
     nome: str = Field(min_length=1, max_length=120)
     role: Role = Role.editor
-    receber_alertas: bool = True
+    receber_alertas: bool = False
 
 
 class ConviteRead(BaseModel):

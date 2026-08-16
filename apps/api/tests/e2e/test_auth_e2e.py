@@ -14,6 +14,8 @@ async def test_login_e_me(e2e_client) -> None:
     body = me.json()
     assert body["email"] == "admin@test.com"
     assert body["role"] == "admin"
+    assert body["escritorio_nome"]
+    assert body["escritorio_id"]
     assert "usuarios_gerenciar" in body["permissions"]
 
 

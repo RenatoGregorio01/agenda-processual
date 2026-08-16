@@ -1,13 +1,13 @@
-import Link from "next/link";
+import { Suspense } from "react";
 
-import { DashboardSection } from "@/components/dashboard-section";
+import { AppShell, PageContent, PageHeader } from "@/components/app-shell";
+import { DashboardPrazoList } from "@/components/dashboard-prazo-list";
+import { DashboardTabs } from "@/components/dashboard-tabs";
 import { ExportPautaButtons } from "@/components/export-pauta-buttons";
-import { LogoutButton } from "@/components/logout-button";
-import { ResponsavelFilter } from "@/components/responsavel-filter";
+import { Stat } from "@/components/ui";
 import { apiFetch } from "@/lib/api-server";
-import { hasPermission, type User, type UserOption } from "@/lib/auth";
+import type { User, UserOption } from "@/lib/auth";
 import type { Prazo } from "@/lib/prazos";
-import { buildQuery } from "@/lib/query";
 
 async function getCurrentUser(): Promise<User | null> {
   const response = await apiFetch("/api/v1/auth/me");
@@ -22,131 +22,98 @@ async function listUsuariosOpcoes(): Promise<UserOption[]> {
 }
 
 async function listPrazos(
-  filtro: "atrasados" | "hoje" | "amanha",
-  responsavelId?: string,
+  filtro: "atrasados" | "hoje" | "futuros" | "cumpridos",
 ): Promise<Prazo[]> {
-  const query = buildQuery({
-    filtro,
-    responsavel_id: responsavelId,
-  });
-  const response = await apiFetch(`/api/v1/prazos${query}`);
+  const response = await apiFetch(`/api/v1/prazos?filtro=${filtro}`);
   if (!response.ok) return [];
   return (await response.json()) as Prazo[];
 }
 
-export default async function DashboardPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ responsavel_id?: string }>;
-}) {
-  const params = await searchParams;
-  const responsavelId = params.responsavel_id || undefined;
-
-  const [user, usuarios, atrasados, hoje, amanha] = await Promise.all([
+export default async function DashboardPage() {
+  const [user, atrasados, hoje, futuros, concluidos, usuarios] = await Promise.all([
     getCurrentUser(),
+    listPrazos("atrasados"),
+    listPrazos("hoje"),
+    listPrazos("futuros"),
+    listPrazos("cumpridos"),
     listUsuariosOpcoes(),
-    listPrazos("atrasados", responsavelId),
-    listPrazos("hoje", responsavelId),
-    listPrazos("amanha", responsavelId),
   ]);
 
-  const totalUrgente = atrasados.length + hoje.length + amanha.length;
-  const responsavelNome = usuarios.find((item) => item.id === responsavelId)?.nome;
+  const todos = [...atrasados, ...hoje, ...futuros].sort((a, b) =>
+    a.data_vencimento.localeCompare(b.data_vencimento),
+  );
+  const concluidosOrdenados = [...concluidos].sort((a, b) =>
+    b.atualizado_em.localeCompare(a.atualizado_em),
+  );
 
   return (
-    <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col px-6 py-10 sm:px-10">
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <p className="font-[family-name:var(--font-display)] text-2xl font-semibold text-primary">
-            Agenda Processual
-          </p>
-          <h1 className="mt-5 text-3xl font-semibold tracking-tight text-foreground">Hoje</h1>
-          <p className="mt-2 text-muted">
-            {totalUrgente === 0
-              ? responsavelNome
-                ? `Nenhum prazo urgente para ${responsavelNome}.`
-                : "Nenhum prazo urgente no momento."
-              : responsavelNome
-                ? `${responsavelNome}: ${totalUrgente} prazo${totalUrgente === 1 ? "" : "s"} pedindo atenção.`
-                : `${totalUrgente} prazo${totalUrgente === 1 ? "" : "s"} pedindo atenção.`}
-          </p>
+    <AppShell user={user}>
+      <PageHeader
+        title="Pauta"
+        description="Vencimentos do escritório. A data é o que manda."
+        actions={
+          <ExportPautaButtons
+            variant="menu"
+            isAdmin={Boolean(user?.is_admin)}
+            usuarios={usuarios}
+          />
+        }
+      />
+
+      <PageContent wide>
+        <div className="mb-6 grid grid-cols-2 gap-2 lg:grid-cols-4">
+          <Stat label="Atrasados" value={atrasados.length} tone="atrasado" />
+          <Stat label="Vence hoje" value={hoje.length} tone="urgente" />
+          <Stat label="Futuros" value={futuros.length} tone="muted" />
+          <Stat label="Concluídos" value={concluidosOrdenados.length} tone="ok" />
         </div>
-        <div className="flex flex-col items-end gap-3">
-          <LogoutButton />
-          <div className="flex flex-wrap justify-end gap-2">
-            <Link
-              href={`/prazos${buildQuery({ responsavel_id: responsavelId })}`}
-              className="inline-flex h-11 items-center justify-center border border-border bg-surface px-4 text-sm font-medium"
-            >
-              Todos os prazos
-            </Link>
-            {hasPermission(user, "usuarios_gerenciar") ? (
-              <>
-                <Link
-                  href="/usuarios"
-                  className="inline-flex h-11 items-center justify-center border border-border bg-surface px-4 text-sm font-medium"
-                >
-                  Usuários
-                </Link>
-                <Link
-                  href="/feriados"
-                  className="inline-flex h-11 items-center justify-center border border-border bg-surface px-4 text-sm font-medium"
-                >
-                  Feriados
-                </Link>
-              </>
-            ) : null}
-            <Link
-              href="/auditoria"
-              className="inline-flex h-11 items-center justify-center border border-border bg-surface px-4 text-sm font-medium"
-            >
-              Auditoria
-            </Link>
-            {hasPermission(user, "prazos_criar") ? (
-              <Link
-                href="/prazos/novo"
-                className="inline-flex h-11 items-center justify-center bg-primary px-4 text-sm font-semibold text-primary-foreground transition hover:brightness-110"
-              >
-                Novo prazo
-              </Link>
-            ) : null}
-          </div>
-        </div>
-      </div>
 
-      <div className="mt-8 space-y-4">
-        <ResponsavelFilter
-          basePath="/dashboard"
-          usuarios={usuarios}
-          currentUserId={user?.id}
-          currentResponsavelId={responsavelId}
-        />
-        <ExportPautaButtons filtro="7dias" responsavelId={responsavelId} />
-      </div>
-
-      <DashboardSection
-        title="Atrasados"
-        description="Vencidos e ainda pendentes"
-        emptyMessage="Nenhum prazo atrasado."
-        prazos={atrasados}
-        accent="atrasado"
-      />
-
-      <DashboardSection
-        title="Vence hoje"
-        description="Protocolar ainda hoje"
-        emptyMessage="Nada vence hoje."
-        prazos={hoje}
-        accent="urgente"
-      />
-
-      <DashboardSection
-        title="Vence amanhã"
-        description="Preparar para o protocolo"
-        emptyMessage="Nada vence amanhã."
-        prazos={amanha}
-        accent="urgente"
-      />
-    </main>
+        <Suspense fallback={null}>
+          <DashboardTabs
+            counts={{
+              futuros: futuros.length,
+              hoje: hoje.length,
+              atrasados: atrasados.length,
+              todos: todos.length,
+              concluidos: concluidosOrdenados.length,
+            }}
+            futuros={
+              <DashboardPrazoList
+                prazos={futuros}
+                tone="no-prazo"
+                emptyMessage="Nenhum vencimento futuro."
+              />
+            }
+            hoje={
+              <DashboardPrazoList
+                prazos={hoje}
+                tone="urgente"
+                emptyMessage="Nada vence hoje."
+              />
+            }
+            atrasados={
+              <DashboardPrazoList
+                prazos={atrasados}
+                tone="atrasado"
+                emptyMessage="Nenhum prazo atrasado."
+              />
+            }
+            todos={
+              <DashboardPrazoList
+                prazos={todos}
+                emptyMessage="Nenhum prazo pendente."
+              />
+            }
+            concluidos={
+              <DashboardPrazoList
+                prazos={concluidosOrdenados}
+                tone="cumprido"
+                emptyMessage="Nenhum prazo concluído."
+              />
+            }
+          />
+        </Suspense>
+      </PageContent>
+    </AppShell>
   );
 }

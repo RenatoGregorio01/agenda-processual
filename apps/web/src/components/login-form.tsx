@@ -3,6 +3,8 @@
 import { useState, useTransition, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 
+import { Button, Field, Input } from "@/components/ui";
+
 type LoginFormProps = {
   nextPath: string;
 };
@@ -41,48 +43,47 @@ export function LoginForm({ nextPath }: LoginFormProps) {
   }
 
   return (
-    <form onSubmit={onSubmit} className="flex flex-col gap-4">
-      <label className="flex flex-col gap-1.5 text-sm">
-        <span className="font-medium text-foreground">E-mail</span>
-        <input
+    <form method="post" onSubmit={onSubmit} className="flex flex-col gap-5">
+      <Field label="E-mail">
+        <Input
           name="email"
           type="email"
           required
           autoComplete="email"
-          className="h-11 border border-border bg-background px-3 outline-none ring-primary focus:ring-2"
-          placeholder="veronica@escritorio.com"
+          className="h-12"
         />
-      </label>
+      </Field>
 
-      <label className="flex flex-col gap-1.5 text-sm">
-        <span className="font-medium text-foreground">Senha</span>
-        <input
-          name="password"
-          type="password"
-          required
-          minLength={6}
-          autoComplete="current-password"
-          className="h-11 border border-border bg-background px-3 outline-none ring-primary focus:ring-2"
-        />
-      </label>
+      <div className="flex flex-col gap-1.5">
+        <Field label="Senha">
+          <Input
+            name="password"
+            type="password"
+            required
+            minLength={6}
+            autoComplete="current-password"
+            className="h-12"
+          />
+        </Field>
+        <div className="flex justify-end">
+          <Button
+            type="button"
+            variant="link"
+            size="sm"
+            onClick={() =>
+              setError("Recuperação de senha ainda não está disponível no MVP.")
+            }
+          >
+            Esqueci a senha
+          </Button>
+        </div>
+      </div>
 
       {error ? <p className="text-sm text-atrasado">{error}</p> : null}
 
-      <button
-        type="submit"
-        disabled={pending}
-        className="mt-2 inline-flex h-12 items-center justify-center bg-primary px-6 text-base font-semibold text-primary-foreground transition hover:brightness-110 disabled:opacity-60"
-      >
+      <Button type="submit" size="lg" fullWidth disabled={pending}>
         {pending ? "Entrando…" : "Entrar"}
-      </button>
-
-      <button
-        type="button"
-        className="text-left text-sm text-muted underline-offset-4 hover:underline"
-        onClick={() => setError("Recuperação de senha ainda não está disponível no MVP.")}
-      >
-        Esqueci a senha
-      </button>
+      </Button>
     </form>
   );
 }

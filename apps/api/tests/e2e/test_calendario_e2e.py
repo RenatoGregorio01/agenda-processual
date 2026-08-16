@@ -27,7 +27,9 @@ async def test_feriado_e_calculo_dias_uteis(e2e_client) -> None:
     assert calc.status_code == 200, calc.text
     body = calc.json()
     assert body["data_vencimento"] == "2026-09-08"
-    assert body["feriados_no_intervalo"] == ["2026-09-07"]
+    assert body["feriados_no_intervalo"] == [
+        {"data": "2026-09-07", "nome": "Independência"}
+    ]
 
     listed = await client.get("/api/v1/feriados", headers=auth_headers(token))
     assert listed.status_code == 200

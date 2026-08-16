@@ -6,7 +6,8 @@ FastAPI + SQLModel + PostgreSQL + Alembic.
 
 | Método | Rota | Descrição |
 |--------|------|-----------|
-| GET | `/api/v1/health` | Healthcheck (público) |
+| GET | `/api/v1/health` | Healthcheck (DB + Redis; 503 se DB cair) |
+| GET | `/metrics` | Métricas Prometheus |
 | POST | `/api/v1/auth/login` | Login (JWT) |
 | GET | `/api/v1/auth/me` | Usuário autenticado |
 | GET | `/api/v1/prazos` | Lista prazos (auth) |

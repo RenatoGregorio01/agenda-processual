@@ -2,9 +2,14 @@
 
 import { useEffect, useState, useTransition } from "react";
 
+type FeriadoNoIntervalo = {
+  data: string;
+  nome: string;
+};
+
 type CalculoResult = {
   data_vencimento: string;
-  feriados_no_intervalo: string[];
+  feriados_no_intervalo: FeriadoNoIntervalo[];
 };
 
 type CalculoDiasUteisProps = {
@@ -78,7 +83,8 @@ export function CalculoDiasUteis({
       <legend className="px-1 text-sm font-medium">Calcular em dias úteis</legend>
       <p className="text-xs text-muted">
         Conta a partir do dia seguinte à data base, pulando sábados, domingos e
-        feriados cadastrados. Você pode ajustar a data de vencimento depois.
+        os feriados cadastrados em Feriados. Você pode ajustar a data de
+        vencimento depois.
       </p>
 
       <div className="grid gap-3 sm:grid-cols-2">
@@ -115,15 +121,34 @@ export function CalculoDiasUteis({
 
       {error ? <p className="text-sm text-atrasado">{error}</p> : null}
       {result ? (
-        <p className="text-sm text-foreground">
-          Vencimento:{" "}
-          <span className="font-semibold text-primary">
-            {formatDateBr(result.data_vencimento)}
-          </span>
-          {result.feriados_no_intervalo.length > 0
-            ? ` · ${result.feriados_no_intervalo.length} feriado(s) no intervalo`
-            : null}
-        </p>
+        <div className="space-y-2 text-sm text-foreground">
+          <p>
+            Vencimento:{" "}
+            <span className="font-semibold text-primary">
+              {formatDateBr(result.data_vencimento)}
+            </span>
+          </p>
+          {result.feriados_no_intervalo.length > 0 ? (
+            <div className="border border-border bg-background px-3 py-2">
+              <p className="text-xs font-medium text-muted">
+                Feriados considerados no intervalo (
+                {result.feriados_no_intervalo.length}):
+              </p>
+              <ul className="mt-1.5 space-y-1 text-xs text-foreground">
+                {result.feriados_no_intervalo.map((feriado) => (
+                  <li key={feriado.data}>
+                    {formatDateBr(feriado.data)} · {feriado.nome}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : (
+            <p className="text-xs text-muted">
+              Nenhum feriado cadastrado no intervalo — só sábados e domingos
+              foram pulados.
+            </p>
+          )}
+        </div>
       ) : null}
     </fieldset>
   );

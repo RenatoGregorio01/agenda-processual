@@ -15,6 +15,7 @@ def montar_auditoria(
     entidade_id: UUID | None = None,
 ) -> AuditLog:
     return AuditLog(
+        escritorio_id=usuario.escritorio_id,
         usuario_id=usuario.id,
         usuario_nome=usuario.nome,
         usuario_email=usuario.email,

@@ -1,0 +1,37 @@
+---
+description: Padrão de componentes UI do front (Agenda Processual)
+globs: apps/web/**/*.{ts,tsx}
+alwaysApply: false
+---
+
+# UI — Agenda Processual
+
+Telas novas ou alteradas usam os primitivos em `apps/web/src/components/ui`. Não inventar outra hierarquia de botão, badge ou input.
+
+## Onde importar
+
+```ts
+import { Button, ButtonLink, Badge, Card, EmptyState, Field, Input, SearchField, Select, SectionHeading, Stat } from "@/components/ui";
+```
+
+## O que usar
+
+| Necessidade | Componente |
+|---|---|
+| Ação principal / secundária / perigo / texto | `Button` ou `ButtonLink` (`variant`: primary, secondary, ghost, danger, link) |
+| Urgência (ATRASADO, HOJE, CUMPRIDO…) | `Badge` ou `PrazoBadge` (que já usa `Badge`) |
+| Campo de formulário | `Field` + `Input` / `Select` |
+| Busca no topo ou em lista | `SearchField` |
+| Bloco de conteúdo / item de lista | `Card` (`tone` para faixa de urgência) |
+| Lista vazia | `EmptyState` |
+| Título de seção | `SectionHeading` |
+| Número de resumo (dashboard) | `Stat` |
+
+## Regras
+
+- CTA de página (`+ Novo Prazo`, Salvar, Entrar) é `Button` / `ButtonLink` primary. Cancelar é secondary ou link.
+- Não copiar classes soltas de `h-11 bg-primary…` em telas novas.
+- Vencimento continua o elemento mais importante em lista e detalhe (serif / display).
+- Tom: sóbrio, jurídico. Sem roxo de “IA”, sem sombra pesada, sem card de métrica genérica além do `Stat`.
+- Paleta só pelos tokens (`primary`, `atrasado`, `urgente`, `no-prazo`).
+- Componentes de domínio (`PrazoListItem`, `DashboardPrazoCard`, formulários) podem existir, mas devem ser compostos com os primitivos.

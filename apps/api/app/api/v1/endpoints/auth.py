@@ -9,7 +9,7 @@ from app.models.audit_log import AuditAction
 from app.models.user import User
 from app.schemas.auth import LoginRequest, TokenResponse, UserRead
 from app.services.audit import registrar_auditoria
-from app.services.users import to_user_read
+from app.services.users import to_user_read_with_escritorio
 
 router = APIRouter()
 
@@ -41,10 +41,16 @@ async def login(
         resumo=f"Login realizado ({user.email})",
     )
 
-    token = create_access_token(user.id, extra={"email": user.email})
+    token = create_access_token(
+        user.id,
+        extra={"email": user.email, "escritorio_id": str(user.escritorio_id)},
+    )
     return TokenResponse(access_token=token)
 
 
 @router.get("/me", response_model=UserRead)
-async def me(current_user: User = Depends(get_current_user)) -> UserRead:
-    return to_user_read(current_user)
+async def me(
+    current_user: User = Depends(get_current_user),
+    session: AsyncSession = Depends(get_session),
+) -> UserRead:
+    return await to_user_read_with_escritorio(session, current_user)

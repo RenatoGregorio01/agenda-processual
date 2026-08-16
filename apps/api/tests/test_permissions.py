@@ -1,3 +1,5 @@
+from uuid import uuid4
+
 from app.core.permissions import Permission, permissions_for_role, user_has_permission
 from app.models.user import Role, User
 
@@ -21,6 +23,7 @@ def test_viewer_only_visualizes() -> None:
 
 def test_user_has_permission_uses_role() -> None:
     user = User(
+        escritorio_id=uuid4(),
         email="viewer@example.com",
         nome="Viewer",
         hashed_password="x",

@@ -1,10 +1,12 @@
 from datetime import date, timedelta
+from uuid import uuid4
 
 from app.models.prazo import Prazo, StatusPrazo
 
 
 def _pendente(vencimento: date) -> Prazo:
     return Prazo(
+        escritorio_id=uuid4(),
         numero_processo="1",
         cliente="A",
         acao="X",

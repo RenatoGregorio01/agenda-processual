@@ -9,6 +9,7 @@ from app.core.config import get_settings
 from app.core.database import get_session
 from app.core.permissions import sync_admin_flag
 from app.core.security import create_access_token, hash_password
+from app.core.tenant import get_owned
 from app.core.timeutils import utc_now
 from app.models.audit_log import AuditAction
 from app.models.convite import Convite
@@ -86,6 +87,7 @@ async def aceitar_convite(
         )
 
     user = User(
+        escritorio_id=convite.escritorio_id,
         email=convite.email,
         nome=convite.nome,
         hashed_password=hash_password(payload.password),
@@ -110,14 +112,24 @@ async def aceitar_convite(
     )
     await session.commit()
 
-    return TokenResponse(access_token=create_access_token(user.id, extra={"email": user.email}))
+    return TokenResponse(
+        access_token=create_access_token(
+            user.id,
+            extra={"email": user.email, "escritorio_id": str(user.escritorio_id)},
+        )
+    )
 
 
-@router.get("", response_model=list[ConviteRead], dependencies=[Depends(get_current_admin)])
+@router.get("", response_model=list[ConviteRead])
 async def listar_convites(
     session: AsyncSession = Depends(get_session),
+    current_admin: User = Depends(get_current_admin),
 ) -> list[ConviteRead]:
-    result = await session.exec(select(Convite).order_by(col(Convite.criado_em).desc()))
+    result = await session.exec(
+        select(Convite)
+        .where(Convite.escritorio_id == current_admin.escritorio_id)
+        .order_by(col(Convite.criado_em).desc())
+    )
     return [_to_read(item) for item in result.all()]
 
 
@@ -158,6 +170,7 @@ async def criar_convite(
 
     token = generate_invite_token()
     convite = Convite(
+        escritorio_id=current_admin.escritorio_id,
         email=email,
         nome=payload.nome.strip(),
         role=payload.role,
@@ -209,9 +222,13 @@ async def reenviar_convite(
     current_admin: User = Depends(get_current_admin),
 ) -> ConviteRead:
     settings = get_settings()
-    convite = await session.get(Convite, convite_id)
-    if convite is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Convite não encontrado")
+    convite = await get_owned(
+        session,
+        Convite,
+        convite_id,
+        current_admin.escritorio_id,
+        detail="Convite não encontrado",
+    )
     if convite.used_at is not None:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -270,9 +287,13 @@ async def revogar_convite(
     session: AsyncSession = Depends(get_session),
     current_admin: User = Depends(get_current_admin),
 ) -> ConviteRead:
-    convite = await session.get(Convite, convite_id)
-    if convite is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Convite não encontrado")
+    convite = await get_owned(
+        session,
+        Convite,
+        convite_id,
+        current_admin.escritorio_id,
+        detail="Convite não encontrado",
+    )
     if convite.used_at is not None:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,

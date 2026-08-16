@@ -11,6 +11,7 @@
   --atrasado: #b42318;
   --urgente: #b54708;
   --no-prazo: #027a48;
+  --radius: 0.375rem;
 }
 
 @theme inline {
