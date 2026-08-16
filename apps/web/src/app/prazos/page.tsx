@@ -108,59 +108,55 @@ export default async function PrazosPage({
 
       <PageContent wide>
         <div className="space-y-4">
-          <div className="flex flex-col gap-4 lg:items-end">
-            <div className="w-full max-w-2xl lg:ml-auto">
-              <PrazoSearch
-                q={q}
-                filtro={filtro}
-                responsavelId={responsavelId}
-                dataInicio={dataInicio}
-                dataFim={dataFim}
-              />
-            </div>
-            <div className="w-full lg:flex lg:justify-end">
-              <PrazoFilters
-                current={filtro}
-                responsavelId={responsavelId}
-                q={q}
-                dataInicio={dataInicio}
-                dataFim={dataFim}
-                periodoOpen={periodoOpen}
-              />
-            </div>
-            <div className="w-full max-w-2xl lg:ml-auto">
-              <PrazoDateRange
-                open={periodoOpen}
-                dataInicio={dataInicio}
-                dataFim={dataFim}
-                responsavelId={responsavelId}
-                q={q}
-              />
-            </div>
-            <div className="flex w-full flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end sm:justify-end">
-              <ResponsavelFilter
-                basePath="/prazos"
-                usuarios={usuarios}
-                currentUserId={user?.id}
-                currentResponsavelId={responsavelId}
-                extraParams={{
-                  filtro: usingRange || filtro === "todos" ? undefined : filtro,
-                  q,
-                  data_inicio: dataInicio,
-                  data_fim: dataFim,
-                  periodo: periodoOpen ? "1" : undefined,
-                }}
-              />
-              <ExportPautaButtons
-                filtro={filtro}
-                responsavelId={responsavelId}
-                q={q}
-                dataInicio={dataInicio}
-                dataFim={dataFim}
-                isAdmin={Boolean(user?.is_admin)}
-                usuarios={usuarios}
-              />
-            </div>
+          <PrazoSearch
+            q={q}
+            filtro={filtro}
+            responsavelId={responsavelId}
+            dataInicio={dataInicio}
+            dataFim={dataFim}
+          />
+
+          <PrazoFilters
+            current={filtro}
+            responsavelId={responsavelId}
+            q={q}
+            dataInicio={dataInicio}
+            dataFim={dataFim}
+            periodoOpen={periodoOpen}
+          />
+
+          <PrazoDateRange
+            open={periodoOpen}
+            dataInicio={dataInicio}
+            dataFim={dataFim}
+            responsavelId={responsavelId}
+            q={q}
+          />
+
+          <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end">
+            <ResponsavelFilter
+              basePath="/prazos"
+              usuarios={usuarios}
+              currentUserId={user?.id}
+              currentResponsavelId={responsavelId}
+              extraParams={{
+                filtro: usingRange || filtro === "todos" ? undefined : filtro,
+                q,
+                data_inicio: dataInicio,
+                data_fim: dataFim,
+                periodo: periodoOpen ? "1" : undefined,
+              }}
+            />
+            <ExportPautaButtons
+              variant="menu"
+              filtro={filtro}
+              responsavelId={responsavelId}
+              q={q}
+              dataInicio={dataInicio}
+              dataFim={dataFim}
+              isAdmin={Boolean(user?.is_admin)}
+              usuarios={usuarios}
+            />
           </div>
         </div>
 
@@ -177,7 +173,7 @@ export default async function PrazosPage({
                     : "Nenhum prazo por enquanto. Cadastre o primeiro para sair do memoriômetro."}
           </EmptyState>
         ) : (
-          <ul className="mt-8 space-y-2">
+          <ul className="mt-6 space-y-2">
             {prazos.map((prazo) => (
               <PrazoListItem key={prazo.id} prazo={prazo} />
             ))}
