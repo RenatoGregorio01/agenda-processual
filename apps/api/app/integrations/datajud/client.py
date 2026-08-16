@@ -25,8 +25,17 @@ async def consultar_processo(numero: str) -> tuple[str, str, dict[str, Any] | No
         raise DatajudError("DATAJUD_API_KEY não configurada")
 
     digitos, alias = alias_do_cnj(numero)
+    # Preferir term (campo keyword) e fallback match com dígitos / mascarado.
     payload = {
-        "query": {"match": {"numeroProcesso": digitos}},
+        "query": {
+            "bool": {
+                "should": [
+                    {"term": {"numeroProcesso": digitos}},
+                    {"match": {"numeroProcesso": digitos}},
+                ],
+                "minimum_should_match": 1,
+            }
+        },
         "size": 1,
     }
     headers = {

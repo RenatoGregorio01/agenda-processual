@@ -79,7 +79,10 @@ def _payload_from_source(alias: str, source: dict[str, Any] | None) -> dict[str,
             "grau": None,
             "classe": None,
             "orgao": None,
-            "mensagem": "Andamentos do tribunal indisponíveis",
+            "mensagem": (
+                "Não encontramos este processo na base pública do tribunal "
+                f"({alias}). Pode ser sigiloso, ainda não indexado ou número incorreto."
+            ),
             "andamentos": [],
         }
 
