@@ -78,12 +78,39 @@ Não publique no túnel: Postgres, Redis, Mailpit.
 
 ## 4. Observabilidade (Grafana do homelab)
 
-- API expõe `GET /metrics` (Prometheus) e `GET /api/v1/health` (DB + Redis).
-- Cole o job de [`deploy/prometheus/agenda.yml`](../deploy/prometheus/agenda.yml) no Prometheus.
-- Importe [`deploy/grafana/agenda-dashboard.json`](../deploy/grafana/agenda-dashboard.json) no Grafana.
-- Regras sugeridas: [`deploy/grafana/alert-rules.md`](../deploy/grafana/alert-rules.md).
+A API expõe `GET /metrics` (Prometheus) e `GET /api/v1/health` (DB + Redis).
 
-O scrape fica na rede interna do homelab; não precisa expor `/metrics` no túnel.
+No servidor Ubuntu (`~/homelab`):
+
+1. **Scrape** via Tailscale do Mac (porta host `8001`) —
+   [`deploy/prometheus/agenda.yml`](../deploy/prometheus/agenda.yml) →
+   `compose/monitoring/prometheus/prometheus.yml` do repo homelab.
+2. **Dashboard** —
+   [`deploy/grafana/agenda-dashboard.json`](../deploy/grafana/agenda-dashboard.json)
+   → pasta Homelab (`uid: agenda-processual`). Inclui painéis de 5xx/4xx e
+   latência **por endpoint** (`handler` + `method`).
+3. **Alertas** —
+   [`deploy/prometheus/alerts.yml`](../deploy/prometheus/alerts.yml)
+   (API down, 5xx, taxa de erro, latência p95, falha de e-mail de prazo).
+   Passo a passo e contact points:
+   [`deploy/grafana/alert-rules.md`](../deploy/grafana/alert-rules.md).
+
+Validação rápida:
+
+```bash
+# Target agenda-api = UP
+curl -s 'http://prometheus.homelab/api/v1/query?query=up{job="agenda-api"}'
+
+# Regras carregadas
+curl -s 'http://prometheus.homelab/api/v1/rules' | head
+```
+
+Se o IP Tailscale do Mac mudar, atualize o `targets` no `prometheus.yml` e rode
+`curl -X POST http://localhost:9090/-/reload` no servidor (mesmo comando após
+copiar/atualizar `alerts.yml`).
+
+Não publique `/metrics` no túnel Cloudflare sem autenticação (hoje o path
+público existe; preferir scrape só pela LAN/Tailscale).
 
 ## 5. Teste de e-mail de alerta
 
