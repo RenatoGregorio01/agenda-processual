@@ -1,5 +1,10 @@
 from prometheus_client import Counter, Gauge
 
+AUDIT_PURGE_DELETED = Counter(
+    "agenda_audit_purge_deleted_total",
+    "Total de registros de auditoria apagados pelo purge",
+)
+
 ALERTAS_CANDIDATOS = Gauge(
     "agenda_alertas_candidatos",
     "Quantidade de candidatos a alerta no último processamento",
@@ -26,3 +31,8 @@ def record_alertas_result(*, candidatos: int, enviados: int, erros: int, ignorad
         ALERTAS_ERROS.inc(erros)
     if ignorados:
         ALERTAS_IGNORADOS.inc(ignorados)
+
+
+def record_audit_purge(*, deleted: int) -> None:
+    if deleted:
+        AUDIT_PURGE_DELETED.inc(deleted)

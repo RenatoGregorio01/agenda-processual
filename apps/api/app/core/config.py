@@ -61,6 +61,11 @@ class Settings(BaseSettings):
     alertas_enabled: bool = True
     alertas_cron_hour: int = 8
 
+    audit_purge_enabled: bool = True
+    audit_retention_days: int = 365
+    audit_purge_cron_hour: int = 3
+    audit_purge_batch_size: int = 1000
+
     invite_expire_hours: int = 72
 
     redis_url: str = "redis://localhost:6379/0"

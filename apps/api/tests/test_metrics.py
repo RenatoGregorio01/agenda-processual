@@ -1,6 +1,6 @@
 from prometheus_client import REGISTRY
 
-from app.core.metrics import record_alertas_result
+from app.core.metrics import record_alertas_result, record_audit_purge
 
 
 def _counter_value(name: str) -> float:
@@ -19,3 +19,10 @@ def test_record_alertas_result_increments_counters() -> None:
     record_alertas_result(candidatos=3, enviados=2, erros=1, ignorados=0)
     assert _counter_value("agenda_alertas_enviados") == before_env + 2
     assert _counter_value("agenda_alertas_erros") == before_err + 1
+
+
+def test_record_audit_purge_increments_counter() -> None:
+    before = _counter_value("agenda_audit_purge_deleted")
+    record_audit_purge(deleted=4)
+    record_audit_purge(deleted=0)
+    assert _counter_value("agenda_audit_purge_deleted") == before + 4

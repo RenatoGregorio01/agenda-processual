@@ -44,6 +44,8 @@ services:
       SEED_ADMIN_PASSWORD: ${SEED_ADMIN_PASSWORD:-}
       METRICS_ENABLED: "true"
       ALERTAS_ENABLED: "true"
+      AUDIT_PURGE_ENABLED: "true"
+      AUDIT_RETENTION_DAYS: "365"
     volumes: !reset []
     ports: !reset []
     command: >
