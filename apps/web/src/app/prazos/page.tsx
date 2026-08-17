@@ -96,18 +96,6 @@ export default async function PrazosPage({
               ? `Vencimento de ${inicioLabel ?? "…"} a ${fimLabel ?? "…"} · ${prazos.length} prazo${prazos.length === 1 ? "" : "s"}`
               : "Ordenados por vencimento"
         }
-        actions={
-          <ExportPautaButtons
-            variant="menu"
-            filtro={filtro}
-            responsavelId={responsavelId}
-            q={q}
-            dataInicio={dataInicio}
-            dataFim={dataFim}
-            isAdmin={Boolean(user?.is_admin)}
-            usuarios={usuarios}
-          />
-        }
       />
 
       <PageContent wide>
@@ -164,6 +152,17 @@ export default async function PrazosPage({
           </ul>
         )}
       </PageContent>
+
+      <ExportPautaButtons
+        variant="fab"
+        filtro={filtro}
+        responsavelId={responsavelId}
+        q={q}
+        dataInicio={dataInicio}
+        dataFim={dataFim}
+        isAdmin={Boolean(user?.is_admin)}
+        usuarios={usuarios}
+      />
     </AppShell>
   );
 }

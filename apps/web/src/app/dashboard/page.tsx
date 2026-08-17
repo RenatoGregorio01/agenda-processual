@@ -51,13 +51,6 @@ export default async function DashboardPage() {
       <PageHeader
         title="Pauta"
         description="Vencimentos do escritório. A data é o que manda."
-        actions={
-          <ExportPautaButtons
-            variant="menu"
-            isAdmin={Boolean(user?.is_admin)}
-            usuarios={usuarios}
-          />
-        }
       />
 
       <PageContent wide>
@@ -114,6 +107,12 @@ export default async function DashboardPage() {
           />
         </Suspense>
       </PageContent>
+
+      <ExportPautaButtons
+        variant="fab"
+        isAdmin={Boolean(user?.is_admin)}
+        usuarios={usuarios}
+      />
     </AppShell>
   );
 }
