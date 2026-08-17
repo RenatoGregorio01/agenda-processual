@@ -1,6 +1,6 @@
 "use client";
 
-import { useSyncExternalStore, type ReactNode } from "react";
+import { useSyncExternalStore, Suspense, type ReactNode } from "react";
 
 import { AppSidebar } from "@/components/app-sidebar";
 import { AppTopbar } from "@/components/app-topbar";
@@ -50,7 +50,9 @@ export function AppShell({ user, children }: AppShellProps) {
     <div className="flex min-h-full min-h-dvh flex-1 overflow-x-hidden bg-background">
       <AppSidebar user={user} open={sidebarOpen} onToggle={toggleSidebar} />
       <div className="flex min-w-0 flex-1 flex-col pb-[calc(4.5rem+env(safe-area-inset-bottom))] lg:pb-0">
-        <AppTopbar user={user} />
+        <Suspense fallback={null}>
+          <AppTopbar user={user} />
+        </Suspense>
         {children}
       </div>
     </div>

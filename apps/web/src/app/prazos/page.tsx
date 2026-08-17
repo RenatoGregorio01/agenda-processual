@@ -3,11 +3,10 @@ import { ExportPautaButtons } from "@/components/export-pauta-buttons";
 import { PrazoDateRange } from "@/components/prazo-date-range";
 import { PrazoFilters } from "@/components/prazo-filters";
 import { PrazoListItem } from "@/components/prazo-list-item";
-import { PrazoSearch } from "@/components/prazo-search";
 import { ResponsavelFilter } from "@/components/responsavel-filter";
-import { ButtonLink, EmptyState } from "@/components/ui";
+import { EmptyState } from "@/components/ui";
 import { apiFetch } from "@/lib/api-server";
-import { hasPermission, type User, type UserOption } from "@/lib/auth";
+import type { User, UserOption } from "@/lib/auth";
 import { FILTROS, type FiltroPrazo, type Prazo } from "@/lib/prazos";
 import { buildQuery } from "@/lib/query";
 
@@ -113,21 +112,6 @@ export default async function PrazosPage({
 
       <PageContent wide>
         <div className="space-y-4">
-          <PrazoSearch
-            q={q}
-            filtro={filtro}
-            responsavelId={responsavelId}
-            dataInicio={dataInicio}
-            dataFim={dataFim}
-            trailing={
-              hasPermission(user, "prazos_criar") ? (
-                <ButtonLink href="/prazos/novo" className="w-full sm:w-auto">
-                  + Novo prazo
-                </ButtonLink>
-              ) : null
-            }
-          />
-
           <PrazoFilters
             current={filtro}
             responsavelId={responsavelId}
