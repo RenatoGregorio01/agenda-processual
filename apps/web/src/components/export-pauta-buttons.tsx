@@ -17,8 +17,8 @@ type ExportPautaButtonsProps = {
   /** Quando true, exibe filtro de responsável (Todos / usuários). */
   isAdmin?: boolean;
   usuarios?: UserOption[];
-  /** `menu`: um botão Exportar com opções PDF/CSV */
-  variant?: "buttons" | "menu";
+  /** `menu`: botão Exportar no header · `fab`: ícone flutuante */
+  variant?: "buttons" | "menu" | "fab";
 };
 
 function toInputDate(value: Date): string {
@@ -63,6 +63,49 @@ const PRESETS = [
   { id: "30dias", label: "30 dias" },
 ] as const;
 
+function ExportIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" aria-hidden>
+      <path
+        d="M12 3v10M8 9l4 4 4-4M5 21h14"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+function ExportFormatMenu({
+  onSelect,
+  className,
+}: {
+  onSelect: (format: ExportFormat) => void;
+  className?: string;
+}) {
+  return (
+    <div role="menu" className={className}>
+      <button
+        type="button"
+        role="menuitem"
+        onClick={() => onSelect("pdf")}
+        className="block min-h-11 w-full px-3 py-2.5 text-left text-sm text-foreground hover:bg-background sm:min-h-0 sm:py-2"
+      >
+        PDF
+      </button>
+      <button
+        type="button"
+        role="menuitem"
+        onClick={() => onSelect("csv")}
+        className="block min-h-11 w-full px-3 py-2.5 text-left text-sm text-foreground hover:bg-background sm:min-h-0 sm:py-2"
+      >
+        CSV
+      </button>
+    </div>
+  );
+}
+
 export function ExportPautaButtons({
   filtro,
   responsavelId,
@@ -88,13 +131,16 @@ export function ExportPautaButtons({
   const showResponsavelFilter = isAdmin && usuarios.length > 0;
 
   useEffect(() => {
-    if (!open) return;
+    if (!open && !menuOpen) return;
     function onKeyDown(event: KeyboardEvent) {
-      if (event.key === "Escape") setOpen(false);
+      if (event.key === "Escape") {
+        setOpen(false);
+        setMenuOpen(false);
+      }
     }
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [open]);
+  }, [open, menuOpen]);
 
   function openDialog(nextFormat: ExportFormat) {
     const range = defaultRangeFromFiltro(filtro, dataInicioProp, dataFimProp);
@@ -167,7 +213,34 @@ export function ExportPautaButtons({
 
   return (
     <>
-      {variant === "menu" ? (
+      {variant === "fab" ? (
+        <>
+          {menuOpen ? (
+            <button
+              type="button"
+              className="fixed inset-0 z-30 cursor-default"
+              aria-label="Fechar menu de exportação"
+              onClick={() => setMenuOpen(false)}
+            />
+          ) : null}
+          {menuOpen ? (
+            <ExportFormatMenu
+              onSelect={openDialog}
+              className="fixed bottom-[calc(4.5rem+env(safe-area-inset-bottom)+4.75rem)] right-4 z-40 min-w-[9rem] border border-border bg-surface py-1 shadow-md lg:bottom-[calc(2rem+4.75rem)] lg:right-8"
+            />
+          ) : null}
+          <button
+            type="button"
+            onClick={() => setMenuOpen((value) => !value)}
+            className="fixed bottom-[calc(4.5rem+env(safe-area-inset-bottom)+0.75rem)] right-4 z-40 flex h-14 w-14 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-[0_4px_20px_rgba(26,26,26,0.18)] transition hover:brightness-110 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary lg:bottom-8 lg:right-8"
+            aria-label="Exportar pauta"
+            aria-expanded={menuOpen}
+            aria-haspopup="menu"
+          >
+            <ExportIcon className="h-6 w-6" />
+          </button>
+        </>
+      ) : variant === "menu" ? (
         <div className="relative w-full sm:w-auto">
           <Button
             type="button"
@@ -196,27 +269,10 @@ export function ExportPautaButtons({
                 aria-label="Fechar menu de exportação"
                 onClick={() => setMenuOpen(false)}
               />
-              <div
-                role="menu"
+              <ExportFormatMenu
+                onSelect={openDialog}
                 className="absolute left-0 right-0 z-40 mt-1 border border-border bg-surface py-1 shadow-sm sm:left-auto sm:right-0 sm:min-w-[9rem]"
-              >
-                <button
-                  type="button"
-                  role="menuitem"
-                  onClick={() => openDialog("pdf")}
-                  className="block min-h-11 w-full px-3 py-2.5 text-left text-sm text-foreground hover:bg-background sm:min-h-0 sm:py-2"
-                >
-                  PDF
-                </button>
-                <button
-                  type="button"
-                  role="menuitem"
-                  onClick={() => openDialog("csv")}
-                  className="block min-h-11 w-full px-3 py-2.5 text-left text-sm text-foreground hover:bg-background sm:min-h-0 sm:py-2"
-                >
-                  CSV
-                </button>
-              </div>
+              />
             </>
           ) : null}
         </div>
