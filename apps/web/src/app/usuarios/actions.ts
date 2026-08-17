@@ -116,3 +116,23 @@ export async function updateUsuario(
   revalidatePath("/usuarios");
   return { ok: true };
 }
+
+export async function desativarUsuario(userId: string): Promise<ActionState> {
+  const response = await apiFetch(`/api/v1/usuarios/${userId}`, {
+    method: "PATCH",
+    body: JSON.stringify({ ativo: false }),
+  });
+
+  if (!response.ok) {
+    const data = await response.json().catch(() => ({}));
+    return {
+      error:
+        typeof data.detail === "string"
+          ? data.detail
+          : "Não foi possível desativar o usuário.",
+    };
+  }
+
+  revalidatePath("/usuarios");
+  return { ok: true };
+}
