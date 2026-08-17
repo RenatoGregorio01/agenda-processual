@@ -49,7 +49,8 @@ Visão de produto após o MVP (`v0.1.0`). Ordem sugerida; prioridades podem muda
   - Opções futuras: `silva.agendaprocessual.com.br` ou `/e/{slug}/login`
   - Escopo típico além da URL: unique `(escritorio_id, email)`, middleware de tenant por host, cookies/`APP_PUBLIC_URL` por host, convites e SMTP alinhados
   - O alicerce `Escritorio` + `escritorio_id` já reduz o retrabalho quando essa fase chegar
-- [ ] Retenção e purge de auditoria / `alerta_envios`
+- [x] Retenção e purge de auditoria (365 dias; job às 3h)
+- [ ] Purge de `alerta_envios` (não entra na V1: apagar reabre o envio do alerta)
 - [ ] Anonimizar colaborador ao desligar a conta
 - [ ] Viewer só vê os próprios prazos; export restrito
 - [ ] Super-admin e seletor de escritório (SaaS)
