@@ -36,28 +36,34 @@ export default async function AuditoriaPage() {
             Nenhuma ação registrada ainda. Login, criação e alterações de prazos aparecem aqui.
           </EmptyState>
         ) : (
-          <ul className="space-y-3">
+          <ul className="space-y-2">
             {logs.map((log) => (
               <li key={log.id}>
-                <Card className="border-l-[3px] border-l-primary px-4 py-4">
-                  <div className="flex flex-wrap items-baseline justify-between gap-2">
-                    <p className="text-sm font-semibold text-primary">{labelAcao(log.acao)}</p>
-                    <p className="text-xs text-muted">{formatAuditDate(log.criado_em)}</p>
+                <Card className="border-l-[3px] border-l-primary px-3 py-2.5">
+                  <div className="flex items-baseline justify-between gap-3">
+                    <p className="min-w-0 text-xs font-semibold uppercase tracking-wide text-primary">
+                      {labelAcao(log.acao)}
+                    </p>
+                    <p className="shrink-0 text-[11px] text-muted">
+                      {formatAuditDate(log.criado_em)}
+                    </p>
                   </div>
-                  <p className="mt-2 text-foreground">{log.resumo}</p>
-                  <p className="mt-1 text-sm text-muted">
-                    {log.usuario_nome} · {log.usuario_email}
-                  </p>
-                  {log.entidade === "prazo" && log.entidade_id ? (
-                    <ButtonLink
-                      href={`/prazos/${log.entidade_id}`}
-                      variant="link"
-                      size="sm"
-                      className="mt-2"
-                    >
-                      Ver prazo
-                    </ButtonLink>
-                  ) : null}
+                  <p className="mt-1 text-sm leading-snug text-foreground">{log.resumo}</p>
+                  <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted">
+                    <span className="min-w-0 truncate">
+                      {log.usuario_nome} · {log.usuario_email}
+                    </span>
+                    {log.entidade === "prazo" && log.entidade_id ? (
+                      <ButtonLink
+                        href={`/prazos/${log.entidade_id}`}
+                        variant="link"
+                        size="sm"
+                        className="h-auto p-0 text-xs font-medium"
+                      >
+                        Ver prazo
+                      </ButtonLink>
+                    ) : null}
+                  </div>
                 </Card>
               </li>
             ))}
