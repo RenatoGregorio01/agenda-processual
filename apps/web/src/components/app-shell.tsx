@@ -65,15 +65,15 @@ type PageHeaderProps = {
 
 export function PageHeader({ title, description, actions }: PageHeaderProps) {
   return (
-    <header className="flex flex-col gap-3 px-4 pb-1 pt-5 sm:px-8 sm:pt-6 lg:flex-row lg:items-start lg:justify-between">
-      <div className="min-w-0">
+    <header className="flex flex-row items-start justify-between gap-3 px-4 pb-1 pt-5 sm:px-8 sm:pt-6">
+      <div className="min-w-0 flex-1">
         <h1 className="break-words font-[family-name:var(--font-display)] text-xl font-semibold tracking-tight text-foreground sm:text-3xl">
           {title}
         </h1>
         {description ? <div className="mt-1.5 text-sm text-muted">{description}</div> : null}
       </div>
       {actions ? (
-        <div className="flex w-full shrink-0 flex-wrap items-center justify-end gap-2 sm:w-auto sm:gap-3">
+        <div className="flex shrink-0 flex-wrap items-center justify-end gap-2 sm:gap-3">
           {actions}
         </div>
       ) : null}
