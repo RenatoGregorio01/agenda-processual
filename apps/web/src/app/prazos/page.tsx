@@ -98,11 +98,21 @@ export default async function PrazosPage({
               : "Ordenados por vencimento"
         }
         actions={
-          hasPermission(user, "prazos_criar") ? (
-            <ButtonLink href="/prazos/novo" className="w-full sm:w-auto">
-              + Novo prazo
-            </ButtonLink>
-          ) : null
+          <>
+            <ExportPautaButtons
+              variant="menu"
+              filtro={filtro}
+              responsavelId={responsavelId}
+              q={q}
+              dataInicio={dataInicio}
+              dataFim={dataFim}
+              isAdmin={Boolean(user?.is_admin)}
+              usuarios={usuarios}
+            />
+            {hasPermission(user, "prazos_criar") ? (
+              <ButtonLink href="/prazos/novo">+ Novo prazo</ButtonLink>
+            ) : null}
+          </>
         }
       />
 
@@ -133,31 +143,19 @@ export default async function PrazosPage({
             q={q}
           />
 
-          <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end">
-            <ResponsavelFilter
-              basePath="/prazos"
-              usuarios={usuarios}
-              currentUserId={user?.id}
-              currentResponsavelId={responsavelId}
-              extraParams={{
-                filtro: usingRange || filtro === "todos" ? undefined : filtro,
-                q,
-                data_inicio: dataInicio,
-                data_fim: dataFim,
-                periodo: periodoOpen ? "1" : undefined,
-              }}
-            />
-            <ExportPautaButtons
-              variant="menu"
-              filtro={filtro}
-              responsavelId={responsavelId}
-              q={q}
-              dataInicio={dataInicio}
-              dataFim={dataFim}
-              isAdmin={Boolean(user?.is_admin)}
-              usuarios={usuarios}
-            />
-          </div>
+          <ResponsavelFilter
+            basePath="/prazos"
+            usuarios={usuarios}
+            currentUserId={user?.id}
+            currentResponsavelId={responsavelId}
+            extraParams={{
+              filtro: usingRange || filtro === "todos" ? undefined : filtro,
+              q,
+              data_inicio: dataInicio,
+              data_fim: dataFim,
+              periodo: periodoOpen ? "1" : undefined,
+            }}
+          />
         </div>
 
         {prazos.length === 0 ? (
