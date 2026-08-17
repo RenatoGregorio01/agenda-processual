@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 
 import { hasPermission, type User } from "@/lib/auth";
@@ -122,7 +122,6 @@ function mobileTabClass(active: boolean) {
 
 export function AppSidebar({ user, open = true, onToggle }: AppSidebarProps) {
   const pathname = usePathname();
-  const router = useRouter();
   const [maisOpen, setMaisOpen] = useState(false);
   const [pathWhenMaisOpen, setPathWhenMaisOpen] = useState(pathname);
   const isAdmin = hasPermission(user, "usuarios_gerenciar");
@@ -149,8 +148,13 @@ export function AppSidebar({ user, open = true, onToggle }: AppSidebarProps) {
   }, [maisOpen]);
 
   async function logout() {
-    await fetch("/api/auth/logout", { method: "POST" });
-    router.replace("/login");
+    setMaisOpen(false);
+    try {
+      await fetch("/api/auth/logout", { method: "POST", credentials: "same-origin" });
+    } finally {
+      // Hard redirect: soft navigation no mobile mantém a UI autenticada em cache.
+      window.location.assign(new URL("/login", window.location.origin).toString());
+    }
   }
 
   const secondaryNav = (
