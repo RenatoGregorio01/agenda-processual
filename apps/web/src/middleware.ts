@@ -24,7 +24,9 @@ export function middleware(request: NextRequest) {
     return NextResponse.redirect(loginUrl);
   }
 
-  if ((pathname === "/login" || pathname.startsWith("/convite/")) && token) {
+  // Login com sessão: manda pro app. Convite deve abrir mesmo logado
+  // (ex.: admin testando o link, ou outro usuário no mesmo browser).
+  if (pathname === "/login" && token) {
     return NextResponse.redirect(new URL("/dashboard", request.url));
   }
 
