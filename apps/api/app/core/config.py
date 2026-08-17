@@ -37,11 +37,26 @@ class Settings(BaseSettings):
     smtp_port: int = 1025
     smtp_user: str = ""
     smtp_password: str = ""
+    # Fallback genérico; preferir smtp_from_convite / smtp_from_alerta.
     smtp_from: str = "agenda@local.test"
     smtp_from_name: str = "Agenda Processual"
+    smtp_from_convite: str = "convite@local.test"
+    smtp_from_name_convite: str = "Agenda Processual — Convite"
+    smtp_from_alerta: str = "alerta@local.test"
+    smtp_from_name_alerta: str = "Agenda Processual — Alerta"
     # STARTTLS (porta 587). Para 465 use smtp_ssl=true e smtp_tls=false.
     smtp_tls: bool = False
     smtp_ssl: bool = False
+
+    def from_convite(self) -> tuple[str, str]:
+        address = (self.smtp_from_convite or self.smtp_from).strip()
+        name = (self.smtp_from_name_convite or self.smtp_from_name).strip()
+        return address, name
+
+    def from_alerta(self) -> tuple[str, str]:
+        address = (self.smtp_from_alerta or self.smtp_from).strip()
+        name = (self.smtp_from_name_alerta or self.smtp_from_name).strip()
+        return address, name
 
     alertas_enabled: bool = True
     alertas_cron_hour: int = 8

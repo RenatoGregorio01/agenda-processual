@@ -179,6 +179,7 @@ async def processar_alertas(
             if await _ja_enviado(session, candidato.prazo.id, candidato.dias, email):
                 result.ignorados += 1
                 continue
+            from_email, from_name = cfg.from_alerta()
             try:
                 await send_email(
                     settings=cfg,
@@ -186,6 +187,8 @@ async def processar_alertas(
                     subject=subject,
                     text_body=text_body,
                     html_body=html_body,
+                    from_email=from_email,
+                    from_name=from_name,
                 )
             except Exception:
                 logger.exception(

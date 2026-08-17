@@ -80,10 +80,13 @@ async def enviar_email_convite(
         token=token,
         convidado_por=convidado_por,
     )
+    from_email, from_name = settings.from_convite()
     await send_email(
         settings=settings,
         to_email=to_email,
         subject=subject,
         text_body=text_body,
         html_body=html_body,
+        from_email=from_email,
+        from_name=from_name,
     )

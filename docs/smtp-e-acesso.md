@@ -1,34 +1,50 @@
 # SMTP real e acesso pela internet
 
-## SMTP (e-mail chega no Gmail)
+## Remetentes por responsabilidade
 
-Em desenvolvimento o compose usa **Mailpit** (`http://localhost:8025`): captura local, não entrega.
+| Endereço | Uso |
+|----------|-----|
+| `convite@agendaprocessual.com.br` | Convites de usuário |
+| `alerta@agendaprocessual.com.br` | Alertas de prazo |
 
-### Opção A — Gmail (rápido para testar)
+Em desenvolvimento o compose usa **Mailpit** (`http://localhost:8025`) com `convite@local.test` e `alerta@local.test`.
 
-1. Conta Google → **Segurança** → ative **verificação em 2 etapas**.
-2. **Senhas de app** → gerar uma para “E-mail”.
+Para produção com domínio próprio:
+
+1. **Receber** nesses aliases (grátis): Cloudflare → **Email** → **Email Routing** → criar `convite@` e `alerta@` encaminhando para o seu Gmail.
+2. **Enviar** como esses From (grátis no free tier): [Resend](https://resend.com) (ou Brevo) com o domínio `agendaprocessual.com.br` verificado (SPF/DKIM no DNS da Cloudflare).
+3. Preencher `docker/smtp.env` a partir de `docker/smtp.env.example` e subir a API com `compose.smtp.yml`.
+
+Gmail SMTP **não** permite `From` diferente da conta autenticada — use Resend para `convite@` / `alerta@`.
+
+### Opção A — Resend (produção)
+
+1. Conta Resend → Domains → add `agendaprocessual.com.br` → copiar registros DNS para a Cloudflare.
+2. API key → `SMTP_PASSWORD` (`SMTP_USER=resend`).
 3. Configure:
 
 ```bash
 cp docker/smtp.env.example docker/smtp.env
-# edite SMTP_USER, SMTP_PASSWORD e SMTP_FROM (mesmo e-mail da conta)
+# edite SMTP_PASSWORD e confira SMTP_FROM_CONVITE / SMTP_FROM_ALERTA
 ```
 
-4. Suba a API com o override (o `--env-file` injeta as variáveis no compose):
+4. Suba a API:
 
 ```bash
 docker compose --env-file docker/smtp.env \
   -f docker/docker-compose.yml -f docker/compose.smtp.yml up -d api
 ```
 
-5. Envie um convite de novo. O e-mail deve aparecer no Gmail (e **não** no Mailpit).
+No homelab, combine com `compose.homelab.yml` e `homelab.env` como em [homelab-deploy.md](homelab-deploy.md).
 
-`SMTP_FROM` precisa ser o mesmo endereço autenticado no Gmail. Links de convite usam `APP_PUBLIC_URL` — em local deixe `http://localhost:3000`.
+### Opção B — Gmail (só teste rápido)
 
-### Opção B — Resend / Brevo (melhor para produção)
+1. Conta Google → **Segurança** → ative **verificação em 2 etapas**.
+2. **Senhas de app** → gerar uma para “E-mail”.
+3. Em `smtp.env`, use o mesmo endereço em `SMTP_FROM`, `SMTP_FROM_CONVITE` e `SMTP_FROM_ALERTA` (a conta Gmail).
+4. Suba com o mesmo comando do compose SMTP acima.
 
-Menos chance de cair em spam; domínio próprio verificado no provedor. Variáveis no `.env.example` da API.
+Links de convite usam `APP_PUBLIC_URL` — em local `http://localhost:3000`; em produção `https://agendaprocessual.com.br`.
 
 ---
 
@@ -53,7 +69,7 @@ Guia completo: [homelab-deploy.md](homelab-deploy.md) (Tunnel + SMTP + Grafana).
 
 1. **Domínio** — recomendado (~R$ 40–80/ano); DNS na Cloudflare.
 2. **Homelab** + **Cloudflare Tunnel** — sem abrir porta no roteador.
-3. **SMTP** — Gmail senha de app ou Resend/Brevo.
+3. **SMTP** — Resend/Brevo com `convite@` / `alerta@` (ou Gmail só para teste).
 4. **Observabilidade** — scrape Prometheus em `/metrics` + dashboard em `deploy/grafana/`.
 
 ### O que pagar (resumo)
@@ -64,8 +80,9 @@ Guia completo: [homelab-deploy.md](homelab-deploy.md) (Tunnel + SMTP + Grafana).
 | Túnel de teste | Não | Grátis |
 | VPS / servidor | Se não for só local | ~R$ 30–60/mês |
 | Cloudflare Tunnel + PC em casa | Alternativa ao VPS | Domínio + energia |
-| SMTP Gmail | Teste | Grátis (limites) |
-| SMTP Resend etc. | Produção | Free tier ou barato |
+| Cloudflare Email Routing | Receber em `convite@` / `alerta@` | Grátis |
+| SMTP Resend etc. | Produção com From do domínio | Free tier ou barato |
+| SMTP Gmail | Só teste (sem aliases) | Grátis (limites) |
 
 ### Checklist mínimo antes de expor
 
@@ -73,5 +90,6 @@ Guia completo: [homelab-deploy.md](homelab-deploy.md) (Tunnel + SMTP + Grafana).
 - [ ] `SEED_ADMIN_PASSWORD` trocada / admin real
 - [ ] `APP_PUBLIC_URL` = URL HTTPS do front
 - [ ] `DEBUG=false`
-- [ ] SMTP real configurado
+- [ ] SMTP real configurado (`SMTP_FROM_CONVITE` / `SMTP_FROM_ALERTA`)
+- [ ] Email Routing Cloudflare para receber em `convite@` / `alerta@` (opcional)
 - [ ] Backup do Postgres (`docker/data/postgres`)

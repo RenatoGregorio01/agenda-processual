@@ -16,12 +16,15 @@ async def send_email(
     subject: str,
     text_body: str,
     html_body: str | None = None,
+    from_email: str | None = None,
+    from_name: str | None = None,
 ) -> None:
     message = EmailMessage()
-    from_name = (settings.smtp_from_name or "").strip()
-    message["From"] = (
-        formataddr((from_name, settings.smtp_from)) if from_name else settings.smtp_from
-    )
+    address = (from_email or settings.smtp_from).strip()
+    name = (
+        from_name if from_name is not None else settings.smtp_from_name
+    ).strip()
+    message["From"] = formataddr((name, address)) if name else address
     message["To"] = to_email
     message["Subject"] = subject
     message.set_content(text_body)
@@ -41,4 +44,4 @@ async def send_email(
         start_tls=settings.smtp_tls and not settings.smtp_ssl,
         use_tls=settings.smtp_ssl,
     )
-    logger.info("E-mail enviado")
+    logger.info("E-mail enviado from=%s to=%s", address, to_email)
