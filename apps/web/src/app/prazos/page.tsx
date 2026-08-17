@@ -98,21 +98,16 @@ export default async function PrazosPage({
               : "Ordenados por vencimento"
         }
         actions={
-          <>
-            <ExportPautaButtons
-              variant="menu"
-              filtro={filtro}
-              responsavelId={responsavelId}
-              q={q}
-              dataInicio={dataInicio}
-              dataFim={dataFim}
-              isAdmin={Boolean(user?.is_admin)}
-              usuarios={usuarios}
-            />
-            {hasPermission(user, "prazos_criar") ? (
-              <ButtonLink href="/prazos/novo">+ Novo prazo</ButtonLink>
-            ) : null}
-          </>
+          <ExportPautaButtons
+            variant="menu"
+            filtro={filtro}
+            responsavelId={responsavelId}
+            q={q}
+            dataInicio={dataInicio}
+            dataFim={dataFim}
+            isAdmin={Boolean(user?.is_admin)}
+            usuarios={usuarios}
+          />
         }
       />
 
@@ -124,6 +119,13 @@ export default async function PrazosPage({
             responsavelId={responsavelId}
             dataInicio={dataInicio}
             dataFim={dataFim}
+            trailing={
+              hasPermission(user, "prazos_criar") ? (
+                <ButtonLink href="/prazos/novo" className="w-full sm:w-auto">
+                  + Novo prazo
+                </ButtonLink>
+              ) : null
+            }
           />
 
           <PrazoFilters
