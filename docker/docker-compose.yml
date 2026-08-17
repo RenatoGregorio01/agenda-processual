@@ -62,6 +62,10 @@ services:
       SMTP_PORT: "1025"
       SMTP_FROM: agenda@local.test
       SMTP_FROM_NAME: Agenda Processual
+      SMTP_FROM_CONVITE: convite@local.test
+      SMTP_FROM_NAME_CONVITE: Agenda Processual — Convite
+      SMTP_FROM_ALERTA: alerta@local.test
+      SMTP_FROM_NAME_ALERTA: Agenda Processual — Alerta
       SMTP_TLS: "false"
       SMTP_SSL: "false"
       ALERTAS_ENABLED: "true"

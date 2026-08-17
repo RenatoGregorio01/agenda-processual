@@ -14,6 +14,7 @@ from app.models.prazo_alerta import PrazoAlerta
 from app.models.user import User
 from app.schemas.prazo import PrazoAlertaRead, PrazoRead
 from app.services.email import send_email
+from app.services.email_templates import montar_email_alerta
 
 logger = logging.getLogger(__name__)
 
@@ -103,24 +104,12 @@ async def _destinatarios(session: AsyncSession, prazo: Prazo) -> list[str]:
 
 
 def _montar_corpo(prazo: Prazo, dias: int, settings: Settings) -> tuple[str, str, str]:
-    vencimento = prazo.data_vencimento.strftime("%d/%m/%Y")
-    label_dias = "1 dia" if dias == 1 else f"{dias} dias"
-    subject = f"[Agenda Processual] Prazo em {label_dias}"
-    link = f"{settings.app_public_url.rstrip('/')}/prazos/{prazo.id}"
-
-    text_body = (
-        f"Olá,\n\n"
-        f"Há um prazo vencendo em {label_dias} ({vencimento}).\n\n"
-        f"Os detalhes estão no sistema, após o login.\n\n"
-        f"Abrir no sistema: {link}\n"
+    return montar_email_alerta(
+        settings=settings,
+        prazo_id=str(prazo.id),
+        dias=dias,
+        vencimento=prazo.data_vencimento.strftime("%d/%m/%Y"),
     )
-    html_body = (
-        f"<p>Olá,</p>"
-        f"<p>Há um prazo vencendo em <strong>{label_dias}</strong> ({vencimento}).</p>"
-        f"<p>Os detalhes estão no sistema, após o login.</p>"
-        f'<p><a href="{link}">Abrir no sistema</a></p>'
-    )
-    return subject, text_body, html_body
 
 
 async def _ja_enviado(
@@ -179,6 +168,7 @@ async def processar_alertas(
             if await _ja_enviado(session, candidato.prazo.id, candidato.dias, email):
                 result.ignorados += 1
                 continue
+            from_email, from_name = cfg.from_alerta()
             try:
                 await send_email(
                     settings=cfg,
@@ -186,6 +176,8 @@ async def processar_alertas(
                     subject=subject,
                     text_body=text_body,
                     html_body=html_body,
+                    from_email=from_email,
+                    from_name=from_name,
                 )
             except Exception:
                 logger.exception(
