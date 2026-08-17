@@ -83,3 +83,18 @@ def test_montar_email_convite_usa_app_public_url() -> None:
     assert "http://localhost:3000/convite/tok123" in html
     assert "Ana" in text
     assert "Verônica" in text
+    assert "Definir senha e ativar acesso" in html
+    assert "Agenda Processual" in html
+
+
+def test_montar_email_convite_escapa_html() -> None:
+    settings = Settings(app_public_url="http://localhost:3000")
+    _, _, html = montar_email_convite(
+        settings=settings,
+        nome="<script>x</script>",
+        token="tok",
+        convidado_por="Verônica",
+    )
+    assert "<script>" not in html
+    assert "&lt;script&gt;" in html
+    assert "Verônica" in html

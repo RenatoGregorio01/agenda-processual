@@ -9,40 +9,89 @@
 
 Em desenvolvimento o compose usa **Mailpit** (`http://localhost:8025`) com `convite@local.test` e `alerta@local.test`.
 
-Para produção com domínio próprio:
+Gmail SMTP **não** permite `From` diferente da conta autenticada — use Resend para esses aliases.
 
-1. **Receber** nesses aliases (grátis): Cloudflare → **Email** → **Email Routing** → criar `convite@` e `alerta@` encaminhando para o seu Gmail.
-2. **Enviar** como esses From (grátis no free tier): [Resend](https://resend.com) (ou Brevo) com o domínio `agendaprocessual.com.br` verificado (SPF/DKIM no DNS da Cloudflare).
-3. Preencher `docker/smtp.env` a partir de `docker/smtp.env.example` e subir a API com `compose.smtp.yml`.
+## Configuração (produção)
 
-Gmail SMTP **não** permite `From` diferente da conta autenticada — use Resend para `convite@` / `alerta@`.
+Faça nesta ordem. Conta Cloudflare do domínio já existente; Resend é conta nova (free).
 
-### Opção A — Resend (produção)
+### 1. Cloudflare Email Routing (receber)
 
-1. Conta Resend → Domains → add `agendaprocessual.com.br` → copiar registros DNS para a Cloudflare.
-2. API key → `SMTP_PASSWORD` (`SMTP_USER=resend`).
-3. Configure:
+1. [Cloudflare Dashboard](https://dash.cloudflare.com) → domínio `agendaprocessual.com.br` → **Email** → **Email Routing**.
+2. Ative o Routing (Cloudflare cria MX + SPF no apex). Confirme o e-mail de destino (seu Gmail).
+3. Crie dois endereços customizados, ambos encaminhando para o Gmail:
+   - `convite@agendaprocessual.com.br`
+   - `alerta@agendaprocessual.com.br`
+4. Deixe **Catch-all** desligado.
+
+### 2. Resend (enviar)
+
+1. Crie conta em [resend.com](https://resend.com) e vá em **Domains** → **Add** `agendaprocessual.com.br`.
+2. Adicione os registros que o Resend mostrar (DKIM CNAME e SPF/MX no host `send`, **não** no apex — assim não conflita com o Routing).
+3. Se o Resend sugerir um SPF no `@`, **não crie um segundo TXT `v=spf1`**. Edite o SPF já criado pelo Routing para um só registro, por exemplo:
+
+   `v=spf1 include:_spf.mx.cloudflare.net include:amazonses.com ~all`
+
+   (use o `include:` exato que o Resend exibir, se for diferente.)
+4. Espere o domínio ficar **Verified**.
+5. **API Keys** → criar chave só de envio → copiar (`re_…`).
+
+### 3. Homelab (`smtp.env`)
+
+No Ubuntu:
 
 ```bash
+ssh homelab-ts
+cd ~/agenda-processual
 cp docker/smtp.env.example docker/smtp.env
-# edite SMTP_PASSWORD e confira SMTP_FROM_CONVITE / SMTP_FROM_ALERTA
+chmod 600 docker/smtp.env
 ```
 
-4. Suba a API:
+Preencha:
 
 ```bash
-docker compose --env-file docker/smtp.env \
-  -f docker/docker-compose.yml -f docker/compose.smtp.yml up -d api
+SMTP_HOST=smtp.resend.com
+SMTP_PORT=587
+SMTP_USER=resend
+SMTP_PASSWORD=re_xxxxxxxx
+SMTP_FROM=noreply@agendaprocessual.com.br
+SMTP_FROM_NAME=Agenda Processual
+SMTP_FROM_CONVITE=convite@agendaprocessual.com.br
+SMTP_FROM_NAME_CONVITE=Agenda Processual — Convite
+SMTP_FROM_ALERTA=alerta@agendaprocessual.com.br
+SMTP_FROM_NAME_ALERTA=Agenda Processual — Alerta
+SMTP_TLS=true
+SMTP_SSL=false
 ```
 
-No homelab, combine com `compose.homelab.yml` e `homelab.env` como em [homelab-deploy.md](homelab-deploy.md).
+Suba a API com SMTP real (além do homelab):
+
+```bash
+docker compose \
+  --env-file docker/homelab.env \
+  --env-file docker/smtp.env \
+  -f docker/docker-compose.yml \
+  -f docker/compose.homelab.yml \
+  -f docker/compose.smtp.yml \
+  up -d --build api
+```
+
+Uso: [resend.com/settings/usage](https://resend.com/settings/usage) (100/dia, 3.000/mês no free).
+
+### Conferir
+
+1. Envie um convite no sistema → caixa do convidado, From `convite@…`.
+2. Responda esse e-mail → deve cair no Gmail (Routing).
+3. Dispare alertas (`POST /api/v1/alertas/processar` como admin, ou espere as 8h) → From `alerta@…`.
+
+Templates HTML ficam em `apps/api/app/services/email_templates.py` (marca verde, um título, um botão). Alerta **não** inclui cliente nem número do processo.
 
 ### Opção B — Gmail (só teste rápido)
 
 1. Conta Google → **Segurança** → ative **verificação em 2 etapas**.
 2. **Senhas de app** → gerar uma para “E-mail”.
 3. Em `smtp.env`, use o mesmo endereço em `SMTP_FROM`, `SMTP_FROM_CONVITE` e `SMTP_FROM_ALERTA` (a conta Gmail).
-4. Suba com o mesmo comando do compose SMTP acima.
+4. Suba com o compose SMTP (sem os From do domínio).
 
 Links de convite usam `APP_PUBLIC_URL` — em local `http://localhost:3000`; em produção `https://agendaprocessual.com.br`.
 

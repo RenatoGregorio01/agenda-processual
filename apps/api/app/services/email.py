@@ -25,6 +25,7 @@ async def send_email(
         from_name if from_name is not None else settings.smtp_from_name
     ).strip()
     message["From"] = formataddr((name, address)) if name else address
+    message["Reply-To"] = address
     message["To"] = to_email
     message["Subject"] = subject
     message.set_content(text_body)
