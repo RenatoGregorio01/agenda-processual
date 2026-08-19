@@ -25,7 +25,7 @@ export default async function DjenPage() {
     <AppShell user={user}>
       <PageHeader
         title="Publicações no DJEN"
-        description="Intimações do diário dos processos já cadastrados. Confirme o prazo; a Agenda não cria sozinha."
+        description="Intimações do diário dos processos já cadastrados."
         actions={hasPermission(user, "prazos_criar") ? <DjenSyncButton /> : undefined}
       />
       <PageContent wide>

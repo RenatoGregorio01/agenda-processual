@@ -175,7 +175,7 @@ export function AppSidebar({ user, open = true, onToggle }: AppSidebarProps) {
         onClick={() => setMaisOpen(false)}
       >
         <IconDjen className="h-5 w-5 shrink-0" />
-        DJEN
+        Diário
       </Link>
       {isAdmin ? (
         <>
