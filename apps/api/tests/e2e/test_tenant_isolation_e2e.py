@@ -1,5 +1,6 @@
 from collections.abc import AsyncIterator
 from datetime import date
+from unittest.mock import AsyncMock, patch
 
 import pytest
 import pytest_asyncio
@@ -14,11 +15,12 @@ from app.core.config import Settings
 from app.core.database import get_session
 from app.core.permissions import sync_admin_flag
 from app.core.security import hash_password
-from app.integrations.datajud.cnj import montar_cnj
+from app.integrations.datajud.cnj import montar_cnj, so_digitos
 from app.models import (  # noqa: F401
     AlertaEnvio,
     AuditLog,
     Convite,
+    DjenPublicacao,
     Escritorio,
     Feriado,
     Prazo,
@@ -184,3 +186,58 @@ async def test_mesmo_cnj_pode_existir_em_dois_escritorios(two_tenant_client) -> 
     assert listed_b.status_code == 200
     assert any(item["id"] == ids["prazo_b"] for item in listed_b.json())
     assert all(item["cliente"] != "Cliente Alpha" for item in listed_b.json())
+
+
+async def test_djen_inbox_isolada_por_tenant(two_tenant_client) -> None:
+    client, ids = two_tenant_client
+    token_a = await login(client, email="alpha@test.com", password="alpha123")
+    headers_a = auth_headers(token_a)
+    me = await client.get("/api/v1/auth/me", headers=headers_a)
+    admin_id = me.json()["id"]
+    numero = ids["numero"]
+
+    created = await client.post(
+        "/api/v1/prazos",
+        headers=headers_a,
+        json={
+            "numero_processo": numero,
+            "cliente": "Cliente Alpha",
+            "acao": "Prazo Alpha",
+            "data_vencimento": date.today().isoformat(),
+            "responsavel_id": admin_id,
+        },
+    )
+    processo_id = created.json()["processo_id"]
+    item = {
+        "id": 9001,
+        "numero_processo": so_digitos(numero),
+        "numeroprocessocommascara": numero,
+        "tipoComunicacao": "Intimação",
+        "data_disponibilizacao": date.today().isoformat(),
+    }
+    with (
+        patch("app.services.djen.get_redis", new=AsyncMock(return_value=None)),
+        patch(
+            "app.services.djen.consultar_comunicacoes",
+            new=AsyncMock(return_value=[item]),
+        ),
+    ):
+        sync = await client.post(
+            f"/api/v1/processos/{processo_id}/djen/sync?force=true",
+            headers=headers_a,
+        )
+    assert sync.status_code == 200, sync.text
+    assert sync.json()["criados"] == 1
+
+    inbox_a = await client.get("/api/v1/djen?status=nova", headers=headers_a)
+    assert len(inbox_a.json()) == 1
+
+    token_b = await login(client, email="beta@test.com", password="beta1234")
+    headers_b = auth_headers(token_b)
+    inbox_b = await client.get("/api/v1/djen?status=nova", headers=headers_b)
+    assert inbox_b.status_code == 200
+    assert inbox_b.json() == []
+
+    publicacao_id = inbox_a.json()[0]["id"]
+    detalhe_b = await client.get(f"/api/v1/djen/{publicacao_id}", headers=headers_b)
+    assert detalhe_b.status_code == 404

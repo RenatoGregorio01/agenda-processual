@@ -7,6 +7,7 @@ from app.core.config import get_settings
 from app.core.database import AsyncSessionLocal
 from app.services.alertas import processar_alertas
 from app.services.audit import purgar_auditoria
+from app.services.djen import sincronizar_todos
 
 logger = logging.getLogger(__name__)
 
@@ -49,6 +50,21 @@ async def _job_purge_auditoria() -> None:
         )
 
 
+async def _job_djen() -> None:
+    settings = get_settings()
+    if not settings.djen_enabled:
+        logger.info("Job DJEN desabilitado (DJEN_ENABLED=false)")
+        return
+
+    result = await sincronizar_todos()
+    logger.info(
+        "Sync DJEN: ok=%s criados=%s mensagem=%s",
+        result.ok,
+        result.criados,
+        result.mensagem,
+    )
+
+
 def start_scheduler() -> None:
     global _scheduler
     settings = get_settings()
@@ -60,8 +76,10 @@ def start_scheduler() -> None:
         jobs.append("alertas")
     if settings.audit_purge_enabled:
         jobs.append("audit_purge")
+    if settings.djen_enabled:
+        jobs.append("djen")
     if not jobs:
-        logger.info("Scheduler não iniciado (alertas e purge desabilitados)")
+        logger.info("Scheduler não iniciado (nenhum job habilitado)")
         return
 
     scheduler = AsyncIOScheduler(timezone="America/Sao_Paulo")
@@ -77,6 +95,13 @@ def start_scheduler() -> None:
             _job_purge_auditoria,
             CronTrigger(hour=settings.audit_purge_cron_hour, minute=0),
             id="purgar_auditoria",
+            replace_existing=True,
+        )
+    if settings.djen_enabled:
+        scheduler.add_job(
+            _job_djen,
+            CronTrigger(hour=settings.djen_cron_hour, minute=0),
+            id="sincronizar_djen",
             replace_existing=True,
         )
     scheduler.start()

@@ -16,24 +16,35 @@ type NovoPrazoFormProps = {
   usuarios: UserOption[];
   initialNumero?: string;
   initialCliente?: string;
+  initialDisponibilizacao?: string;
+  initialVencimento?: string;
+  initialAcao?: string;
+  djenPublicacaoId?: string;
 };
 
 export function NovoPrazoForm({
   usuarios,
   initialNumero = "",
   initialCliente = "",
+  initialDisponibilizacao = "",
+  initialVencimento = "",
+  initialAcao = "",
+  djenPublicacaoId,
 }: NovoPrazoFormProps) {
   const [state, formAction, pending] = useActionState(createPrazo, initialState);
   const defaultResponsavel = usuarios[0]?.id ?? "";
   const [numeroProcesso, setNumeroProcesso] = useState(initialNumero);
   const [cliente, setCliente] = useState(initialCliente);
-  const [dataDisponibilizacao, setDataDisponibilizacao] = useState("");
-  const [dataVencimento, setDataVencimento] = useState("");
+  const [dataDisponibilizacao, setDataDisponibilizacao] = useState(initialDisponibilizacao);
+  const [dataVencimento, setDataVencimento] = useState(initialVencimento);
   const [numeroInvalido, setNumeroInvalido] = useState(false);
   const [processoCadastrado, setProcessoCadastrado] = useState(false);
 
   return (
     <form action={formAction} className="flex flex-col gap-5">
+      {djenPublicacaoId ? (
+        <input type="hidden" name="djen_publicacao_id" value={djenPublicacaoId} />
+      ) : null}
       <div className="grid gap-5 sm:grid-cols-2">
         <NumeroProcessoField
           value={numeroProcesso}
@@ -57,7 +68,7 @@ export function NovoPrazoForm({
         </label>
       </div>
 
-      <ChecklistDraftField />
+      <ChecklistDraftField initialItems={initialAcao ? [initialAcao] : [""]} />
 
       <label className="flex flex-col gap-1.5 text-sm">
         <span className="font-medium">Data de disponibilização no diário</span>

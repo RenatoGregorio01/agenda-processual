@@ -21,6 +21,7 @@ from app.models import (  # noqa: F401
     AlertaEnvio,
     AuditLog,
     Convite,
+    DjenPublicacao,
     Escritorio,
     Feriado,
     Prazo,
