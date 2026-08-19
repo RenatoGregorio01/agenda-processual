@@ -44,6 +44,7 @@ class PrazoCreate(BaseModel):
     data_vencimento: date
     responsavel_id: UUID
     alertas: list[int] = Field(default_factory=lambda: list(DEFAULT_ALERTA_DIAS))
+    djen_publicacao_id: UUID | None = None
 
     @field_validator("alertas")
     @classmethod

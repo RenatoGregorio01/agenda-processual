@@ -2,6 +2,7 @@ from app.models.alerta_envio import AlertaEnvio
 from app.models.audit_log import AuditAction, AuditLog
 from app.models.checklist_item import ChecklistItem
 from app.models.convite import Convite
+from app.models.djen_publicacao import DjenPublicacao, DjenStatus
 from app.models.escritorio import Escritorio
 from app.models.feriado import Feriado
 from app.models.prazo import Prazo, StatusPrazo
@@ -16,6 +17,8 @@ __all__ = [
     "AuditLog",
     "ChecklistItem",
     "Convite",
+    "DjenPublicacao",
+    "DjenStatus",
     "Escritorio",
     "Feriado",
     "Prazo",

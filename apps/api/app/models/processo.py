@@ -30,3 +30,4 @@ class Processo(SQLModel, table=True):
     datajud_classe: str | None = Field(default=None, max_length=255)
     datajud_orgao: str | None = Field(default=None, max_length=255)
     datajud_mensagem: str | None = Field(default=None, max_length=500)
+    djen_sincronizado_em: datetime | None = Field(default=None)

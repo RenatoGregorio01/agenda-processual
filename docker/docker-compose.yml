@@ -76,6 +76,9 @@ services:
       INVITE_EXPIRE_HOURS: "72"
       REDIS_URL: redis://redis:6379/0
       DATAJUD_API_KEY: cDZHYzlZa0JadVREZDJCendQbXY6SkJlTzNjLV9TRENyQk1RdnFKZGRQdw==
+      DJEN_ENABLED: "true"
+      DJEN_CRON_HOUR: "7"
+      DJEN_PRAZO_DIAS_UTEIS: "15"
     ports:
       # Host 8001: a 8000 costuma estar ocupada por outros projetos locais
       - "8001:8000"

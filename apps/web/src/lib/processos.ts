@@ -1,4 +1,5 @@
 import type { AuditLog } from "@/lib/auditoria";
+import type { DjenPublicacao } from "@/lib/djen";
 import type { Prazo } from "@/lib/prazos";
 
 export type Processo = {
@@ -55,4 +56,5 @@ export type ProcessoDetail = {
   prazos: Prazo[];
   historico: AuditLog[];
   datajud: DatajudSync;
+  djen?: DjenPublicacao[];
 };

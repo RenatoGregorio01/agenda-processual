@@ -46,6 +46,9 @@ services:
       ALERTAS_ENABLED: "true"
       AUDIT_PURGE_ENABLED: "true"
       AUDIT_RETENTION_DAYS: "365"
+      DJEN_ENABLED: "true"
+      DJEN_CRON_HOUR: "7"
+      DJEN_PRAZO_DIAS_UTEIS: "15"
     volumes: !reset []
     ports: !reset []
     command: >

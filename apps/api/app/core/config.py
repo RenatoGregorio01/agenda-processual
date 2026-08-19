@@ -76,6 +76,16 @@ class Settings(BaseSettings):
     datajud_empty_ttl_seconds: int = 60 * 60 * 6
     datajud_lock_ttl_seconds: int = 45
     datajud_rate_limit_per_minute: int = 60
+
+    djen_enabled: bool = True
+    djen_base_url: str = "https://comunicaapi.pje.jus.br/api/v1"
+    djen_cache_ttl_seconds: int = 60 * 60 * 5
+    djen_empty_ttl_seconds: int = 60 * 60 * 3
+    djen_lock_ttl_seconds: int = 45
+    djen_rate_limit_per_minute: int = 30
+    djen_cron_hour: int = 7
+    djen_prazo_dias_uteis: int = 15
+
     cors_origins: str = "http://localhost:3000,http://127.0.0.1:3000"
     seed_example_data: bool = True
     metrics_enabled: bool = True

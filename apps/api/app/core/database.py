@@ -12,6 +12,7 @@ from app.models import (  # noqa: F401
     AuditLog,
     ChecklistItem,
     Convite,
+    DjenPublicacao,
     Escritorio,
     Feriado,
     Prazo,
@@ -151,6 +152,11 @@ async def init_db() -> None:
             text(
                 "ALTER TABLE processo_andamentos "
                 "ADD COLUMN IF NOT EXISTS orgao VARCHAR(255)"
+            )
+        )
+        await conn.execute(
+            text(
+                "ALTER TABLE processos ADD COLUMN IF NOT EXISTS djen_sincronizado_em TIMESTAMP"
             )
         )
         if conn.dialect.name == "postgresql":
