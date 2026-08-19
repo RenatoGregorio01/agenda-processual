@@ -1,5 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Source_Sans_3, Source_Serif_4 } from "next/font/google";
+
+import { EnvBanner } from "@/components/env-banner";
 import "./globals.css";
 
 const sourceSans = Source_Sans_3({
@@ -31,6 +33,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       className={`${sourceSans.variable} ${sourceSerif.variable} h-full antialiased`}
     >
       <body className="flex min-h-full min-h-dvh flex-col overflow-x-hidden font-sans">
+        <EnvBanner />
         {children}
       </body>
     </html>

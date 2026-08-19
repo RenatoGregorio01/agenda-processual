@@ -9,6 +9,7 @@ Thumbs.db
 smtp.env
 docker/smtp.env
 docker/homelab.env
+docker/homelab-develop.env
 TUNNEL_TOKEN
 
 # Python
@@ -48,4 +49,6 @@ out/
 # Docker / local data
 docker/data/**
 !docker/data/.gitkeep
+docker/data-develop/**
+!docker/data-develop/.gitkeep
 *.log

@@ -1,13 +1,14 @@
 name: Deploy Homelab
 
-# Publica no servidor Ubuntu do homelab depois que API + Web passam no CI.
+# Publica `main` na stack de produção do homelab depois que API + Web passam no CI.
+# Homologação (`develop`) usa deploy-develop.yml e outro clone.
 # Requer self-hosted runner com label `homelab` e variável HOMELAB_REPO_PATH
-# apontando para o clone no Ubuntu (ex.: /home/renato/agenda-processual).
+# apontando para o clone de produção no Ubuntu (ex.: /home/renato/agenda-processual).
 # Ver docs/homelab-deploy.md (seção CI/CD).
 
 on:
   push:
-    branches: [main, develop]
+    branches: [main]
   workflow_dispatch:
 
 concurrency:
@@ -77,8 +78,8 @@ jobs:
           fi
           cd "$HOMELAB_REPO_PATH"
           git fetch origin
-          git checkout "${GITHUB_REF_NAME}"
-          git pull --ff-only "origin" "${GITHUB_REF_NAME}"
+          git checkout main
+          git pull --ff-only origin main
 
           COMPOSE=(
             docker compose
@@ -93,4 +94,4 @@ jobs:
 
           "${COMPOSE[@]}" up -d --build
 
-          echo "Deploy ok em ${GITHUB_REF_NAME}"
+          echo "Deploy ok em main"
