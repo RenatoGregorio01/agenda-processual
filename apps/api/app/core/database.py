@@ -60,7 +60,7 @@ async def init_db() -> None:
                 "UPDATE users SET role = CASE "
                 "WHEN is_admin = true THEN 'admin' "
                 "ELSE COALESCE(role, 'editor') END "
-                "WHERE role IS NULL OR role = ''"
+                "WHERE role IS NULL OR CAST(role AS VARCHAR) = ''"
             )
         )
         await conn.execute(text("UPDATE users SET role = 'editor' WHERE role IS NULL"))
