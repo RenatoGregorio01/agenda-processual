@@ -25,7 +25,7 @@ Visão de produto após o MVP (`v0.1.0`). Ordem sugerida; prioridades podem muda
   - App: `https://agendaprocessual.com.br`
   - API: `https://api.agendaprocessual.com.br`
   - Login atual: `/login` → `/dashboard` (tenant pelo `escritorio_id` do usuário, **não** pela URL)
-- [ ] CI/CD: self-hosted runner + deploy automático (workflows prontos; ver [homelab-deploy.md](homelab-deploy.md) §6)
+- [x] CI/CD: self-hosted runner; `develop` → homologação, `main` → produção ([homelab-deploy.md](homelab-deploy.md))
 
 ## Monetização e acesso
 

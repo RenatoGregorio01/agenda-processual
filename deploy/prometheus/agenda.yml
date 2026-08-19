@@ -1,10 +1,7 @@
-# Scrape job para o Prometheus do homelab (Ubuntu).
+# Scrape jobs para o Prometheus do homelab (Ubuntu).
 #
-# A stack Agenda roda no mesmo servidor e entra na rede `observability`.
-# Em compose/monitoring/prometheus/prometheus.yml do repo homelab, inclua:
-#
-#   scrape_configs:
-#     - <<: * ... ou cole o job abaixo
+# Produção e homologação entram na rede `observability`.
+# Em compose/monitoring/prometheus/prometheus.yml do repo homelab, inclua os jobs abaixo.
 #
 # Recarregue: curl -X POST http://127.0.0.1:9090/-/reload
 
@@ -19,3 +16,13 @@ scrape_configs:
         labels:
           service: agenda-processual
           env: homelab
+  - job_name: agenda-api-develop
+    metrics_path: /metrics
+    scrape_interval: 15s
+    scrape_timeout: 10s
+    static_configs:
+      - targets:
+          - agenda-develop-api:8000
+        labels:
+          service: agenda-processual
+          env: develop

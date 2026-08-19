@@ -1,0 +1,101 @@
+# Override de homologação (branch develop) no servidor Ubuntu.
+#
+# Roda em paralelo à produção: nomes de container, volumes, imagens e túnel próprios.
+# Não use este arquivo no clone de produção.
+#
+# Pré-requisitos:
+#   1. Segundo clone: ~/agenda-processual-develop (checkout develop)
+#   2. Túnel Cloudflare `agenda-develop` (token distinto do túnel `agenda`)
+#   3. Rede Docker externa `observability`
+#   4. docker/homelab-develop.env preenchido
+#
+# Subir no servidor:
+#   docker compose -p agenda-develop \
+#     --env-file docker/homelab-develop.env \
+#     -f docker/docker-compose.yml \
+#     -f docker/compose.develop.yml \
+#     up -d --build
+#
+# Rotas do túnel (Zero Trust → Public Hostname):
+#   https://develop.agendaprocessual.com.br     → http://web:3000
+#   https://api-develop.agendaprocessual.com.br → http://api:8000
+#
+# SMTP: Mailpit interno (não envia e-mail real). Opcional: hostname
+#   mailpit-develop.agendaprocessual.com.br → http://mailpit:8025
+
+name: agenda-develop
+
+services:
+  db:
+    container_name: agenda-develop-db
+    ports: !reset []
+    volumes:
+      - ./data-develop/postgres:/var/lib/postgresql/data
+
+  redis:
+    container_name: agenda-develop-redis
+    ports: !reset []
+
+  mailpit:
+    container_name: agenda-develop-mailpit
+    ports: !reset []
+
+  api:
+    container_name: agenda-develop-api
+    environment:
+      APP_ENV: staging
+      DEBUG: "false"
+      APP_PUBLIC_URL: ${APP_PUBLIC_URL:?defina APP_PUBLIC_URL em docker/homelab-develop.env}
+      JWT_SECRET: ${JWT_SECRET:?defina JWT_SECRET forte em docker/homelab-develop.env}
+      CORS_ORIGINS: ${CORS_ORIGINS:-}
+      SEED_EXAMPLE_DATA: "true"
+      SEED_ADMIN_PASSWORD: ${SEED_ADMIN_PASSWORD:-}
+      METRICS_ENABLED: "true"
+      ALERTAS_ENABLED: "true"
+      AUDIT_PURGE_ENABLED: "true"
+      AUDIT_RETENTION_DAYS: "365"
+      DJEN_ENABLED: "true"
+      DJEN_CRON_HOUR: "7"
+      DJEN_PRAZO_DIAS_UTEIS: "15"
+    volumes: !reset []
+    ports: !reset []
+    command: >
+      uvicorn app.main:app --host 0.0.0.0 --port 8000
+    networks:
+      - default
+      - observability
+
+  web:
+    container_name: agenda-develop-web
+    image: agenda-web:develop
+    build:
+      context: ../apps/web
+      dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:?defina NEXT_PUBLIC_API_URL em docker/homelab-develop.env}
+        NEXT_PUBLIC_APP_ENV: staging
+    environment:
+      NODE_ENV: production
+      COOKIE_SECURE: "true"
+      APP_PUBLIC_URL: ${APP_PUBLIC_URL:?defina APP_PUBLIC_URL em docker/homelab-develop.env}
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:?defina NEXT_PUBLIC_API_URL em docker/homelab-develop.env}
+      NEXT_PUBLIC_APP_ENV: staging
+      API_URL: http://api:8000
+    volumes: !reset []
+    ports: !reset []
+    command: ["node", "server.js"]
+
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    container_name: agenda-develop-cloudflared
+    restart: unless-stopped
+    command: tunnel --no-autoupdate run
+    environment:
+      TUNNEL_TOKEN: ${TUNNEL_TOKEN:?defina TUNNEL_TOKEN em docker/homelab-develop.env}
+    depends_on:
+      - api
+      - web
+
+networks:
+  observability:
+    external: true
