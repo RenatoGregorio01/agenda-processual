@@ -22,9 +22,8 @@
 
 services:
   db:
-    # Só rede interna Docker — não conflitar com postgres do homelab (:5432).
-    ports: !reset []
     # Dados em docker/data/postgres no clone do servidor.
+    # Porta customizada via DB_PORT=5433 em docker/homelab.env (evita conflito com postgres :5432 do homelab)
 
   redis:
     ports: !reset []

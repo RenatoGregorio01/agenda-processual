@@ -18,8 +18,8 @@ def datajud_url(alias: str) -> str:
     return f"{base}/api_publica_{alias}/_search"
 
 
-async def consultar_processo(numero: str) -> tuple[str, str, dict[str, Any] | None]:
-    """Consulta a Datajud. Retorna (digitos, alias, source ou None se sem hits)."""
+async def consultar_processo(numero: str) -> tuple[str, str, list[dict[str, Any]]]:
+    """Consulta a Datajud. Retorna (digitos, alias, sources). Vários hits = vários graus."""
     settings = get_settings()
     if not settings.datajud_api_key.strip():
         raise DatajudError("DATAJUD_API_KEY não configurada")
@@ -36,7 +36,7 @@ async def consultar_processo(numero: str) -> tuple[str, str, dict[str, Any] | No
                 "minimum_should_match": 1,
             }
         },
-        "size": 1,
+        "size": 10,
     }
     headers = {
         "Authorization": f"APIKey {settings.datajud_api_key}",
@@ -57,9 +57,9 @@ async def consultar_processo(numero: str) -> tuple[str, str, dict[str, Any] | No
 
     body = response.json()
     hits = body.get("hits", {}).get("hits", [])
-    if not hits:
-        return digitos, alias, None
-    source = hits[0].get("_source")
-    if not isinstance(source, dict):
-        return digitos, alias, None
-    return digitos, alias, source
+    sources: list[dict[str, Any]] = []
+    for hit in hits:
+        source = hit.get("_source") if isinstance(hit, dict) else None
+        if isinstance(source, dict):
+            sources.append(source)
+    return digitos, alias, sources
