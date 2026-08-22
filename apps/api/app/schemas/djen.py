@@ -15,7 +15,12 @@ class DjenPublicacaoRead(BaseModel):
     tribunal: str | None = None
     tipo_comunicacao: str
     tipo_documento: str | None = None
+    nome_classe: str | None = None
     orgao: str | None = None
+    texto: str | None = None
+    link: str | None = None
+    destinatarios: str | None = None
+    dias_identificados: int | None = None
     data_disponibilizacao: date | None = None
     vencimento_sugerido: date | None = None
     status: str
@@ -26,6 +31,9 @@ class DjenPublicacaoRead(BaseModel):
 
 class DjenResumoRead(BaseModel):
     novas: int = 0
+    com_prazo: int = 0
+    ignoradas: int = 0
+    total: int = 0
 
 
 class DjenSyncRead(BaseModel):

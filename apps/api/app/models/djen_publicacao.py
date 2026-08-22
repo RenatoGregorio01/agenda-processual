@@ -2,7 +2,7 @@ from datetime import date, datetime
 from enum import StrEnum
 from uuid import UUID, uuid4
 
-from sqlalchemy import UniqueConstraint
+from sqlalchemy import Column, Text, UniqueConstraint
 from sqlmodel import Field, SQLModel
 
 from app.core.timeutils import utc_now
@@ -35,7 +35,12 @@ class DjenPublicacao(SQLModel, table=True):
     tribunal: str | None = Field(default=None, max_length=20)
     tipo_comunicacao: str = Field(max_length=80)
     tipo_documento: str | None = Field(default=None, max_length=80)
+    nome_classe: str | None = Field(default=None, max_length=255)
     orgao: str | None = Field(default=None, max_length=255)
+    texto: str | None = Field(default=None, sa_column=Column(Text, nullable=True))
+    link: str | None = Field(default=None, max_length=500)
+    destinatarios: str | None = Field(default=None, sa_column=Column(Text, nullable=True))
+    dias_identificados: int | None = Field(default=None)
     data_disponibilizacao: date | None = Field(default=None, index=True)
     status: DjenStatus = Field(default=DjenStatus.nova, index=True)
     motivo_cancelamento: str | None = Field(default=None, max_length=500)

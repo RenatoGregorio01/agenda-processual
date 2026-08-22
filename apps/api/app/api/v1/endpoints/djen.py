@@ -39,6 +39,7 @@ def _parse_status(value: str | None) -> DjenStatus | None:
 async def listar_publicacoes(
     status_filtro: str | None = Query(default="nova", alias="status"),
     processo_id: UUID | None = Query(default=None),
+    busca: str | None = Query(default=None),
     session: AsyncSession = Depends(get_session),
     current_user: User = Depends(require_permission(Permission.prazos_visualizar)),
 ) -> list[DjenPublicacaoRead]:
@@ -48,6 +49,7 @@ async def listar_publicacoes(
         current_user.escritorio_id,
         status=status_enum,
         processo_id=processo_id,
+        busca=busca,
     )
     return [await to_publicacao_read(session, item) for item in items]
 

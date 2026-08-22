@@ -23,14 +23,20 @@ def djen_comunicacao_url() -> str:
 
 async def consultar_comunicacoes(
     *,
-    numero_processo_digitos: str,
     data_inicio: date,
     data_fim: date,
+    numero_processo_digitos: str | None = None,
+    nome_advogado: str | None = None,
+    numero_oab: str | None = None,
+    uf_oab: str | None = None,
 ) -> list[dict[str, Any]]:
-    """Consulta publicações do DJEN por CNJ (20 dígitos) numa janela de datas."""
+    """Consulta publicações do DJEN por CNJ, Nome do Advogado ou OAB numa janela de datas."""
     settings = get_settings()
     if not settings.djen_enabled:
         raise DjenError("Consulta ao DJEN desabilitada")
+
+    if not any([numero_processo_digitos, nome_advogado, numero_oab]):
+        raise DjenError("Informe ao menos o processo, nome do advogado ou OAB para consultar o DJEN")
 
     items: list[dict[str, Any]] = []
     count: int | None = None
@@ -40,13 +46,21 @@ async def consultar_comunicacoes(
     async with httpx.AsyncClient(timeout=20.0) as client:
         pagina = 1
         while pagina <= MAX_PAGES:
-            params = {
-                "numeroProcesso": numero_processo_digitos,
+            params: dict[str, Any] = {
                 "dataDisponibilizacaoInicio": data_inicio.isoformat(),
                 "dataDisponibilizacaoFim": data_fim.isoformat(),
                 "pagina": pagina,
                 "itensPorPagina": PAGE_SIZE,
             }
+            if numero_processo_digitos:
+                params["numeroProcesso"] = numero_processo_digitos
+            if nome_advogado:
+                params["nomeAdvogado"] = nome_advogado
+            if numero_oab:
+                params["numeroOab"] = numero_oab
+            if uf_oab:
+                params["ufOab"] = uf_oab
+
             response = await client.get(
                 url,
                 params=params,
