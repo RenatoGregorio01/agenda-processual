@@ -4,11 +4,13 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 
 from app.core.oab import slugify, validate_advogado_oab
 from app.core.permissions import sync_admin_flag
+from app.core.redis import get_redis
 from app.core.security import create_access_token, hash_password
 from app.models.escritorio import Escritorio
 from app.models.user import Role, User
 from app.schemas.auth import TokenResponse
 from app.schemas.cadastro import CadastroEscritorioRequest
+from app.services.cadastro_codigo import consumir_codigo_cadastro, validar_codigo_cadastro
 
 
 async def _unique_slug(session: AsyncSession, base: str) -> str:
@@ -34,6 +36,14 @@ async def cadastrar_escritorio(
             status_code=status.HTTP_409_CONFLICT,
             detail="Já existe um usuário com este e-mail",
         )
+
+    redis = await get_redis()
+    if redis is None:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Não foi possível validar o código agora. Tente novamente.",
+        )
+    await validar_codigo_cadastro(redis, email=email, codigo=payload.codigo)
 
     oab_numero, oab_uf = validate_advogado_oab(
         eh_advogado=payload.eh_advogado,
@@ -66,6 +76,7 @@ async def cadastrar_escritorio(
     sync_admin_flag(user)
     session.add(user)
     await session.commit()
+    await consumir_codigo_cadastro(redis, email=email)
 
     return TokenResponse(
         access_token=create_access_token(
