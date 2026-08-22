@@ -21,7 +21,12 @@ def normalize_oab_uf(value: str | None) -> str | None:
     return uf[:2] if uf else None
 
 
-def validate_advogado_oab(*, eh_advogado: bool, oab_numero: str | None, oab_uf: str | None) -> tuple[str | None, str | None]:
+def validate_advogado_oab(
+    *,
+    eh_advogado: bool,
+    oab_numero: str | None,
+    oab_uf: str | None,
+) -> tuple[str | None, str | None]:
     numero = normalize_oab_numero(oab_numero)
     uf = normalize_oab_uf(oab_uf)
     if not eh_advogado:

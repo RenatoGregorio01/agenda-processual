@@ -36,7 +36,9 @@ async def consultar_comunicacoes(
         raise DjenError("Consulta ao DJEN desabilitada")
 
     if not any([numero_processo_digitos, nome_advogado, numero_oab]):
-        raise DjenError("Informe ao menos o processo, nome do advogado ou OAB para consultar o DJEN")
+        raise DjenError(
+            "Informe ao menos o processo, nome do advogado ou OAB para consultar o DJEN"
+        )
 
     items: list[dict[str, Any]] = []
     count: int | None = None
