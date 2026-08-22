@@ -138,6 +138,37 @@ def montar_email_convite(
     return subject, text_body, html_body
 
 
+def montar_email_codigo_cadastro(
+    *,
+    settings: Settings,
+    codigo: str,
+) -> tuple[str, str, str]:
+    link = f"{settings.app_public_url.rstrip('/')}/cadastro"
+    subject = "Código de confirmação — Agenda Processual"
+    text_body = (
+        "Olá,\n\n"
+        f"Seu código de confirmação é: {codigo}\n\n"
+        "Ele vale por 15 minutos. Se você não solicitou este código, ignore este e-mail.\n"
+    )
+    code_block = (
+        f'<p style="margin:16px 0;font-family:{FONT_SERIF};font-size:32px;'
+        f'letter-spacing:0.2em;font-weight:700;color:{BRAND};text-align:center;">'
+        f"{escape(codigo)}</p>"
+    )
+    html_body = render_layout(
+        preheader=f"Seu código de confirmação é {codigo}",
+        eyebrow="Confirmação de e-mail",
+        heading="Confirme seu e-mail",
+        body_html=_p("Use o código abaixo para concluir a configuração do escritório.")
+        + code_block,
+        cta_label="Voltar ao cadastro",
+        cta_url=link,
+        note="O código é válido por 15 minutos.",
+        footer="Se você não solicitou este código, ignore este e-mail.",
+    )
+    return subject, text_body, html_body
+
+
 def montar_email_alerta(
     *,
     settings: Settings,
