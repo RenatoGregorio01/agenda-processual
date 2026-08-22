@@ -5,6 +5,7 @@ import { useActionState, useMemo, useState } from "react";
 import { updateUsuario, type ActionState } from "@/app/usuarios/actions";
 import { Button, Field, Input, Select } from "@/components/ui";
 import type { RoleInfo, User } from "@/lib/auth";
+import { OAB_UFS } from "@/lib/oab";
 
 const initialState: ActionState = {};
 
@@ -19,6 +20,7 @@ export function EditarUsuarioForm({ user, roles, isSelf, onCancel }: EditarUsuar
   const boundUpdate = updateUsuario.bind(null, user.id);
   const [state, formAction, pending] = useActionState(boundUpdate, initialState);
   const [role, setRole] = useState(user.role);
+  const [ehAdvogado, setEhAdvogado] = useState(Boolean(user.eh_advogado));
   const selected = useMemo(() => roles.find((item) => item.id === role), [role, roles]);
 
   return (
@@ -74,6 +76,40 @@ export function EditarUsuarioForm({ user, roles, isSelf, onCancel }: EditarUsuar
           </label>
         </>
       )}
+
+      <label className="flex items-start gap-2 text-sm">
+        <input
+          name="eh_advogado"
+          type="checkbox"
+          className="mt-0.5"
+          checked={ehAdvogado}
+          onChange={(event) => setEhAdvogado(event.target.checked)}
+        />
+        <span>Advogado (monitorar no Diário)</span>
+      </label>
+
+      {ehAdvogado ? (
+        <div className="grid gap-3 sm:grid-cols-[1fr_7rem]">
+          <Field label="Número OAB">
+            <Input
+              name="oab_numero"
+              required
+              inputMode="numeric"
+              defaultValue={user.oab_numero ?? ""}
+              className="h-10"
+            />
+          </Field>
+          <Field label="UF">
+            <Select name="oab_uf" required defaultValue={user.oab_uf ?? "BA"} className="h-10">
+              {OAB_UFS.map((uf) => (
+                <option key={uf} value={uf}>
+                  {uf}
+                </option>
+              ))}
+            </Select>
+          </Field>
+        </div>
+      ) : null}
 
       <label className="flex items-start gap-2 text-sm">
         <input

@@ -338,19 +338,30 @@ async def sincronizar_escritorio(session: AsyncSession, escritorio_id: UUID) -> 
     hoje = today_brt()
     inicio = hoje - timedelta(days=LOOKBACK_PRIMEIRA_SYNC_DIAS)
     for u in users:
-        nome = u.nome.strip()
-        if len(nome.split()) >= 2:
-            try:
+        if not u.eh_advogado:
+            continue
+        try:
+            if u.oab_numero and u.oab_uf:
+                items = await consultar_comunicacoes(
+                    numero_oab=u.oab_numero,
+                    uf_oab=u.oab_uf,
+                    data_inicio=inicio,
+                    data_fim=hoje,
+                )
+            else:
+                nome = u.nome.strip()
+                if len(nome.split()) < 2:
+                    continue
                 items = await consultar_comunicacoes(
                     nome_advogado=nome,
                     data_inicio=inicio,
                     data_fim=hoje,
                 )
-                novos = await upsert_items(session, escritorio_id, items)
-                criados += novos
-                await session.commit()
-            except Exception:
-                pass
+            novos = await upsert_items(session, escritorio_id, items)
+            criados += novos
+            await session.commit()
+        except Exception:
+            pass
 
     return SyncResult(
         ok=erros == 0,

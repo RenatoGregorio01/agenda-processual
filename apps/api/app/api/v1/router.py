@@ -4,6 +4,7 @@ from app.api.v1.endpoints import (
     alertas,
     auditoria,
     auth,
+    cadastro,
     calendario,
     checklist,
     convites,
@@ -19,6 +20,7 @@ from app.api.v1.endpoints import (
 api_router = APIRouter()
 api_router.include_router(health.router, tags=["health"])
 api_router.include_router(auth.router, prefix="/auth", tags=["auth"])
+api_router.include_router(cadastro.router, prefix="/cadastro", tags=["cadastro"])
 api_router.include_router(prazos.router, prefix="/prazos", tags=["prazos"])
 api_router.include_router(checklist.router, prefix="/prazos", tags=["checklist"])
 api_router.include_router(processos.router, prefix="/processos", tags=["processos"])

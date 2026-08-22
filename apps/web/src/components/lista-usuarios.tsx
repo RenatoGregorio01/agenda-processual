@@ -6,6 +6,7 @@ import { desativarUsuario } from "@/app/usuarios/actions";
 import { EditarUsuarioForm } from "@/components/editar-usuario-form";
 import { Badge, Card, EmptyState } from "@/components/ui";
 import type { RoleInfo, User } from "@/lib/auth";
+import { formatOab } from "@/lib/oab";
 
 function IconLapiz({ className }: { className?: string }) {
   return (
@@ -66,7 +67,12 @@ export function ListaUsuarios({ usuarios, roles, currentUserId }: ListaUsuariosP
                   {!user.ativo ? <Badge tone="atrasado">INATIVO</Badge> : null}
                   {isSelf ? <Badge tone="neutro">VOCÊ</Badge> : null}
                 </div>
-                <p className="mt-0.5 truncate text-sm text-muted">{user.email}</p>
+                <p className="mt-0.5 truncate text-sm text-muted">
+                  {user.email}
+                  {user.eh_advogado
+                    ? ` · ${formatOab(user.oab_numero, user.oab_uf) ?? "OAB pendente"}`
+                    : ""}
+                </p>
               </div>
               <div className="flex shrink-0 items-center gap-1">
                 <button

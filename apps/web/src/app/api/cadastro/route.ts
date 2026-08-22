@@ -5,39 +5,20 @@ import { AUTH_COOKIE } from "@/lib/auth";
 import { authCookieSecure } from "@/lib/cookie";
 
 export async function POST(request: Request) {
-  let payload: {
-    token?: string;
-    password?: string;
-    oab_numero?: string | null;
-    oab_uf?: string | null;
-  };
+  let payload: Record<string, unknown>;
   try {
-    payload = (await request.json()) as typeof payload;
+    payload = (await request.json()) as Record<string, unknown>;
   } catch {
     return NextResponse.json({ detail: "JSON inválido" }, { status: 400 });
   }
 
-  if (!payload.token || !payload.password) {
-    return NextResponse.json(
-      { detail: "Token e senha são obrigatórios" },
-      { status: 400 },
-    );
-  }
-
   let apiResponse: Response;
   try {
-    apiResponse = await fetch(
-      `${getServerApiBaseUrl()}/api/v1/convites/aceitar/${encodeURIComponent(payload.token)}`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          password: payload.password,
-          oab_numero: payload.oab_numero ?? null,
-          oab_uf: payload.oab_uf ?? null,
-        }),
-      },
-    );
+    apiResponse = await fetch(`${getServerApiBaseUrl()}/api/v1/cadastro`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
   } catch {
     return NextResponse.json(
       { detail: "Não foi possível conectar à API. Verifique se ela está no ar." },
@@ -48,7 +29,7 @@ export async function POST(request: Request) {
   const data = await apiResponse.json().catch(() => ({}));
   if (!apiResponse.ok) {
     return NextResponse.json(
-      { detail: data.detail ?? "Falha ao aceitar convite" },
+      { detail: data.detail ?? "Falha no cadastro" },
       { status: apiResponse.status },
     );
   }

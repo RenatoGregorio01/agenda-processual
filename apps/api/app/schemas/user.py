@@ -13,6 +13,9 @@ class UserCreate(BaseModel):
     role: Role = Role.editor
     ativo: bool = True
     receber_alertas: bool = False
+    eh_advogado: bool = False
+    oab_numero: str | None = Field(default=None, max_length=20)
+    oab_uf: str | None = Field(default=None, max_length=2)
 
 
 class UserUpdate(BaseModel):
@@ -22,6 +25,9 @@ class UserUpdate(BaseModel):
     role: Role | None = None
     ativo: bool | None = None
     receber_alertas: bool | None = None
+    eh_advogado: bool | None = None
+    oab_numero: str | None = Field(default=None, max_length=20)
+    oab_uf: str | None = Field(default=None, max_length=2)
 
 
 class UserRead(BaseModel):
@@ -35,6 +41,9 @@ class UserRead(BaseModel):
     ativo: bool
     role: Role
     receber_alertas: bool
+    eh_advogado: bool = False
+    oab_numero: str | None = None
+    oab_uf: str | None = None
     is_admin: bool
     permissions: list[Permission] = []
 
