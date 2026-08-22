@@ -124,14 +124,30 @@ Settings → Variables → `HOMELAB_DEVELOP_REPO_PATH` = `/home/renato/agenda-pr
 
 ## Observabilidade
 
-- Produção: `http://agenda-api:8000/metrics` na rede `observability`.
-- Homologação: `http://agenda-develop-api:8000/metrics` (mesmo arquivo).
-- Job: [`deploy/prometheus/agenda.yml`](../deploy/prometheus/agenda.yml) → `prometheus.yml` do homelab.
-- Dashboard: [`deploy/grafana/agenda-dashboard.json`](../deploy/grafana/agenda-dashboard.json).
+Produção e homologação expõem `/metrics` na rede Docker `observability`.
+
+| Ambiente | Container | Job Prometheus | Label `env` |
+|----------|-----------|----------------|-------------|
+| Produção | `agenda-api:8000` | `agenda-api` | `homelab` |
+| Homologação | `agenda-develop-api:8000` | `agenda-api-develop` | `develop` |
+
+Arquivos neste repo:
+
+- Scrape: [`deploy/prometheus/agenda.yml`](../deploy/prometheus/agenda.yml) → incluir no `prometheus.yml` (ou `scrape_config_files`) do homelab
+- Dashboard: [`deploy/grafana/agenda-dashboard.json`](../deploy/grafana/agenda-dashboard.json) — variável **Ambiente** (`homelab` / `develop`)
+- Alertas: [`deploy/grafana/alert-rules.md`](../deploy/grafana/alert-rules.md) (API down / 5xx / DJEN por env)
 
 ```bash
+# No Ubuntu (Prometheus do homelab)
 curl -s 'http://127.0.0.1:9090/api/v1/targets' | grep agenda
+curl -X POST http://127.0.0.1:9090/-/reload
+
+# Health público (deve ser 200; 502 = API/túnel down)
+curl -sS -o /dev/null -w '%{http_code}\n' https://api-develop.agendaprocessual.com.br/api/v1/health
 ```
+
+Após alterar o JSON: Grafana → Dashboards → Import (ou sobrescrever UID `agenda-processual`).
+Selecione **Ambiente = develop** para investigar erros de homologação (API offline, 5xx, DJEN).
 
 Recarregue o Prometheus depois de incluir o job `agenda-api-develop`.
 
@@ -164,4 +180,6 @@ Não rode `compose.homelab.yml` nem `compose.develop.yml` no Mac se os túneis j
 - [ ] Stack do Mac parada (`compose down`)
 - [ ] `HOMELAB_REPO_PATH` e `HOMELAB_DEVELOP_REPO_PATH` no GitHub
 - [ ] Prometheus `agenda-api:8000` e `agenda-develop-api:8000` = UP
+- [ ] Grafana: dashboard Agenda Processual com Ambiente=develop (API up / 5xx / DJEN)
+- [ ] Alertas Grafana: API down develop + 5xx develop (ver `deploy/grafana/alert-rules.md`)
 - [ ] Backup diário do Postgres de **produção** (`agenda-db`) via restic no HD externo — ver [homelab/docs/backup.md](https://github.com/RenatoGregorio01/homelab/blob/main/docs/backup.md)

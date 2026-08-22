@@ -1,9 +1,27 @@
-# Scrape jobs para o Prometheus do homelab (Ubuntu).
+# Prometheus — Agenda Processual (homelab + develop)
 #
-# Produção e homologação entram na rede `observability`.
-# Em compose/monitoring/prometheus/prometheus.yml do repo homelab, inclua os jobs abaixo.
+# Como incluir no Prometheus do Ubuntu (repo homelab):
 #
+#   1. Copie este arquivo para o volume/config do Prometheus, OU
+#   2. Em prometheus.yml, use:
+#
+#        scrape_configs:
+#          - <<: *outro_job
+#          ...
+#        # ou no final:
+#        #   - job_name: ...
+#
+#      Preferível: scrapear via include se o Prometheus do homelab
+#      tiver `scrape_config_files:`:
+#
+#        scrape_config_files:
+#          - /etc/prometheus/conf.d/*.yml
+#
+#      e monte este arquivo em conf.d/agenda.yml.
+#
+# Targets na rede Docker `observability` (containers agenda-api e agenda-develop-api).
 # Recarregue: curl -X POST http://127.0.0.1:9090/-/reload
+# Confira: curl -s http://127.0.0.1:9090/api/v1/targets | grep agenda
 
 scrape_configs:
   - job_name: agenda-api
@@ -16,6 +34,7 @@ scrape_configs:
         labels:
           service: agenda-processual
           env: homelab
+
   - job_name: agenda-api-develop
     metrics_path: /metrics
     scrape_interval: 15s

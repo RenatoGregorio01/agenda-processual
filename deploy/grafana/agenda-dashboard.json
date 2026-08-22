@@ -12,6 +12,7 @@
       }
     ]
   },
+  "description": "Produção (homelab) e homologação (develop). Selecione o ambiente no topo.",
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 1,
@@ -23,20 +24,36 @@
       "fieldConfig": {
         "defaults": {
           "mappings": [
-            { "options": { "0": { "text": "DOWN", "color": "red" }, "1": { "text": "UP", "color": "green" } }, "type": "value" }
+            {
+              "options": {
+                "0": { "text": "DOWN", "color": "red" },
+                "1": { "text": "UP", "color": "green" }
+              },
+              "type": "value"
+            }
           ],
-          "thresholds": { "mode": "absolute", "steps": [{ "color": "red", "value": null }, { "color": "green", "value": 1 }] }
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [{ "color": "red", "value": null }, { "color": "green", "value": 1 }]
+          }
         },
         "overrides": []
       },
       "gridPos": { "h": 4, "w": 4, "x": 0, "y": 0 },
       "id": 1,
-      "options": { "colorMode": "background", "graphMode": "none", "justifyMode": "auto", "orientation": "auto", "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "textMode": "auto" },
-      "title": "API up",
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "textMode": "auto"
+      },
+      "title": "API up ($env)",
       "type": "stat",
       "targets": [
         {
-          "expr": "up{job=\"agenda-api\"}",
+          "expr": "up{service=\"agenda-processual\",env=\"$env\"}",
           "legendFormat": "up",
           "refId": "A"
         }
@@ -44,15 +61,98 @@
     },
     {
       "datasource": { "type": "prometheus", "uid": "${datasource}" },
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [
+            {
+              "options": {
+                "0": { "text": "DOWN", "color": "red" },
+                "1": { "text": "UP", "color": "green" }
+              },
+              "type": "value"
+            }
+          ],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [{ "color": "red", "value": null }, { "color": "green", "value": 1 }]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": { "h": 4, "w": 4, "x": 4, "y": 0 },
+      "id": 10,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "textMode": "auto"
+      },
+      "title": "Prod up",
+      "type": "stat",
+      "targets": [
+        {
+          "expr": "up{job=\"agenda-api\"}",
+          "legendFormat": "prod",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "${datasource}" },
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [
+            {
+              "options": {
+                "0": { "text": "DOWN", "color": "red" },
+                "1": { "text": "UP", "color": "green" }
+              },
+              "type": "value"
+            }
+          ],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [{ "color": "red", "value": null }, { "color": "green", "value": 1 }]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": { "h": 4, "w": 4, "x": 8, "y": 0 },
+      "id": 11,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "textMode": "auto"
+      },
+      "title": "Develop up",
+      "type": "stat",
+      "targets": [
+        {
+          "expr": "up{job=\"agenda-api-develop\"}",
+          "legendFormat": "develop",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "${datasource}" },
       "fieldConfig": { "defaults": { "unit": "reqps" }, "overrides": [] },
-      "gridPos": { "h": 8, "w": 10, "x": 4, "y": 0 },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
       "id": 2,
-      "options": { "legend": { "displayMode": "list", "placement": "bottom" }, "tooltip": { "mode": "single" } },
-      "title": "Request rate",
+      "options": {
+        "legend": { "displayMode": "list", "placement": "bottom" },
+        "tooltip": { "mode": "single" }
+      },
+      "title": "Request rate ($env)",
       "type": "timeseries",
       "targets": [
         {
-          "expr": "sum(rate(http_requests_total{job=\"agenda-api\"}[5m]))",
+          "expr": "sum(rate(http_requests_total{service=\"agenda-processual\",env=\"$env\"}[5m]))",
           "legendFormat": "rps",
           "refId": "A"
         }
@@ -61,14 +161,17 @@
     {
       "datasource": { "type": "prometheus", "uid": "${datasource}" },
       "fieldConfig": { "defaults": { "unit": "s" }, "overrides": [] },
-      "gridPos": { "h": 8, "w": 10, "x": 14, "y": 0 },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 8 },
       "id": 3,
-      "options": { "legend": { "displayMode": "list", "placement": "bottom" }, "tooltip": { "mode": "single" } },
-      "title": "Latency p95",
+      "options": {
+        "legend": { "displayMode": "list", "placement": "bottom" },
+        "tooltip": { "mode": "single" }
+      },
+      "title": "Latency p95 ($env)",
       "type": "timeseries",
       "targets": [
         {
-          "expr": "histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket{job=\"agenda-api\"}[5m])) by (le))",
+          "expr": "histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket{service=\"agenda-processual\",env=\"$env\"}[5m])) by (le))",
           "legendFormat": "p95",
           "refId": "A"
         }
@@ -77,14 +180,17 @@
     {
       "datasource": { "type": "prometheus", "uid": "${datasource}" },
       "fieldConfig": { "defaults": {}, "overrides": [] },
-      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 8 },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 8 },
       "id": 4,
-      "options": { "legend": { "displayMode": "list", "placement": "bottom" }, "tooltip": { "mode": "single" } },
-      "title": "HTTP 5xx rate",
+      "options": {
+        "legend": { "displayMode": "list", "placement": "bottom" },
+        "tooltip": { "mode": "single" }
+      },
+      "title": "HTTP 5xx rate ($env)",
       "type": "timeseries",
       "targets": [
         {
-          "expr": "sum(rate(http_requests_total{job=\"agenda-api\",status=~\"5..\"}[5m]))",
+          "expr": "sum(rate(http_requests_total{service=\"agenda-processual\",env=\"$env\",status=~\"5..\"}[5m])) or vector(0)",
           "legendFormat": "5xx",
           "refId": "A"
         }
@@ -93,19 +199,22 @@
     {
       "datasource": { "type": "prometheus", "uid": "${datasource}" },
       "fieldConfig": { "defaults": {}, "overrides": [] },
-      "gridPos": { "h": 8, "w": 8, "x": 8, "y": 8 },
+      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 16 },
       "id": 5,
-      "options": { "legend": { "displayMode": "list", "placement": "bottom" }, "tooltip": { "mode": "single" } },
-      "title": "Alertas enviados / erros",
+      "options": {
+        "legend": { "displayMode": "list", "placement": "bottom" },
+        "tooltip": { "mode": "single" }
+      },
+      "title": "Alertas e-mail ($env)",
       "type": "timeseries",
       "targets": [
         {
-          "expr": "increase(agenda_alertas_enviados_total[1h])",
+          "expr": "increase(agenda_alertas_enviados_total{env=\"$env\"}[1h])",
           "legendFormat": "enviados",
           "refId": "A"
         },
         {
-          "expr": "increase(agenda_alertas_erros_total[1h])",
+          "expr": "increase(agenda_alertas_erros_total{env=\"$env\"}[1h])",
           "legendFormat": "erros",
           "refId": "B"
         }
@@ -114,15 +223,70 @@
     {
       "datasource": { "type": "prometheus", "uid": "${datasource}" },
       "fieldConfig": { "defaults": {}, "overrides": [] },
-      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 8 },
+      "gridPos": { "h": 8, "w": 8, "x": 8, "y": 16 },
       "id": 6,
-      "options": { "colorMode": "value", "graphMode": "area", "justifyMode": "auto", "orientation": "auto", "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "textMode": "auto" },
-      "title": "Candidatos (último job)",
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "textMode": "auto"
+      },
+      "title": "Candidatos alerta ($env)",
       "type": "stat",
       "targets": [
         {
-          "expr": "agenda_alertas_candidatos",
+          "expr": "agenda_alertas_candidatos{env=\"$env\"}",
           "legendFormat": "candidatos",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "${datasource}" },
+      "fieldConfig": { "defaults": {}, "overrides": [] },
+      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 16 },
+      "id": 7,
+      "options": {
+        "legend": { "displayMode": "list", "placement": "bottom" },
+        "tooltip": { "mode": "single" }
+      },
+      "title": "DJEN sync ($env)",
+      "type": "timeseries",
+      "targets": [
+        {
+          "expr": "increase(agenda_djen_sync_ok_total{env=\"$env\"}[1h])",
+          "legendFormat": "ok",
+          "refId": "A"
+        },
+        {
+          "expr": "increase(agenda_djen_sync_erros_total{env=\"$env\"}[1h])",
+          "legendFormat": "erros",
+          "refId": "B"
+        },
+        {
+          "expr": "increase(agenda_djen_publicacoes_novas_total{env=\"$env\"}[1h])",
+          "legendFormat": "novas",
+          "refId": "C"
+        }
+      ]
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "${datasource}" },
+      "fieldConfig": { "defaults": {}, "overrides": [] },
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 24 },
+      "id": 8,
+      "options": {
+        "legend": { "displayMode": "table", "placement": "right", "calcs": ["sum"] },
+        "tooltip": { "mode": "multi" }
+      },
+      "title": "5xx por handler ($env)",
+      "type": "timeseries",
+      "targets": [
+        {
+          "expr": "sum by (handler) (rate(http_requests_total{service=\"agenda-processual\",env=\"$env\",status=~\"5..\"}[5m]))",
+          "legendFormat": "{{handler}}",
           "refId": "A"
         }
       ]
@@ -130,7 +294,7 @@
   ],
   "refresh": "30s",
   "schemaVersion": 39,
-  "tags": ["agenda", "homelab"],
+  "tags": ["agenda", "homelab", "develop"],
   "templating": {
     "list": [
       {
@@ -144,6 +308,27 @@
         "refresh": 1,
         "regex": "",
         "type": "datasource"
+      },
+      {
+        "allValue": "",
+        "current": { "selected": true, "text": "develop", "value": "develop" },
+        "datasource": { "type": "prometheus", "uid": "${datasource}" },
+        "definition": "label_values(up{service=\"agenda-processual\"}, env)",
+        "hide": 0,
+        "includeAll": false,
+        "label": "Ambiente",
+        "multi": false,
+        "name": "env",
+        "options": [],
+        "query": {
+          "query": "label_values(up{service=\"agenda-processual\"}, env)",
+          "refId": "StandardVariableQuery"
+        },
+        "refresh": 2,
+        "regex": "",
+        "skipUrlSync": false,
+        "sort": 1,
+        "type": "query"
       }
     ]
   },
@@ -152,6 +337,6 @@
   "timezone": "America/Sao_Paulo",
   "title": "Agenda Processual",
   "uid": "agenda-processual",
-  "version": 1,
+  "version": 2,
   "weekStart": "monday"
 }
