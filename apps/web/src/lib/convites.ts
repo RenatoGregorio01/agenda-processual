@@ -25,6 +25,7 @@ export type ConvitePublic = {
   oab_numero: string | null;
   oab_uf: string | null;
   expires_at: string;
+  conta_existente: boolean;
 };
 
 export function labelStatusConvite(status: string): string {

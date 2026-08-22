@@ -8,7 +8,7 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 
 from app.core.config import get_settings
 from app.core.redis import get_redis
-from app.models.user import User
+from app.models.conta import Conta
 from app.services.email import send_email
 from app.services.email_templates import montar_email_codigo_cadastro
 
@@ -24,11 +24,11 @@ def _gerar_codigo() -> str:
 
 async def enviar_codigo_cadastro(session: AsyncSession, email: EmailStr) -> dict[str, str | int]:
     email_norm = str(email).lower().strip()
-    existing = await session.exec(select(User).where(User.email == email_norm))
+    existing = await session.exec(select(Conta).where(Conta.email == email_norm))
     if existing.first() is not None:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
-            detail="Já existe um usuário com este e-mail",
+            detail="Este e-mail já possui uma conta. Entre para acessar seus escritórios.",
         )
 
     redis = await get_redis()

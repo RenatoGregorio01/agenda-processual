@@ -6,6 +6,7 @@ from app.core.oab import slugify, validate_advogado_oab
 from app.core.permissions import sync_admin_flag
 from app.core.redis import get_redis
 from app.core.security import create_access_token, hash_password
+from app.models.conta import Conta
 from app.models.escritorio import Escritorio
 from app.models.user import Role, User
 from app.schemas.auth import TokenResponse
@@ -30,11 +31,11 @@ async def cadastrar_escritorio(
     payload: CadastroEscritorioRequest,
 ) -> TokenResponse:
     email = str(payload.email).lower()
-    existing_user = await session.exec(select(User).where(User.email == email))
-    if existing_user.first() is not None:
+    existing_account = await session.exec(select(Conta).where(Conta.email == email))
+    if existing_account.first() is not None:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
-            detail="Já existe um usuário com este e-mail",
+            detail="Este e-mail já possui uma conta. Entre para acessar seus escritórios.",
         )
 
     redis = await get_redis()
@@ -61,11 +62,21 @@ async def cadastrar_escritorio(
     session.add(escritorio)
     await session.flush()
 
-    user = User(
-        escritorio_id=escritorio.id,
+    conta = Conta(
         email=email,
         nome=payload.nome.strip(),
         hashed_password=hash_password(payload.password),
+        ativo=True,
+    )
+    session.add(conta)
+    await session.flush()
+
+    user = User(
+        account_id=conta.id,
+        escritorio_id=escritorio.id,
+        email=email,
+        nome=payload.nome.strip(),
+        hashed_password=conta.hashed_password,
         role=Role.admin,
         ativo=True,
         receber_alertas=False,
