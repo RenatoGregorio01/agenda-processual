@@ -11,6 +11,9 @@ class ConviteCreate(BaseModel):
     nome: str = Field(min_length=1, max_length=120)
     role: Role = Role.editor
     receber_alertas: bool = False
+    eh_advogado: bool = False
+    oab_numero: str | None = Field(default=None, max_length=20)
+    oab_uf: str | None = Field(default=None, max_length=2)
 
 
 class ConviteRead(BaseModel):
@@ -21,6 +24,9 @@ class ConviteRead(BaseModel):
     nome: str
     role: Role
     receber_alertas: bool
+    eh_advogado: bool = False
+    oab_numero: str | None = None
+    oab_uf: str | None = None
     expires_at: datetime
     used_at: datetime | None
     revoked_at: datetime | None
@@ -33,8 +39,13 @@ class ConvitePublic(BaseModel):
     email: EmailStr
     nome: str
     role: Role
+    eh_advogado: bool = False
+    oab_numero: str | None = None
+    oab_uf: str | None = None
     expires_at: datetime
 
 
 class ConviteAccept(BaseModel):
     password: str = Field(min_length=6, max_length=128)
+    oab_numero: str | None = Field(default=None, max_length=20)
+    oab_uf: str | None = Field(default=None, max_length=2)

@@ -152,9 +152,17 @@ async def count_novas(session: AsyncSession, escritorio_id: UUID) -> int:
 
 async def resumo(session: AsyncSession, escritorio_id: UUID) -> DjenResumoRead:
     all_items = await list_publicacoes(session, escritorio_id)
-    novas = sum(1 for item in all_items if item.status == DjenStatus.nova and not item.motivo_cancelamento)
+    novas = sum(
+        1
+        for item in all_items
+        if item.status == DjenStatus.nova and not item.motivo_cancelamento
+    )
     com_prazo = sum(1 for item in all_items if item.status == DjenStatus.prazo_criado)
-    ignoradas = sum(1 for item in all_items if item.status == DjenStatus.ignorada or item.motivo_cancelamento)
+    ignoradas = sum(
+        1
+        for item in all_items
+        if item.status == DjenStatus.ignorada or item.motivo_cancelamento
+    )
     return DjenResumoRead(
         novas=novas,
         com_prazo=com_prazo,
@@ -205,14 +213,20 @@ async def upsert_items(
     items: list[dict[str, Any]],
     processo: Processo | None = None,
 ) -> int:
-    """Persiste itens do DJEN associando ao processo quando disponível. Retorna quantos eram novos."""
+    """Persiste itens do DJEN associando ao processo quando disponível.
+
+    Retorna quantos eram novos.
+    """
     criados = 0
     now = utc_now()
     for raw in items:
         parsed = normalize_item(raw)
         if parsed is None:
             continue
-        if processo is not None and parsed["numero_processo_digitos"] != so_digitos(processo.numero_processo):
+        if (
+            processo is not None
+            and parsed["numero_processo_digitos"] != so_digitos(processo.numero_processo)
+        ):
             continue
 
         target_proc_id = processo.id if processo is not None else None
@@ -332,25 +346,36 @@ async def sincronizar_escritorio(session: AsyncSession, escritorio_id: UUID) -> 
 
     # Radar automático por advogados cadastrados no escritório
     users_res = await session.exec(
-        select(User).where(User.escritorio_id == escritorio_id, User.ativo == True)
+        select(User).where(User.escritorio_id == escritorio_id, col(User.ativo).is_(True))
     )
     users = list(users_res.all())
     hoje = today_brt()
     inicio = hoje - timedelta(days=LOOKBACK_PRIMEIRA_SYNC_DIAS)
     for u in users:
-        nome = u.nome.strip()
-        if len(nome.split()) >= 2:
-            try:
+        if not u.eh_advogado:
+            continue
+        try:
+            if u.oab_numero and u.oab_uf:
+                items = await consultar_comunicacoes(
+                    numero_oab=u.oab_numero,
+                    uf_oab=u.oab_uf,
+                    data_inicio=inicio,
+                    data_fim=hoje,
+                )
+            else:
+                nome = u.nome.strip()
+                if len(nome.split()) < 2:
+                    continue
                 items = await consultar_comunicacoes(
                     nome_advogado=nome,
                     data_inicio=inicio,
                     data_fim=hoje,
                 )
-                novos = await upsert_items(session, escritorio_id, items)
-                criados += novos
-                await session.commit()
-            except Exception:
-                pass
+            novos = await upsert_items(session, escritorio_id, items)
+            criados += novos
+            await session.commit()
+        except Exception:
+            pass
 
     return SyncResult(
         ok=erros == 0,

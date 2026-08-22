@@ -28,6 +28,9 @@ class User(SQLModel, table=True):
     ativo: bool = Field(default=True, index=True)
     role: Role = Field(default=Role.editor, index=True)
     receber_alertas: bool = Field(default=False)
+    eh_advogado: bool = Field(default=False)
+    oab_numero: str | None = Field(default=None, max_length=20)
+    oab_uf: str | None = Field(default=None, max_length=2)
     # Mantido sincronizado com role == admin (compatibilidade)
     is_admin: bool = False
     criado_em: datetime = Field(default_factory=utc_now)
