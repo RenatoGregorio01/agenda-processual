@@ -21,6 +21,9 @@ export type User = {
   ativo: boolean;
   role: Role;
   receber_alertas: boolean;
+  eh_advogado: boolean;
+  oab_numero: string | null;
+  oab_uf: string | null;
   is_admin: boolean;
   permissions: Permission[];
 };

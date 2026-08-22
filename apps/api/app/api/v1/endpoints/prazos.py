@@ -12,12 +12,14 @@ from app.core.permissions import Permission
 from app.core.tenant import get_owned
 from app.core.timeutils import utc_now
 from app.models.audit_log import AuditAction
+from app.models.djen_publicacao import DjenPublicacao, DjenStatus
 from app.models.prazo import Prazo, StatusPrazo
 from app.models.user import User
 from app.schemas.prazo import PrazoCreate, PrazoRead, PrazoUpdate
 from app.services.alertas import replace_alertas, to_prazo_read, to_prazos_read
 from app.services.audit import montar_auditoria
-from app.services.export_pauta import build_csv, build_pdf
+from app.services.djen import vincular_ao_prazo
+from app.services.export_pauta import build_csv, build_pdf, describe_export
 from app.services.prazos_query import FiltroPrazo, listar_prazos_filtrados
 from app.services.processos import get_or_create_processo
 
@@ -108,15 +110,11 @@ async def exportar_prazos(
         data_inicio=data_inicio,
         data_fim=data_fim,
     )
-    hoje = utc_now().strftime("%Y%m%d")
-    if using_range:
-        inicio_label = data_inicio.isoformat() if data_inicio else "inicio"
-        fim_label = data_fim.isoformat() if data_fim else "fim"
-        titulo = f"Pauta ({inicio_label} a {fim_label})"
-        filename_base = f"pauta-{inicio_label}-{fim_label}"
-    else:
-        titulo = f"Pauta ({filtro})"
-        filename_base = f"pauta-{filtro}-{hoje}"
+    titulo, filename_base = describe_export(
+        filtro=None if using_range else filtro,
+        data_inicio=data_inicio if using_range else None,
+        data_fim=data_fim if using_range else None,
+    )
 
     if formato == "pdf":
         content = build_pdf(prazos, titulo=titulo)
@@ -161,6 +159,26 @@ async def criar_prazo(
     data.pop("numero_processo", None)
     data.pop("cliente", None)
     alertas = data.pop("alertas")
+    djen_publicacao_id = data.pop("djen_publicacao_id", None)
+    publicacao = None
+    if djen_publicacao_id is not None:
+        publicacao = await get_owned(
+            session,
+            DjenPublicacao,
+            djen_publicacao_id,
+            current_user.escritorio_id,
+            detail="Publicação DJEN não encontrada",
+        )
+        if publicacao.status == DjenStatus.prazo_criado:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Esta publicação já gerou um prazo.",
+            )
+        if publicacao.motivo_cancelamento:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Esta publicação foi cancelada no DJEN.",
+            )
     prazo = Prazo(
         **data,
         escritorio_id=current_user.escritorio_id,
@@ -172,6 +190,8 @@ async def criar_prazo(
     session.add(prazo)
     await session.flush()
     await replace_alertas(session, prazo.id, alertas)
+    if publicacao is not None:
+        await vincular_ao_prazo(session, publicacao, prazo.id)
     processo.atualizado_em = utc_now()
     session.add(processo)
     session.add(

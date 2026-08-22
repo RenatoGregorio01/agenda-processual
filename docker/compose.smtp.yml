@@ -12,7 +12,11 @@ services:
       SMTP_PORT: ${SMTP_PORT:-587}
       SMTP_USER: ${SMTP_USER:?defina SMTP_USER em docker/smtp.env}
       SMTP_PASSWORD: ${SMTP_PASSWORD:?defina SMTP_PASSWORD em docker/smtp.env}
-      SMTP_FROM: ${SMTP_FROM:?defina SMTP_FROM em docker/smtp.env}
+      SMTP_FROM: ${SMTP_FROM:-noreply@agendaprocessual.com.br}
       SMTP_FROM_NAME: ${SMTP_FROM_NAME:-Agenda Processual}
+      SMTP_FROM_CONVITE: ${SMTP_FROM_CONVITE:-convite@agendaprocessual.com.br}
+      SMTP_FROM_NAME_CONVITE: ${SMTP_FROM_NAME_CONVITE:-Agenda Processual — Convite}
+      SMTP_FROM_ALERTA: ${SMTP_FROM_ALERTA:-alerta@agendaprocessual.com.br}
+      SMTP_FROM_NAME_ALERTA: ${SMTP_FROM_NAME_ALERTA:-Agenda Processual — Alerta}
       SMTP_TLS: ${SMTP_TLS:-true}
       SMTP_SSL: ${SMTP_SSL:-false}

@@ -1,28 +1,34 @@
 "use client";
 
-import { useActionState, useEffect, useMemo, useRef, useState } from "react";
+import { useActionState, useMemo, useState } from "react";
 
 import { createConvite, type ActionState } from "@/app/usuarios/actions";
 import { Button, Card, Field, Input, SectionHeading, Select } from "@/components/ui";
 import type { RoleInfo } from "@/lib/auth";
+import { OAB_UFS } from "@/lib/oab";
 
 const initialState: ActionState = {};
 
 export function CriarUsuarioForm({ roles }: { roles: RoleInfo[] }) {
-  const formRef = useRef<HTMLFormElement>(null);
-  const [role, setRole] = useState(roles[1]?.id ?? "editor");
+  const defaultRole = roles[1]?.id ?? "editor";
+  const [formKey, setFormKey] = useState(0);
+  const [role, setRole] = useState(defaultRole);
+  const [ehAdvogado, setEhAdvogado] = useState(false);
+  const [handledOk, setHandledOk] = useState(false);
   const [state, formAction, pending] = useActionState(createConvite, initialState);
   const selected = useMemo(() => roles.find((item) => item.id === role), [role, roles]);
 
-  useEffect(() => {
-    if (state.ok) {
-      formRef.current?.reset();
-      setRole(roles[1]?.id ?? "editor");
-    }
-  }, [state.ok, roles]);
+  if (state.ok && !handledOk) {
+    setHandledOk(true);
+    setFormKey((key) => key + 1);
+    setRole(defaultRole);
+    setEhAdvogado(false);
+  } else if (!state.ok && handledOk) {
+    setHandledOk(false);
+  }
 
   return (
-    <form ref={formRef} action={formAction} className="flex flex-col gap-4">
+    <form key={formKey} action={formAction} className="flex flex-col gap-4">
       <SectionHeading description="A pessoa recebe um link para definir a própria senha. Não é preciso enviar senha pelo WhatsApp.">
         Convidar por e-mail
       </SectionHeading>
@@ -59,6 +65,39 @@ export function CriarUsuarioForm({ roles }: { roles: RoleInfo[] }) {
             ))}
           </ul>
         </Card>
+      ) : null}
+
+      <label className="flex items-start gap-2 text-sm">
+        <input
+          name="eh_advogado"
+          type="checkbox"
+          className="mt-0.5"
+          checked={ehAdvogado}
+          onChange={(event) => setEhAdvogado(event.target.checked)}
+        />
+        <span>
+          Advogado (monitorar no Diário)
+          <span className="mt-0.5 block text-xs text-muted">
+            Consulta DJEN pela OAB.
+          </span>
+        </span>
+      </label>
+
+      {ehAdvogado ? (
+        <div className="grid gap-4 sm:grid-cols-[1fr_7rem]">
+          <Field label="Número OAB">
+            <Input name="oab_numero" required inputMode="numeric" />
+          </Field>
+          <Field label="UF">
+            <Select name="oab_uf" required defaultValue="BA">
+              {OAB_UFS.map((uf) => (
+                <option key={uf} value={uf}>
+                  {uf}
+                </option>
+              ))}
+            </Select>
+          </Field>
+        </div>
       ) : null}
 
       <label className="flex items-start gap-2 text-sm">

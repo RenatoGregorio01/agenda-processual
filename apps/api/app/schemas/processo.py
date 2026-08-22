@@ -4,6 +4,7 @@ from uuid import UUID
 from pydantic import BaseModel, ConfigDict, Field
 
 from app.schemas.audit import AuditLogRead
+from app.schemas.djen import DjenPublicacaoRead
 from app.schemas.prazo import PrazoRead
 
 
@@ -28,6 +29,8 @@ class DatajudAndamentoRead(BaseModel):
     data_hora: datetime | None = None
     codigo: int | None = None
     nome: str
+    complemento: str | None = None
+    orgao: str | None = None
 
 
 class DatajudSyncRead(BaseModel):
@@ -60,3 +63,4 @@ class ProcessoDetail(BaseModel):
     prazos: list[PrazoRead]
     historico: list[AuditLogRead]
     datajud: DatajudSyncRead
+    djen: list[DjenPublicacaoRead] = Field(default_factory=list)

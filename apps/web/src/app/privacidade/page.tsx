@@ -22,7 +22,8 @@ export default function PrivacidadePage() {
             <ul className="list-disc space-y-1 pl-5 text-sm text-foreground">
               <li>Colaboradores: nome, e-mail, senha (somente o hash) e perfil de acesso.</li>
               <li>Clientes e casos: nome da parte, número do processo, prazos e andamentos.</li>
-              <li>Registros de uso: login e alterações (auditoria), envio de alertas.</li>
+              <li>Registros de uso: login e alterações (auditoria), envio de alertas.
+                A auditoria é apagada automaticamente após 365 dias.</li>
             </ul>
           </section>
 

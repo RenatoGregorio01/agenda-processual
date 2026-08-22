@@ -5,9 +5,14 @@ import { AUTH_COOKIE } from "@/lib/auth";
 import { authCookieSecure } from "@/lib/cookie";
 
 export async function POST(request: Request) {
-  let payload: { token?: string; password?: string };
+  let payload: {
+    token?: string;
+    password?: string;
+    oab_numero?: string | null;
+    oab_uf?: string | null;
+  };
   try {
-    payload = (await request.json()) as { token?: string; password?: string };
+    payload = (await request.json()) as typeof payload;
   } catch {
     return NextResponse.json({ detail: "JSON inválido" }, { status: 400 });
   }
@@ -26,7 +31,11 @@ export async function POST(request: Request) {
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ password: payload.password }),
+        body: JSON.stringify({
+          password: payload.password,
+          oab_numero: payload.oab_numero ?? null,
+          oab_uf: payload.oab_uf ?? null,
+        }),
       },
     );
   } catch {

@@ -2,12 +2,14 @@ from fastapi import APIRouter, Depends, Query
 from sqlmodel import col, select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
-from app.api.deps import get_current_user
+from app.api.deps import get_current_admin, get_current_user
+from app.core.config import get_settings
 from app.core.database import get_session
 from app.core.permissions import Permission, user_has_permission
 from app.models.audit_log import AuditLog
 from app.models.user import User
-from app.schemas.audit import AuditLogRead
+from app.schemas.audit import AuditLogRead, PurgeAuditoriaResponse
+from app.services.audit import purgar_auditoria
 
 router = APIRouter(dependencies=[Depends(get_current_user)])
 
@@ -30,3 +32,20 @@ async def listar_auditoria(
 
     result = await session.exec(query)
     return list(result.all())
+
+
+@router.post("/purge", response_model=PurgeAuditoriaResponse)
+async def disparar_purge_auditoria(
+    session: AsyncSession = Depends(get_session),
+    _: User = Depends(get_current_admin),
+) -> PurgeAuditoriaResponse:
+    settings = get_settings()
+    apagados = await purgar_auditoria(
+        session,
+        retention_days=settings.audit_retention_days,
+        batch_size=settings.audit_purge_batch_size,
+    )
+    return PurgeAuditoriaResponse(
+        apagados=apagados,
+        retention_days=settings.audit_retention_days,
+    )

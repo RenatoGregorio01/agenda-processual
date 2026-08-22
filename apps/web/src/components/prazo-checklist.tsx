@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useEffect, useState, useTransition, type FormEvent } from "react";
+import { useState, useTransition, type FormEvent } from "react";
 
 import {
   createChecklistItem,
@@ -9,6 +9,10 @@ import {
   toggleChecklistItem,
 } from "@/app/prazos/checklist-actions";
 import type { ChecklistItem } from "@/lib/checklist";
+
+function itemsSignature(items: ChecklistItem[]): string {
+  return items.map((item) => `${item.id}:${item.concluido ? 1 : 0}:${item.texto}`).join("|");
+}
 
 export function PrazoChecklist({
   prazoId,
@@ -21,13 +25,16 @@ export function PrazoChecklist({
 }) {
   const router = useRouter();
   const [items, setItems] = useState(initialItems);
+  const [itemsSig, setItemsSig] = useState(() => itemsSignature(initialItems));
   const [texto, setTexto] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
-  useEffect(() => {
+  const nextSig = itemsSignature(initialItems);
+  if (nextSig !== itemsSig) {
+    setItemsSig(nextSig);
     setItems(initialItems);
-  }, [initialItems]);
+  }
 
   function refresh() {
     router.refresh();

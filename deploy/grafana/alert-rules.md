@@ -1,42 +1,42 @@
-# Alertas da Agenda Processual
+# Alertas recomendados no Grafana (Alerting → New alert rule)
+#
+# Filtre por `env` (homelab | develop) ou `job` (agenda-api | agenda-api-develop).
+# Crie um par de regras (prod + develop) ou use `env=~"homelab|develop"`.
 
-Fonte canônica das expressões: [`deploy/prometheus/alerts.yml`](../prometheus/alerts.yml).
+## 1) API down — produção
 
-## Provisionar no Prometheus (recomendado)
+- Expr: `up{job="agenda-api"} == 0`
+- For: 2m
+- Summary: Agenda API (prod) indisponível
 
-1. Copie `alerts.yml` para o servidor Ubuntu, ex.:
-   `compose/monitoring/prometheus/rules/agenda-alerts.yml`
-2. Em `prometheus.yml`:
+## 2) API down — develop
 
-```yaml
-rule_files:
-  - /etc/prometheus/rules/*.yml
-```
+- Expr: `up{job="agenda-api-develop"} == 0`
+- For: 2m
+- Summary: Agenda API (develop) indisponível
+- Nota: útil quando a home mostra "API: offline" em develop.agendaprocessual.com.br
 
-(ajuste o path ao volume do container)
+## 3) Erros de e-mail de alerta
 
-3. Recarregue: `curl -X POST http://localhost:9090/-/reload`
-4. Confira em **Status → Rules** e **Alerts**.
+- Expr: `increase(agenda_alertas_erros_total{env="homelab"}[1h]) > 0`
+- Espelho develop: `increase(agenda_alertas_erros_total{env="develop"}[1h]) > 0`
+- For: 0m
+- Summary: Falha ao enviar alerta de prazo
 
-## Notificar (Grafana)
+## 4) Taxa de 5xx alta — produção
 
-1. Grafana → **Alerting → Contact points** (e-mail, Discord, Telegram, etc.)
-2. Opções:
-   - **Grafana Alerting** lendo o Prometheus (datasources → Manage alerts), **ou**
-   - **Alertmanager** no homelab recebendo as regras do Prometheus
+- Expr: `sum(rate(http_requests_total{job="agenda-api",status=~"5.."}[5m])) > 0.1`
+- For: 5m
+- Summary: Erros 5xx na Agenda API (prod)
 
-Sem contact point / receiver, o alerta só aparece na UI.
+## 5) Taxa de 5xx alta — develop
 
-## Regras (resumo)
+- Expr: `sum(rate(http_requests_total{job="agenda-api-develop",status=~"5.."}[5m])) > 0.1`
+- For: 5m
+- Summary: Erros 5xx na Agenda API (develop)
 
-| Alerta | Expr (resumo) | For | Severidade |
-|--------|---------------|-----|------------|
-| `AgendaApiDown` | `max(up{job="agenda-api"}) == 0` | 2m | critical |
-| `AgendaApi5xxHigh` | `sum(rate(...status=~"5.."[5m])) > 0.1` | 5m | warning |
-| `AgendaApiErrorRatioHigh` | taxa 5xx / total > 5% | 5m | warning |
-| `AgendaApiLatencyHigh` | p95 > 2s | 5m | warning |
-| `AgendaAlertasEmailErros` | `increase(agenda_alertas_erros_total[1h]) > 0` | 0m | warning |
+## 6) DJEN sync com falha — develop
 
-## Criar manualmente no Grafana (alternativa)
-
-**Alerting → New alert rule**, datasource Prometheus, cole a `expr` de cada regra em `alerts.yml`, use o mesmo `for` e anexe um contact point.
+- Expr: `increase(agenda_djen_sync_erros_total{env="develop"}[1h]) > 0`
+- For: 15m
+- Summary: Falhas de sync DJEN em homologação

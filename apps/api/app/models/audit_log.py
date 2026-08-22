@@ -25,6 +25,7 @@ class AuditAction(StrEnum):
     convite_aceito = "convite_aceito"
     processo_criado = "processo_criado"
     processo_atualizado = "processo_atualizado"
+    djen_ignorada = "djen_ignorada"
 
 
 class AuditLog(SQLModel, table=True):

@@ -12,6 +12,7 @@ from app.models import (  # noqa: F401
     AuditLog,
     ChecklistItem,
     Convite,
+    DjenPublicacao,
     Escritorio,
     Feriado,
     Prazo,
@@ -60,7 +61,7 @@ async def init_db() -> None:
                 "UPDATE users SET role = CASE "
                 "WHEN is_admin = true THEN 'admin' "
                 "ELSE COALESCE(role, 'editor') END "
-                "WHERE role IS NULL OR role = ''"
+                "WHERE role IS NULL OR CAST(role AS VARCHAR) = ''"
             )
         )
         await conn.execute(text("UPDATE users SET role = 'editor' WHERE role IS NULL"))
@@ -139,6 +140,23 @@ async def init_db() -> None:
         await conn.execute(
             text(
                 "ALTER TABLE processos ADD COLUMN IF NOT EXISTS datajud_mensagem VARCHAR(500)"
+            )
+        )
+        await conn.execute(
+            text(
+                "ALTER TABLE processo_andamentos "
+                "ADD COLUMN IF NOT EXISTS complemento VARCHAR(500)"
+            )
+        )
+        await conn.execute(
+            text(
+                "ALTER TABLE processo_andamentos "
+                "ADD COLUMN IF NOT EXISTS orgao VARCHAR(255)"
+            )
+        )
+        await conn.execute(
+            text(
+                "ALTER TABLE processos ADD COLUMN IF NOT EXISTS djen_sincronizado_em TIMESTAMP"
             )
         )
         if conn.dialect.name == "postgresql":

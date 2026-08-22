@@ -14,5 +14,7 @@ class ProcessoAndamento(SQLModel, table=True):
     data_hora: datetime | None = Field(default=None, index=True)
     codigo: int | None = Field(default=None)
     nome: str = Field(max_length=255)
+    complemento: str | None = Field(default=None, max_length=500)
+    orgao: str | None = Field(default=None, max_length=255)
     ordem: int = Field(default=0)
     criado_em: datetime = Field(default_factory=utc_now)

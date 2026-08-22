@@ -1,16 +1,27 @@
-# Scrape job para o Prometheus do homelab (gregorio-homelab).
+# Prometheus — Agenda Processual (homelab + develop)
 #
-# A API roda no Mac; o Prometheus no servidor Ubuntu. Preferir Tailscale:
-#   targets: ["<IP_TAILSCALE_DO_MAC>:8001"]
+# Como incluir no Prometheus do Ubuntu (repo homelab):
 #
-# Alternativa (mesma máquina / mesma rede Docker):
-#   targets: ["agenda-api:8000"]
-# Alternativa host Docker Desktop:
-#   targets: ["host.docker.internal:8001"]
+#   1. Copie este arquivo para o volume/config do Prometheus, OU
+#   2. Em prometheus.yml, use:
 #
-# Não publique /metrics no túnel Cloudflare sem autenticação.
+#        scrape_configs:
+#          - <<: *outro_job
+#          ...
+#        # ou no final:
+#        #   - job_name: ...
 #
-# Alertas: veja deploy/prometheus/alerts.yml (rule_files no prometheus.yml).
+#      Preferível: scrapear via include se o Prometheus do homelab
+#      tiver `scrape_config_files:`:
+#
+#        scrape_config_files:
+#          - /etc/prometheus/conf.d/*.yml
+#
+#      e monte este arquivo em conf.d/agenda.yml.
+#
+# Targets na rede Docker `observability` (containers agenda-api e agenda-develop-api).
+# Recarregue: curl -X POST http://127.0.0.1:9090/-/reload
+# Confira: curl -s http://127.0.0.1:9090/api/v1/targets | grep agenda
 
 scrape_configs:
   - job_name: agenda-api
@@ -19,7 +30,18 @@ scrape_configs:
     scrape_timeout: 10s
     static_configs:
       - targets:
-          - 100.106.204.92:8001
+          - agenda-api:8000
         labels:
           service: agenda-processual
           env: homelab
+
+  - job_name: agenda-api-develop
+    metrics_path: /metrics
+    scrape_interval: 15s
+    scrape_timeout: 10s
+    static_configs:
+      - targets:
+          - agenda-develop-api:8000
+        labels:
+          service: agenda-processual
+          env: develop

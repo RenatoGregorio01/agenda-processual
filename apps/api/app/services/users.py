@@ -16,6 +16,9 @@ def to_user_read(user: User, *, escritorio_nome: str = "") -> UserRead:
         ativo=user.ativo,
         role=user.role,
         receber_alertas=user.receber_alertas,
+        eh_advogado=user.eh_advogado,
+        oab_numero=user.oab_numero,
+        oab_uf=user.oab_uf,
         is_admin=user.is_admin,
         permissions=permissions_for_role(user.role),
     )

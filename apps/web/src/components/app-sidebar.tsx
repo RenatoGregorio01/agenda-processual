@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
 import { hasPermission, type User } from "@/lib/auth";
@@ -18,6 +18,15 @@ function IconHoje({ className }: { className?: string }) {
       <rect x="3" y="5" width="18" height="16" rx="2" stroke="currentColor" strokeWidth="1.6" />
       <path d="M3 10h18" stroke="currentColor" strokeWidth="1.6" />
       <path d="M8 3v4M16 3v4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function IconDjen({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" aria-hidden>
+      <path d="M6 4h9l3 3v13H6z" stroke="currentColor" strokeWidth="1.6" />
+      <path d="M14 4v4h4M8 12h8M8 16h6" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
     </svg>
   );
 }
@@ -122,19 +131,23 @@ function mobileTabClass(active: boolean) {
 
 export function AppSidebar({ user, open = true, onToggle }: AppSidebarProps) {
   const pathname = usePathname();
+  const router = useRouter();
   const [maisOpen, setMaisOpen] = useState(false);
+  const [pathWhenMaisOpen, setPathWhenMaisOpen] = useState(pathname);
   const isAdmin = hasPermission(user, "usuarios_gerenciar");
+
+  if (maisOpen && pathWhenMaisOpen !== pathname) {
+    setMaisOpen(false);
+    setPathWhenMaisOpen(pathname);
+  }
 
   const activeHoje = pathname === "/dashboard";
   const activePrazos = pathname.startsWith("/prazos") || pathname.startsWith("/processos/");
+  const activeDjen = pathname.startsWith("/djen");
   const activeUsuarios = pathname.startsWith("/usuarios");
   const activeFeriados = pathname.startsWith("/feriados");
   const activeAuditoria = pathname.startsWith("/auditoria");
-  const activeMais = activeUsuarios || activeFeriados || activeAuditoria;
-
-  useEffect(() => {
-    setMaisOpen(false);
-  }, [pathname]);
+  const activeMais = activeUsuarios || activeFeriados || activeAuditoria || activeDjen;
 
   useEffect(() => {
     if (!maisOpen) return;
@@ -146,18 +159,34 @@ export function AppSidebar({ user, open = true, onToggle }: AppSidebarProps) {
   }, [maisOpen]);
 
   async function logout() {
-    await fetch("/api/auth/logout", { method: "POST" });
-    window.location.href = "/login";
+    setMaisOpen(false);
+    try {
+      await fetch("/api/auth/logout", { method: "POST", credentials: "same-origin" });
+    } finally {
+      // Hard redirect: soft navigation no mobile mantém a UI autenticada em cache.
+      window.location.assign(new URL("/login", window.location.origin).toString());
+    }
   }
 
   const secondaryNav = (
     <>
+      <Link
+        href="/djen"
+        className={navClass(activeDjen)}
+        onClick={() => setMaisOpen(false)}
+      >
+        <IconDjen className="h-5 w-5 shrink-0" />
+        Diário
+      </Link>
       {isAdmin ? (
         <>
           <Link
             href="/usuarios"
             className={navClass(activeUsuarios)}
-            onClick={() => setMaisOpen(false)}
+            onClick={() => {
+              setMaisOpen(false);
+              setPathWhenMaisOpen(pathname);
+            }}
           >
             <IconUsuarios className="h-5 w-5 shrink-0" />
             Usuários
@@ -290,7 +319,10 @@ export function AppSidebar({ user, open = true, onToggle }: AppSidebarProps) {
         </Link>
         <button
           type="button"
-          onClick={() => setMaisOpen((value) => !value)}
+          onClick={() => {
+            setPathWhenMaisOpen(pathname);
+            setMaisOpen((value) => !value);
+          }}
           className={mobileTabClass(maisOpen || activeMais)}
           aria-expanded={maisOpen}
         >

@@ -48,6 +48,34 @@ def _parse_data_hora(value: Any) -> datetime | None:
     return parsed.replace(tzinfo=None) if parsed.tzinfo else parsed
 
 
+def _complemento_from_movimento(movimento: dict[str, Any]) -> str | None:
+    raw = movimento.get("complementosTabelados") or []
+    if not isinstance(raw, list):
+        return None
+    parts: list[str] = []
+    for item in raw:
+        if not isinstance(item, dict):
+            continue
+        nome = str(item.get("nome") or "").strip()
+        if nome:
+            parts.append(nome)
+            continue
+        descricao = str(item.get("descricao") or "").strip().replace("_", " ")
+        if descricao:
+            parts.append(descricao)
+    if not parts:
+        return None
+    return " · ".join(parts)[:500]
+
+
+def _orgao_from_movimento(movimento: dict[str, Any]) -> str | None:
+    orgao = movimento.get("orgaoJulgador")
+    if not isinstance(orgao, dict):
+        return None
+    nome = str(orgao.get("nome") or orgao.get("nomeOrgao") or "").strip()
+    return nome[:255] or None
+
+
 def _andamentos_from_source(source: dict[str, Any]) -> list[dict[str, Any]]:
     raw = source.get("movimentos") or []
     if not isinstance(raw, list):
@@ -65,34 +93,78 @@ def _andamentos_from_source(source: dict[str, Any]) -> list[dict[str, Any]]:
                 "data_hora": _parse_data_hora(movimento.get("dataHora")),
                 "codigo": int(codigo) if isinstance(codigo, int) else None,
                 "nome": nome[:255],
+                "complemento": _complemento_from_movimento(movimento),
+                "orgao": _orgao_from_movimento(movimento),
             }
         )
     items.sort(key=lambda item: item["data_hora"] or datetime.min, reverse=True)
     return items[:MAX_ANDAMENTOS]
 
 
+def _latest_em(source: dict[str, Any]) -> datetime:
+    atualizacao = _parse_data_hora(source.get("dataHoraUltimaAtualizacao"))
+    andamentos = _andamentos_from_source(source)
+    movimento = andamentos[0]["data_hora"] if andamentos else None
+    candidatos = [dt for dt in (atualizacao, movimento) if dt is not None]
+    return max(candidatos) if candidatos else datetime.min
+
+
 def _payload_from_source(alias: str, source: dict[str, Any] | None) -> dict[str, Any]:
-    if source is None:
+    return _payload_from_sources(alias, [source] if source is not None else [])
+
+
+def _payload_from_sources(alias: str, sources: list[dict[str, Any]]) -> dict[str, Any]:
+    validos = [item for item in sources if isinstance(item, dict)]
+    if not validos:
         return {
             "status": STATUS_INDISPONIVEL,
             "tribunal": alias,
             "grau": None,
             "classe": None,
             "orgao": None,
-            "mensagem": "Andamentos do tribunal indisponíveis",
+            "mensagem": (
+                "Não encontramos este processo na base pública do tribunal "
+                f"({alias}). Pode ser sigiloso, ainda não indexado ou número incorreto."
+            ),
             "andamentos": [],
         }
 
-    classe = source.get("classe") if isinstance(source.get("classe"), dict) else {}
-    orgao = source.get("orgaoJulgador") if isinstance(source.get("orgaoJulgador"), dict) else {}
+    principal = max(validos, key=_latest_em)
+    classe = principal.get("classe") if isinstance(principal.get("classe"), dict) else {}
+    orgao = (
+        principal.get("orgaoJulgador")
+        if isinstance(principal.get("orgaoJulgador"), dict)
+        else {}
+    )
+    graus = sorted(
+        {str(item.get("grau") or "").strip() for item in validos if item.get("grau")}
+    )
+    visto: set[tuple[datetime | None, str, int | None]] = set()
+    andamentos: list[dict[str, Any]] = []
+    varios_graus = len(graus) > 1
+    for source in validos:
+        grau = str(source.get("grau") or "").strip()
+        for item in _andamentos_from_source(source):
+            chave = (item["data_hora"], item["nome"], item.get("codigo"))
+            if chave in visto:
+                continue
+            visto.add(chave)
+            orgao_item = item.get("orgao")
+            if varios_graus and grau and orgao_item and not orgao_item.startswith(f"{grau} "):
+                item = {**item, "orgao": f"{grau} · {orgao_item}"[:255]}
+            elif varios_graus and grau and not orgao_item:
+                item = {**item, "orgao": grau[:255]}
+            andamentos.append(item)
+    andamentos.sort(key=lambda item: item["data_hora"] or datetime.min, reverse=True)
+
     return {
         "status": STATUS_OK,
-        "tribunal": str(source.get("tribunal") or alias),
-        "grau": str(source.get("grau") or "") or None,
+        "tribunal": str(principal.get("tribunal") or alias),
+        "grau": " + ".join(graus) if len(graus) > 1 else (graus[0] if graus else None),
         "classe": str(classe.get("nome") or "") or None,
         "orgao": str(orgao.get("nome") or "") or None,
         "mensagem": None,
-        "andamentos": _andamentos_from_source(source),
+        "andamentos": andamentos[:MAX_ANDAMENTOS],
     }
 
 
@@ -107,6 +179,8 @@ def _jsonable_payload(payload: dict[str, Any]) -> dict[str, Any]:
                 ),
                 "codigo": item.get("codigo"),
                 "nome": item["nome"],
+                "complemento": item.get("complemento"),
+                "orgao": item.get("orgao"),
             }
         )
     return {**payload, "andamentos": andamentos}
@@ -120,6 +194,8 @@ def _normalize_payload(payload: dict[str, Any]) -> dict[str, Any]:
                 "data_hora": _parse_data_hora(item.get("data_hora")),
                 "codigo": item.get("codigo"),
                 "nome": item["nome"],
+                "complemento": item.get("complemento"),
+                "orgao": item.get("orgao"),
             }
         )
     return {**payload, "andamentos": andamentos}
@@ -143,6 +219,8 @@ async def _replace_andamentos(
                 data_hora=andamento.get("data_hora"),
                 codigo=andamento.get("codigo"),
                 nome=andamento["nome"],
+                complemento=andamento.get("complemento"),
+                orgao=andamento.get("orgao"),
                 ordem=ordem,
             )
         )
@@ -237,8 +315,8 @@ async def consultar_existencia_datajud(numero: str) -> dict[str, Any]:
             }
 
     try:
-        _, alias, source = await consultar_processo(numero)
-        payload = _payload_from_source(alias, source)
+        _, alias, sources = await consultar_processo(numero)
+        payload = _payload_from_sources(alias, sources)
         if redis is not None:
             await set_cached(
                 redis,
@@ -310,8 +388,8 @@ async def sincronizar_datajud(
                     return await to_datajud_read(session, processo, cache=True)
 
     try:
-        _, alias, source = await consultar_processo(processo.numero_processo)
-        payload = _payload_from_source(alias, source)
+        _, alias, sources = await consultar_processo(processo.numero_processo)
+        payload = _payload_from_sources(alias, sources)
         if redis is not None:
             await set_cached(
                 redis,

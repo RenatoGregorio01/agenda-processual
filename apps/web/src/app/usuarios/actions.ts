@@ -18,6 +18,15 @@ export async function createConvite(
     email: String(formData.get("email") || "").trim().toLowerCase(),
     role: String(formData.get("role") || "editor"),
     receber_alertas: formData.get("receber_alertas") === "on",
+    eh_advogado: formData.get("eh_advogado") === "on",
+    oab_numero:
+      formData.get("eh_advogado") === "on"
+        ? String(formData.get("oab_numero") || "").trim() || null
+        : null,
+    oab_uf:
+      formData.get("eh_advogado") === "on"
+        ? String(formData.get("oab_uf") || "").trim().toUpperCase() || null
+        : null,
   };
 
   if (!payload.nome || !payload.email) {
@@ -87,6 +96,15 @@ export async function updateUsuario(
     role: String(formData.get("role") || "editor"),
     ativo: formData.get("ativo") === "on",
     receber_alertas: formData.get("receber_alertas") === "on",
+    eh_advogado: formData.get("eh_advogado") === "on",
+    oab_numero:
+      formData.get("eh_advogado") === "on"
+        ? String(formData.get("oab_numero") || "").trim() || null
+        : null,
+    oab_uf:
+      formData.get("eh_advogado") === "on"
+        ? String(formData.get("oab_uf") || "").trim().toUpperCase() || null
+        : null,
   };
 
   if (password) {
@@ -110,6 +128,26 @@ export async function updateUsuario(
     return {
       error:
         typeof data.detail === "string" ? data.detail : "Não foi possível atualizar o usuário.",
+    };
+  }
+
+  revalidatePath("/usuarios");
+  return { ok: true };
+}
+
+export async function desativarUsuario(userId: string): Promise<ActionState> {
+  const response = await apiFetch(`/api/v1/usuarios/${userId}`, {
+    method: "PATCH",
+    body: JSON.stringify({ ativo: false }),
+  });
+
+  if (!response.ok) {
+    const data = await response.json().catch(() => ({}));
+    return {
+      error:
+        typeof data.detail === "string"
+          ? data.detail
+          : "Não foi possível desativar o usuário.",
     };
   }
 

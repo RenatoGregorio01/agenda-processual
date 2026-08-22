@@ -14,6 +14,7 @@ from app.models.audit_log import AuditAction
 from app.models.processo import Processo
 from app.models.user import User
 from app.schemas.audit import AuditLogRead
+from app.schemas.djen import DjenSyncRead
 from app.schemas.prazo import PrazoRead
 from app.schemas.processo import (
     DatajudSyncRead,
@@ -28,6 +29,13 @@ from app.services.datajud import (
     consultar_existencia_datajud,
     sincronizar_datajud,
     to_datajud_read,
+)
+from app.services.djen import (
+    list_publicacoes,
+    to_publicacao_read,
+)
+from app.services.djen import (
+    sincronizar_processo as sincronizar_djen_processo,
 )
 from app.services.processos import (
     count_prazos_processo,
@@ -65,6 +73,12 @@ async def _detail(session: AsyncSession, processo: Processo) -> ProcessoDetail:
             AuditLogRead.model_validate(item, from_attributes=True) for item in historico
         ],
         datajud=await to_datajud_read(session, processo),
+        djen=[
+            await to_publicacao_read(session, item)
+            for item in await list_publicacoes(
+                session, processo.escritorio_id, processo_id=processo.id
+            )
+        ],
     )
 
 
@@ -246,3 +260,33 @@ async def sincronizar_andamentos_datajud(
         detail="Processo não encontrado",
     )
     return await sincronizar_datajud(session, processo, force=force)
+
+
+@router.post(
+    "/{processo_id}/djen/sync",
+    response_model=DjenSyncRead,
+)
+async def sincronizar_publicacoes_djen(
+    processo_id: UUID,
+    force: bool = Query(default=False),
+    session: AsyncSession = Depends(get_session),
+    current_user: User = Depends(require_permission(Permission.prazos_visualizar)),
+) -> DjenSyncRead:
+    processo = await get_owned(
+        session,
+        Processo,
+        processo_id,
+        current_user.escritorio_id,
+        detail="Processo não encontrado",
+    )
+    result = await sincronizar_djen_processo(session, processo, force=force)
+    items = await list_publicacoes(
+        session, current_user.escritorio_id, processo_id=processo.id
+    )
+    return DjenSyncRead(
+        ok=result.ok,
+        cache=result.cache,
+        criados=result.criados,
+        mensagem=result.mensagem,
+        publicacoes=[await to_publicacao_read(session, item) for item in items],
+    )

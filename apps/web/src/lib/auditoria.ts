@@ -15,7 +15,8 @@ export type AuditAction =
   | "convite_revogado"
   | "convite_aceito"
   | "processo_criado"
-  | "processo_atualizado";
+  | "processo_atualizado"
+  | "djen_ignorada";
 
 export type AuditLog = {
   id: string;
@@ -47,6 +48,7 @@ const ACTION_LABELS: Record<AuditAction, string> = {
   convite_aceito: "Convite aceito",
   processo_criado: "Processo criado",
   processo_atualizado: "Processo atualizado",
+  djen_ignorada: "Publicação DJEN ignorada",
 };
 
 export function labelAcao(acao: AuditAction): string {

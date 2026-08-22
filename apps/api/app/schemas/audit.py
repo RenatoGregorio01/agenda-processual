@@ -18,3 +18,8 @@ class AuditLogRead(BaseModel):
     entidade_id: UUID | None
     resumo: str
     criado_em: datetime
+
+
+class PurgeAuditoriaResponse(BaseModel):
+    apagados: int
+    retention_days: int

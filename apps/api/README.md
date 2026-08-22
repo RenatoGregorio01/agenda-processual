@@ -18,8 +18,14 @@ FastAPI + SQLModel + PostgreSQL + Alembic.
 | DELETE | `/api/v1/prazos/{id}` | Soft delete (auth) |
 | POST | `/api/v1/prazos/{id}/restaurar` | Restaura (auth) |
 | GET | `/api/v1/auditoria` | Auditoria (admin vê tudo; demais só as próprias) |
+| POST | `/api/v1/auditoria/purge` | Apaga logs de auditoria fora da retenção (admin) |
 | GET/POST | `/api/v1/usuarios` | Gestão de usuários (somente admin) |
 | PATCH | `/api/v1/usuarios/{id}` | Atualiza usuário/permissões (somente admin) |
+| GET | `/api/v1/djen` | Inbox de publicações DJEN (auth) |
+| GET | `/api/v1/djen/resumo` | Contagem de publicações novas (auth) |
+| POST | `/api/v1/djen/sync` | Sincroniza DJEN dos processos do escritório (auth) |
+| POST | `/api/v1/djen/{id}/ignorar` | Ignora publicação (editor/admin) |
+| POST | `/api/v1/processos/{id}/djen/sync` | Sincroniza DJEN de um processo |
 
 Usuário seed (dev): `veronica@escritorio.com` / `agenda123` (admin)
 
