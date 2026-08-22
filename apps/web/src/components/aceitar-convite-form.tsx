@@ -30,7 +30,7 @@ export function AceitarConviteForm({ token, convite }: AceitarConviteFormProps) 
       setError("A senha precisa ter pelo menos 6 caracteres.");
       return;
     }
-    if (password !== confirm) {
+    if (!convite.conta_existente && password !== confirm) {
       setError("As senhas não coincidem.");
       return;
     }
@@ -106,30 +106,32 @@ export function AceitarConviteForm({ token, convite }: AceitarConviteFormProps) 
         </div>
       ) : null}
 
-      <Field label="Senha">
+      <Field label={convite.conta_existente ? "Sua senha atual" : "Senha"}>
         <Input
           name="password"
           type="password"
           required
           minLength={6}
-          autoComplete="new-password"
+          autoComplete={convite.conta_existente ? "current-password" : "new-password"}
         />
       </Field>
 
-      <Field label="Confirmar senha">
-        <Input
-          name="confirm"
-          type="password"
-          required
-          minLength={6}
-          autoComplete="new-password"
-        />
-      </Field>
+      {convite.conta_existente ? null : (
+        <Field label="Confirmar senha">
+          <Input
+            name="confirm"
+            type="password"
+            required
+            minLength={6}
+            autoComplete="new-password"
+          />
+        </Field>
+      )}
 
       {error ? <p className="text-sm text-atrasado">{error}</p> : null}
 
       <Button type="submit" size="lg" disabled={pending}>
-        {pending ? "Ativando…" : "Definir senha e entrar"}
+        {pending ? "Ativando…" : convite.conta_existente ? "Aceitar convite e entrar" : "Definir senha e entrar"}
       </Button>
     </form>
   );

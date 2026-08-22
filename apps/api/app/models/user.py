@@ -21,8 +21,9 @@ class User(SQLModel, table=True):
     )
 
     id: UUID = Field(default_factory=uuid4, primary_key=True)
+    account_id: UUID | None = Field(default=None, index=True, foreign_key="contas.id")
     escritorio_id: UUID = Field(index=True, foreign_key="escritorios.id")
-    email: str = Field(index=True, unique=True, max_length=255)
+    email: str = Field(index=True, max_length=255)
     nome: str = Field(max_length=120)
     hashed_password: str = Field(max_length=255)
     ativo: bool = Field(default=True, index=True)

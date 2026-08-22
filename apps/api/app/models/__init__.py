@@ -1,6 +1,7 @@
 from app.models.alerta_envio import AlertaEnvio
 from app.models.audit_log import AuditAction, AuditLog
 from app.models.checklist_item import ChecklistItem
+from app.models.conta import Conta
 from app.models.convite import Convite
 from app.models.djen_publicacao import DjenPublicacao, DjenStatus
 from app.models.escritorio import Escritorio
@@ -16,6 +17,7 @@ __all__ = [
     "AuditAction",
     "AuditLog",
     "ChecklistItem",
+    "Conta",
     "Convite",
     "DjenPublicacao",
     "DjenStatus",

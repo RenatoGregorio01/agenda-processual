@@ -36,6 +36,14 @@ export type UserOption = {
 export type LoginPayload = {
   email: string;
   password: string;
+  escritorio_id?: string;
+};
+
+export type LoginEscritorio = { id: string; nome: string };
+
+export type LoginResponse = {
+  selecionar_escritorio?: boolean;
+  escritorios?: LoginEscritorio[];
 };
 
 export type RoleInfo = {

@@ -12,6 +12,7 @@ from app.core.security import hash_password
 from app.core.tenant import get_owned
 from app.core.timeutils import utc_now
 from app.models.audit_log import AuditAction
+from app.models.conta import Conta
 from app.models.escritorio import Escritorio
 from app.models.user import Role, User
 from app.schemas.user import UserCreate, UserOption, UserRead, UserUpdate
@@ -146,13 +147,21 @@ async def atualizar_usuario(
 
     if "email" in data and data["email"] is not None:
         email = str(data["email"]).lower()
-        existing = await session.exec(select(User).where(User.email == email, User.id != user.id))
-        if existing.first() is not None:
+        existing = await session.exec(select(Conta).where(Conta.email == email))
+        if existing.first() is not None and existing.first().id != user.account_id:
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT,
                 detail="Já existe um usuário com este e-mail",
             )
         user.email = email
+        account = await session.get(Conta, user.account_id) if user.account_id else None
+        if account is not None:
+            account.email = email
+            session.add(account)
+            memberships = await session.exec(select(User).where(User.account_id == account.id))
+            for membership in memberships.all():
+                membership.email = email
+                session.add(membership)
 
     if "nome" in data and data["nome"] is not None:
         user.nome = data["nome"].strip()
@@ -175,6 +184,14 @@ async def atualizar_usuario(
         user.oab_uf = oab_uf
     if data.get("password"):
         user.hashed_password = hash_password(data["password"])
+        account = await session.get(Conta, user.account_id) if user.account_id else None
+        if account is not None:
+            account.hashed_password = user.hashed_password
+            session.add(account)
+            memberships = await session.exec(select(User).where(User.account_id == account.id))
+            for membership in memberships.all():
+                membership.hashed_password = user.hashed_password
+                session.add(membership)
 
     user.atualizado_em = utc_now()
     session.add(user)

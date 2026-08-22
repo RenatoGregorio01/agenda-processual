@@ -43,6 +43,7 @@ class ConvitePublic(BaseModel):
     oab_numero: str | None = None
     oab_uf: str | None = None
     expires_at: datetime
+    conta_existente: bool = False
 
 
 class ConviteAccept(BaseModel):
