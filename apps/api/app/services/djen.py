@@ -6,6 +6,7 @@ from typing import Any
 from uuid import UUID
 from zoneinfo import ZoneInfo
 
+from sqlalchemy import or_
 from sqlmodel import col, select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
@@ -27,8 +28,10 @@ from app.models.djen_publicacao import DjenPublicacao, DjenStatus
 from app.models.escritorio import Escritorio
 from app.models.feriado import Feriado
 from app.models.processo import Processo
+from app.models.user import User
 from app.schemas.djen import DjenPublicacaoRead, DjenResumoRead
 from app.services.dias_uteis import add_business_days
+from app.services.processos import get_processo_by_numero
 
 BRT = ZoneInfo("America/Sao_Paulo")
 LOOKBACK_PRIMEIRA_SYNC_DIAS = 7
@@ -57,14 +60,16 @@ async def sugerir_vencimento(
     session: AsyncSession,
     escritorio_id: UUID,
     data_disponibilizacao: date | None,
+    dias: int | None = None,
 ) -> date | None:
     if data_disponibilizacao is None:
         return None
     settings = get_settings()
+    dias_uteis = dias if dias is not None and dias > 0 else settings.djen_prazo_dias_uteis
     feriados = await _feriados_do_escritorio(session, escritorio_id)
     return add_business_days(
         data_disponibilizacao,
-        settings.djen_prazo_dias_uteis,
+        dias_uteis,
         feriados,
     )
 
@@ -76,7 +81,7 @@ async def to_publicacao_read(
     vencimento = None
     if item.status == DjenStatus.nova and not item.motivo_cancelamento:
         vencimento = await sugerir_vencimento(
-            session, item.escritorio_id, item.data_disponibilizacao
+            session, item.escritorio_id, item.data_disponibilizacao, item.dias_identificados
         )
     cliente = None
     if item.processo_id:
@@ -92,7 +97,12 @@ async def to_publicacao_read(
         tribunal=item.tribunal,
         tipo_comunicacao=item.tipo_comunicacao,
         tipo_documento=item.tipo_documento,
+        nome_classe=item.nome_classe,
         orgao=item.orgao,
+        texto=item.texto,
+        link=item.link,
+        destinatarios=item.destinatarios,
+        dias_identificados=item.dias_identificados,
         data_disponibilizacao=item.data_disponibilizacao,
         vencimento_sugerido=vencimento,
         status=item.status.value,
@@ -108,12 +118,25 @@ async def list_publicacoes(
     *,
     status: DjenStatus | None = None,
     processo_id: UUID | None = None,
+    busca: str | None = None,
 ) -> list[DjenPublicacao]:
     query = select(DjenPublicacao).where(DjenPublicacao.escritorio_id == escritorio_id)
     if status is not None:
         query = query.where(DjenPublicacao.status == status)
     if processo_id is not None:
         query = query.where(DjenPublicacao.processo_id == processo_id)
+    if busca and busca.strip():
+        term = f"%{busca.strip()}%"
+        query = query.where(
+            or_(
+                DjenPublicacao.numero_processo.ilike(term),
+                DjenPublicacao.tribunal.ilike(term),
+                DjenPublicacao.orgao.ilike(term),
+                DjenPublicacao.texto.ilike(term),
+                DjenPublicacao.destinatarios.ilike(term),
+                DjenPublicacao.nome_classe.ilike(term),
+            )
+        )
     query = query.order_by(
         col(DjenPublicacao.data_disponibilizacao).desc(),
         col(DjenPublicacao.criado_em).desc(),
@@ -128,7 +151,16 @@ async def count_novas(session: AsyncSession, escritorio_id: UUID) -> int:
 
 
 async def resumo(session: AsyncSession, escritorio_id: UUID) -> DjenResumoRead:
-    return DjenResumoRead(novas=await count_novas(session, escritorio_id))
+    all_items = await list_publicacoes(session, escritorio_id)
+    novas = sum(1 for item in all_items if item.status == DjenStatus.nova and not item.motivo_cancelamento)
+    com_prazo = sum(1 for item in all_items if item.status == DjenStatus.prazo_criado)
+    ignoradas = sum(1 for item in all_items if item.status == DjenStatus.ignorada or item.motivo_cancelamento)
+    return DjenResumoRead(
+        novas=novas,
+        com_prazo=com_prazo,
+        ignoradas=ignoradas,
+        total=len(all_items),
+    )
 
 
 async def _get_by_djen_id(
@@ -145,7 +177,9 @@ async def _get_by_djen_id(
     return result.first()
 
 
-def _apply_normalized(row: DjenPublicacao, parsed: dict[str, Any], processo_id: UUID) -> None:
+def _apply_normalized(
+    row: DjenPublicacao, parsed: dict[str, Any], processo_id: UUID | None
+) -> None:
     row.processo_id = processo_id
     row.hash = parsed.get("hash")
     row.numero_processo = parsed["numero_processo"]
@@ -153,7 +187,12 @@ def _apply_normalized(row: DjenPublicacao, parsed: dict[str, Any], processo_id: 
     row.tribunal = parsed.get("tribunal")
     row.tipo_comunicacao = parsed["tipo_comunicacao"]
     row.tipo_documento = parsed.get("tipo_documento")
+    row.nome_classe = parsed.get("nome_classe")
     row.orgao = parsed.get("orgao")
+    row.texto = parsed.get("texto")
+    row.link = parsed.get("link")
+    row.destinatarios = parsed.get("destinatarios")
+    row.dias_identificados = parsed.get("dias_identificados")
     row.data_disponibilizacao = parsed.get("data_disponibilizacao")
     row.motivo_cancelamento = parsed.get("motivo_cancelamento")
     row.sincronizado_em = utc_now()
@@ -162,32 +201,46 @@ def _apply_normalized(row: DjenPublicacao, parsed: dict[str, Any], processo_id: 
 
 async def upsert_items(
     session: AsyncSession,
-    processo: Processo,
+    escritorio_id: UUID,
     items: list[dict[str, Any]],
+    processo: Processo | None = None,
 ) -> int:
-    """Persiste itens casados com o processo. Retorna quantos eram novos."""
+    """Persiste itens do DJEN associando ao processo quando disponível. Retorna quantos eram novos."""
     criados = 0
     now = utc_now()
     for raw in items:
         parsed = normalize_item(raw)
         if parsed is None:
             continue
-        if parsed["numero_processo_digitos"] != so_digitos(processo.numero_processo):
+        if processo is not None and parsed["numero_processo_digitos"] != so_digitos(processo.numero_processo):
             continue
-        existing = await _get_by_djen_id(session, processo.escritorio_id, parsed["djen_id"])
+
+        target_proc_id = processo.id if processo is not None else None
+        if target_proc_id is None:
+            found = await get_processo_by_numero(
+                session, parsed["numero_processo_digitos"], escritorio_id=escritorio_id
+            )
+            if found is not None:
+                target_proc_id = found.id
+
+        existing = await _get_by_djen_id(session, escritorio_id, parsed["djen_id"])
         if existing is None:
             row = DjenPublicacao(
-                escritorio_id=processo.escritorio_id,
-                processo_id=processo.id,
+                escritorio_id=escritorio_id,
+                processo_id=target_proc_id,
                 djen_id=parsed["djen_id"],
                 status=DjenStatus.nova,
                 criado_em=now,
             )
-            _apply_normalized(row, parsed, processo.id)
+            _apply_normalized(row, parsed, target_proc_id)
             session.add(row)
             criados += 1
             continue
-        _apply_normalized(existing, parsed, processo.id)
+        _apply_normalized(
+            existing,
+            parsed,
+            target_proc_id if existing.processo_id is None else existing.processo_id,
+        )
         session.add(existing)
     return criados
 
@@ -225,7 +278,7 @@ async def sincronizar_processo(
     if redis is not None and not force:
         cached = await get_cached(redis, digitos)
         if cached is not None:
-            await upsert_items(session, processo, cached.get("items") or [])
+            await upsert_items(session, processo.escritorio_id, cached.get("items") or [], processo)
             processo.djen_sincronizado_em = utc_now()
             session.add(processo)
             await session.commit()
@@ -249,7 +302,7 @@ async def sincronizar_processo(
             data_inicio=inicio,
             data_fim=fim,
         )
-        criados = await upsert_items(session, processo, items)
+        criados = await upsert_items(session, processo.escritorio_id, items, processo)
         processo.djen_sincronizado_em = utc_now()
         session.add(processo)
         await session.commit()
@@ -276,6 +329,29 @@ async def sincronizar_escritorio(session: AsyncSession, escritorio_id: UUID) -> 
         criados += sync.criados
         if not sync.ok:
             erros += 1
+
+    # Radar automático por advogados cadastrados no escritório
+    users_res = await session.exec(
+        select(User).where(User.escritorio_id == escritorio_id, User.ativo == True)
+    )
+    users = list(users_res.all())
+    hoje = today_brt()
+    inicio = hoje - timedelta(days=LOOKBACK_PRIMEIRA_SYNC_DIAS)
+    for u in users:
+        nome = u.nome.strip()
+        if len(nome.split()) >= 2:
+            try:
+                items = await consultar_comunicacoes(
+                    nome_advogado=nome,
+                    data_inicio=inicio,
+                    data_fim=hoje,
+                )
+                novos = await upsert_items(session, escritorio_id, items)
+                criados += novos
+                await session.commit()
+            except Exception:
+                pass
+
     return SyncResult(
         ok=erros == 0,
         criados=criados,
