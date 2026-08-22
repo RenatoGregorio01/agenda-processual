@@ -8,7 +8,7 @@ services:
       POSTGRES_USER: agenda
       POSTGRES_PASSWORD: agenda
     ports:
-      - "5432:5432"
+      - "${DB_PORT:-5432}:5432"
     volumes:
       - ./data/postgres:/var/lib/postgresql/data
     healthcheck:
@@ -62,13 +62,23 @@ services:
       SMTP_PORT: "1025"
       SMTP_FROM: agenda@local.test
       SMTP_FROM_NAME: Agenda Processual
+      SMTP_FROM_CONVITE: convite@local.test
+      SMTP_FROM_NAME_CONVITE: Agenda Processual — Convite
+      SMTP_FROM_ALERTA: alerta@local.test
+      SMTP_FROM_NAME_ALERTA: Agenda Processual — Alerta
       SMTP_TLS: "false"
       SMTP_SSL: "false"
       ALERTAS_ENABLED: "true"
       ALERTAS_CRON_HOUR: "8"
+      AUDIT_PURGE_ENABLED: "true"
+      AUDIT_RETENTION_DAYS: "365"
+      AUDIT_PURGE_CRON_HOUR: "3"
       INVITE_EXPIRE_HOURS: "72"
       REDIS_URL: redis://redis:6379/0
       DATAJUD_API_KEY: cDZHYzlZa0JadVREZDJCendQbXY6SkJlTzNjLV9TRENyQk1RdnFKZGRQdw==
+      DJEN_ENABLED: "true"
+      DJEN_CRON_HOUR: "7"
+      DJEN_PRAZO_DIAS_UTEIS: "15"
     ports:
       # Host 8001: a 8000 costuma estar ocupada por outros projetos locais
       - "8001:8000"

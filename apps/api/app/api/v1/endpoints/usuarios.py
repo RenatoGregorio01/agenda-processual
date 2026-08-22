@@ -6,6 +6,7 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 
 from app.api.deps import get_current_admin, get_current_user
 from app.core.database import get_session
+from app.core.oab import validate_advogado_oab
 from app.core.permissions import Permission, sync_admin_flag, user_has_permission
 from app.core.security import hash_password
 from app.core.tenant import get_owned
@@ -80,6 +81,12 @@ async def criar_usuario(
             detail="Já existe um usuário com este e-mail",
         )
 
+    oab_numero, oab_uf = validate_advogado_oab(
+        eh_advogado=payload.eh_advogado,
+        oab_numero=payload.oab_numero,
+        oab_uf=payload.oab_uf,
+    )
+
     user = User(
         escritorio_id=current_admin.escritorio_id,
         email=email,
@@ -88,6 +95,9 @@ async def criar_usuario(
         role=payload.role,
         ativo=payload.ativo,
         receber_alertas=payload.receber_alertas,
+        eh_advogado=payload.eh_advogado,
+        oab_numero=oab_numero,
+        oab_uf=oab_uf,
     )
     sync_admin_flag(user)
     session.add(user)
@@ -153,6 +163,16 @@ async def atualizar_usuario(
         user.ativo = data["ativo"]
     if "receber_alertas" in data and data["receber_alertas"] is not None:
         user.receber_alertas = data["receber_alertas"]
+    if "eh_advogado" in data or "oab_numero" in data or "oab_uf" in data:
+        eh_advogado = data["eh_advogado"] if "eh_advogado" in data else user.eh_advogado
+        oab_numero, oab_uf = validate_advogado_oab(
+            eh_advogado=bool(eh_advogado),
+            oab_numero=data["oab_numero"] if "oab_numero" in data else user.oab_numero,
+            oab_uf=data["oab_uf"] if "oab_uf" in data else user.oab_uf,
+        )
+        user.eh_advogado = bool(eh_advogado)
+        user.oab_numero = oab_numero
+        user.oab_uf = oab_uf
     if data.get("password"):
         user.hashed_password = hash_password(data["password"])
 

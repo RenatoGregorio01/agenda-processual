@@ -1,13 +1,15 @@
 import { notFound } from "next/navigation";
 
 import { AppShell, PageContent, PageHeader } from "@/components/app-shell";
+import { DjenPublicacoesList } from "@/components/djen-publicacoes";
 import { PrazoListItem } from "@/components/prazo-list-item";
 import { AndamentosEmpty, ProcessoAndamentos } from "@/components/processo-andamentos";
 import { ButtonLink, EmptyState, SectionHeading } from "@/components/ui";
 import { apiFetch } from "@/lib/api-server";
 import { formatAuditDate, labelAcao, type AuditLog } from "@/lib/auditoria";
 import { hasPermission, type User } from "@/lib/auth";
-import type { ProcessoDetail } from "@/lib/processos";
+import type { DjenPublicacao } from "@/lib/djen";
+import type { DatajudSync, ProcessoDetail } from "@/lib/processos";
 
 async function getCurrentUser(): Promise<User | null> {
   const response = await apiFetch("/api/v1/auth/me");
@@ -22,6 +24,28 @@ async function getProcesso(id: string): Promise<ProcessoDetail | null> {
   return (await response.json()) as ProcessoDetail;
 }
 
+async function syncDjen(processoId: string): Promise<DjenPublicacao[] | null> {
+  const response = await apiFetch(
+    `/api/v1/processos/${processoId}/djen/sync`,
+    { method: "POST" },
+  );
+  if (!response.ok) return null;
+  const body = (await response.json()) as { publicacoes?: DjenPublicacao[] };
+  return body.publicacoes ?? null;
+}
+
+async function syncAndamentos(processoId: string): Promise<DatajudSync | null> {
+  const response = await apiFetch(
+    `/api/v1/processos/${processoId}/datajud/sync?force=true`,
+    {
+      method: "POST",
+    },
+  );
+  if (response.status === 404) return null;
+  if (!response.ok) return null;
+  return (await response.json()) as DatajudSync;
+}
+
 export default async function ProcessoPage({
   params,
 }: {
@@ -31,7 +55,11 @@ export default async function ProcessoPage({
   const [user, detail] = await Promise.all([getCurrentUser(), getProcesso(id)]);
   if (!detail) notFound();
 
-  const { processo, prazos, historico, datajud } = detail;
+  const datajud =
+    (await syncAndamentos(detail.processo.id)) ?? detail.datajud ?? null;
+  const djen =
+    (await syncDjen(detail.processo.id)) ?? detail.djen ?? [];
+  const { processo, prazos, historico } = detail;
   const ativos = prazos.filter((item) => !item.excluido_em);
   const excluidos = prazos.filter((item) => item.excluido_em);
 
@@ -92,6 +120,18 @@ export default async function ProcessoPage({
           </div>
 
           <div className="space-y-8 lg:col-span-2">
+            <section>
+              <SectionHeading>Publicações no DJEN</SectionHeading>
+              <div className="mt-3">
+                <DjenPublicacoesList
+                  items={djen}
+                  user={user}
+                  compact
+                  emptyMessage="Nenhuma publicação do diário para este processo."
+                />
+              </div>
+            </section>
+
             {datajud ? (
               <ProcessoAndamentos data={datajud} />
             ) : (

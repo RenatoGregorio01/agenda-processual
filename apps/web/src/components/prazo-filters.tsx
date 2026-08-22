@@ -3,6 +3,12 @@ import Link from "next/link";
 import { FILTROS, type FiltroPrazo } from "@/lib/prazos";
 import { buildQuery } from "@/lib/query";
 
+function tabClass(active: boolean) {
+  return active
+    ? "-mb-px whitespace-nowrap border-b-2 border-primary px-4 py-2.5 text-sm font-semibold text-foreground"
+    : "whitespace-nowrap px-4 py-2.5 text-sm text-muted transition hover:text-foreground";
+}
+
 export function PrazoFilters({
   current,
   responsavelId,
@@ -21,7 +27,11 @@ export function PrazoFilters({
   const rangeActive = periodoOpen || Boolean(dataInicio || dataFim);
 
   return (
-    <div className="scroll-x-touch flex justify-start gap-2 overflow-x-auto pb-1 sm:justify-end">
+    <div
+      className="scroll-x-touch flex gap-1 overflow-x-auto border-b border-border bg-surface/40 px-1"
+      role="tablist"
+      aria-label="Filtros de prazos"
+    >
       {FILTROS.map((filtro) => {
         const active = !rangeActive && filtro.id === current;
         const href = `/prazos${buildQuery({
@@ -33,11 +43,9 @@ export function PrazoFilters({
           <Link
             key={filtro.id}
             href={href}
-            className={
-              active
-                ? "whitespace-nowrap border border-primary bg-primary px-3 py-1.5 text-sm font-medium text-primary-foreground"
-                : "whitespace-nowrap border border-border bg-surface px-3 py-1.5 text-sm text-muted transition hover:border-primary/40 hover:text-foreground"
-            }
+            role="tab"
+            aria-selected={active}
+            className={tabClass(active)}
           >
             {filtro.label}
           </Link>
@@ -51,11 +59,9 @@ export function PrazoFilters({
           data_fim: dataFim,
           periodo: "1",
         })}`}
-        className={
-          rangeActive
-            ? "whitespace-nowrap border border-primary bg-primary px-3 py-1.5 text-sm font-medium text-primary-foreground"
-            : "whitespace-nowrap border border-border bg-surface px-3 py-1.5 text-sm text-muted transition hover:border-primary/40 hover:text-foreground"
-        }
+        role="tab"
+        aria-selected={rangeActive}
+        className={tabClass(rangeActive)}
       >
         Período
       </Link>

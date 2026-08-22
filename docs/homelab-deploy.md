@@ -1,70 +1,57 @@
-# Deploy no homelab (público + Grafana + SMTP)
+# Deploy no homelab (servidor Ubuntu)
 
-Ordem sugerida:
+A stack roda no **servidor Ubuntu** (`gregorio-homelab`), não no Mac.
 
-1. Secrets e URLs
-2. SMTP real
-3. Cloudflare Tunnel
-4. Prometheus scrape + dashboard Grafana
-5. Teste de alerta ponta a ponta
+Dois ambientes no mesmo Docker, **clones e túneis separados**:
 
-## 1. Secrets
+| Ambiente | Branch | Clone | URL |
+|----------|--------|-------|-----|
+| Produção | `main` | `~/agenda-processual` | https://agendaprocessual.com.br |
+| Homologação | `develop` | `~/agenda-processual-develop` | https://develop.agendaprocessual.com.br |
+
+Não publique `develop` no clone de produção: containers (`agenda-db`, `agenda-api`, …) e o túnel `agenda` são da stack de produção.
+
+## Produção (`main`)
+
+### 1. Secrets
 
 ```bash
+ssh homelab-ts
+cd ~/agenda-processual
 cp docker/homelab.env.example docker/homelab.env
-cp docker/smtp.env.example docker/smtp.env
-# edite ambos (JWT_SECRET, TUNNEL_TOKEN, SMTP_*, URLs do domínio)
+cp docker/smtp.env.example docker/smtp.env   # opcional mas recomendado
+# edite ambos (JWT_SECRET, TUNNEL_TOKEN, SMTP_*, URLs)
+chmod 600 docker/homelab.env docker/smtp.env
 ```
 
 Gere um `JWT_SECRET` forte (ex.: `openssl rand -hex 32`).
 
-## 2. SMTP
+### 2. SMTP
 
 Siga [smtp-e-acesso.md](smtp-e-acesso.md) (Gmail senha de app ou Resend).
-O job diário (`ALERTAS_CRON_HOUR`, default 8h America/Sao_Paulo) e o
-`POST /api/v1/alertas/processar` (admin) usam o mesmo SMTP.
+Sem `smtp.env`, a API usa Mailpit (só rede interna — sem porta no host).
 
-## 3. Cloudflare Tunnel — configurar domínio (passo a passo)
+### 3. Cloudflare Tunnel (`agenda`)
 
-### A) Domínio na Cloudflare
+1. Zero Trust → Tunnels → túnel `agenda` → token em `docker/homelab.env`.
+2. Public Hostnames (serviço Docker na mesma rede do compose):
 
-1. Compre/registre um domínio (ex.: Registro.br).
-2. Crie conta em [dash.cloudflare.com](https://dash.cloudflare.com).
-3. **Add a site** → informe o domínio.
-4. Cloudflare mostra 2 nameservers (ex.: `ada.ns.cloudflare.com`). No Registro.br (ou onde comprou), troque os DNS/nameservers para esses.
-5. Espere o status ficar **Active** (pode levar minutos a algumas horas).
+| Hostname | URL interna |
+|----------|-------------|
+| `agendaprocessual.com.br` | `http://web:3000` |
+| `api.agendaprocessual.com.br` | `http://api:8000` |
 
-### B) Túnel nomeado (URL fixa)
-
-1. No menu: **Zero Trust** → **Networks** → **Tunnels** → **Create a tunnel**.
-2. Tipo **Cloudflared** → nome `agenda` → **Save**.
-3. Em **Install connector**, escolha **Docker** e **copie o token** (`eyJ...`).
-4. Cole o token em `docker/homelab.env` como `TUNNEL_TOKEN=...`.
-5. Aba **Public Hostname** → **Add** (exemplo com `agendaprocessual.com.br`):
-
-| Subdomain | Domain | Type | URL |
-|-----------|--------|------|-----|
-| *(vazio = apex)* | agendaprocessual.com.br | HTTP | `http://web:3000` |
-| `api` | agendaprocessual.com.br | HTTP | `http://api:8000` |
-
-Use **um túnel** (`agenda`) com os dois hostnames e só `TUNNEL_TOKEN`.
-
-6. Em `homelab.env`:
+3. Em `homelab.env`:
    - `APP_PUBLIC_URL=https://agendaprocessual.com.br`
    - `NEXT_PUBLIC_API_URL=https://api.agendaprocessual.com.br`
    - `CORS_ORIGINS=https://agendaprocessual.com.br`
 
-7. Suba com `compose.homelab.yml` (comando na seção abaixo).
-
-Acesso: **https://agendaprocessual.com.br**.
-
-### C) Teste rápido sem domínio (já usado)
-
-Quick Tunnel gera URL `*.trycloudflare.com` temporária. Não use para produção.
-
-### D) Subir stack com domínio + SMTP
+### Subir / atualizar
 
 ```bash
+cd ~/agenda-processual
+git pull --ff-only origin main
+
 docker compose \
   --env-file docker/homelab.env \
   --env-file docker/smtp.env \
@@ -74,78 +61,125 @@ docker compose \
   up -d --build
 ```
 
-Não publique no túnel: Postgres, Redis, Mailpit.
+(`smtp.env` / `compose.smtp.yml` só se existirem.)
 
-## 4. Observabilidade (Grafana do homelab)
+**Não** publica portas no host para web/api/db/redis (evita conflito com Grafana `:3000` e Postgres do homelab `:5432`). Acesso público só via túnel.
 
-- API expõe `GET /metrics` (Prometheus) e `GET /api/v1/health` (DB + Redis).
-- Cole o job de [`deploy/prometheus/agenda.yml`](../deploy/prometheus/agenda.yml) no Prometheus.
-- Importe [`deploy/grafana/agenda-dashboard.json`](../deploy/grafana/agenda-dashboard.json) no Grafana.
-- Regras sugeridas: [`deploy/grafana/alert-rules.md`](../deploy/grafana/alert-rules.md).
+## Homologação (`develop`)
 
-O scrape fica na rede interna do homelab; não precisa expor `/metrics` no túnel.
+Ambiente para validar PRs depois do merge em `develop`. Banco, Redis, imagens e túnel **próprios**. Faixa laranja no topo da UI.
 
-## 5. Teste de e-mail de alerta
-
-1. Login como admin na URL pública.
-2. Em Usuários, marque “Receber alertas” no responsável.
-3. Crie prazo pendente com vencimento = hoje + N (N nos alertas do prazo, default 3 e 1).
-4. Dispare:
+### 1. Segundo clone
 
 ```bash
-TOKEN=$(curl -s -X POST https://api.agenda.SEUDOMINIO/api/v1/auth/login \
-  -H 'Content-Type: application/json' \
-  -d '{"email":"SEU_ADMIN","password":"SUA_SENHA"}' \
-  | python3 -c 'import sys,json; print(json.load(sys.stdin)["access_token"])')
-
-curl -s -X POST https://api.agenda.SEUDOMINIO/api/v1/alertas/processar \
-  -H "Authorization: Bearer $TOKEN"
+ssh homelab-ts
+git clone git@github.com:RenatoGregorio01/agenda-processual.git ~/agenda-processual-develop
+cd ~/agenda-processual-develop
+git checkout develop
+cp docker/homelab-develop.env.example docker/homelab-develop.env
+# JWT_SECRET e TUNNEL_TOKEN diferentes da produção
+chmod 600 docker/homelab-develop.env
 ```
 
-5. Confira a caixa de e-mail e o painel Grafana (enviados / erros).
-6. O link do e-mail deve apontar para `APP_PUBLIC_URL`, não localhost.
+### 2. Túnel Cloudflare (`agenda-develop`)
 
-## 6. CI/CD (GitHub Actions → homelab)
+Crie um **segundo túnel** (Zero Trust → Tunnels → Create). Não reutilize o token do túnel `agenda`: dois connectors no mesmo túnel competem.
 
-Fluxo: **push em `develop`/`main`** → testes API + build Web → deploy no runner local.
+Public Hostnames:
 
-### A) Self-hosted runner (uma vez)
+| Hostname | URL interna |
+|----------|-------------|
+| `develop.agendaprocessual.com.br` | `http://web:3000` |
+| `api-develop.agendaprocessual.com.br` | `http://api:8000` |
+| `mailpit-develop.agendaprocessual.com.br` (opcional) | `http://mailpit:8025` |
 
-1. No Mac do homelab: [GitHub → Settings → Actions → Runners → New self-hosted runner](https://github.com/RenatoGregorio01/agenda-processual/settings/actions/runners/new).
-2. Siga as instruções (download + `./config.sh` + `./run.sh`).
-3. Labels: deixe `self-hosted` e adicione **`homelab`**.
-4. Rode o runner como serviço (`svc.sh install && svc.sh start`) para não depender do terminal aberto.
+Em `homelab-develop.env`:
 
-### B) Variável do repositório
+- `APP_PUBLIC_URL=https://develop.agendaprocessual.com.br`
+- `NEXT_PUBLIC_API_URL=https://api-develop.agendaprocessual.com.br`
+- `CORS_ORIGINS=https://develop.agendaprocessual.com.br`
 
-GitHub → **Settings → Secrets and variables → Actions → Variables**:
+E-mails de convite/alerta desta stack vão para o Mailpit interno (não SMTP real), para não pingar o escritório.
 
-| Name | Value (exemplo) |
-|------|-----------------|
-| `HOMELAB_REPO_PATH` | `/Users/renatogregorio/Documents/Projetos/agenda-processual` |
+### Subir / atualizar
 
-O deploy faz `git pull` **nesse caminho** (mesmo volume Postgres/Redis). Não use o workspace efêmero do Actions.
+```bash
+cd ~/agenda-processual-develop
+git pull --ff-only origin develop
 
-Secrets (`homelab.env`, `smtp.env`, `TUNNEL_TOKEN`) continuam **só no disco local** — não vá para o GitHub.
+docker compose -p agenda-develop \
+  --env-file docker/homelab-develop.env \
+  -f docker/docker-compose.yml \
+  -f docker/compose.develop.yml \
+  up -d --build
+```
 
-### C) Workflows
+Login seed: `veronica@escritorio.com` / senha de `SEED_ADMIN_PASSWORD` no env.
 
-| Arquivo | Quando |
-|---------|--------|
-| `api-ci.yml` / `web-ci.yml` | PR e push em feature (validação) |
-| `deploy-homelab.yml` | Push em `main`/`develop` ou manual (`workflow_dispatch`) |
+### 3. Variável do GitHub Actions
 
-Sem runner online, o job **Deploy** fica amarelo/vermelho; API/Web CI na nuvem ainda rodam.
+Settings → Variables → `HOMELAB_DEVELOP_REPO_PATH` = `/home/renato/agenda-processual-develop`
+
+(Produção continua em `HOMELAB_REPO_PATH` = `/home/renato/agenda-processual`.)
+
+## Observabilidade
+
+Produção e homologação expõem `/metrics` na rede Docker `observability`.
+
+| Ambiente | Container | Job Prometheus | Label `env` |
+|----------|-----------|----------------|-------------|
+| Produção | `agenda-api:8000` | `agenda-api` | `homelab` |
+| Homologação | `agenda-develop-api:8000` | `agenda-api-develop` | `develop` |
+
+Arquivos neste repo:
+
+- Scrape: [`deploy/prometheus/agenda.yml`](../deploy/prometheus/agenda.yml) → incluir no `prometheus.yml` (ou `scrape_config_files`) do homelab
+- Dashboard: [`deploy/grafana/agenda-dashboard.json`](../deploy/grafana/agenda-dashboard.json) — variável **Ambiente** (`homelab` / `develop`)
+- Alertas: [`deploy/grafana/alert-rules.md`](../deploy/grafana/alert-rules.md) (API down / 5xx / DJEN por env)
+
+```bash
+# No Ubuntu (Prometheus do homelab)
+curl -s 'http://127.0.0.1:9090/api/v1/targets' | grep agenda
+curl -X POST http://127.0.0.1:9090/-/reload
+
+# Health público (deve ser 200; 502 = API/túnel down)
+curl -sS -o /dev/null -w '%{http_code}\n' https://api-develop.agendaprocessual.com.br/api/v1/health
+```
+
+Após alterar o JSON: Grafana → Dashboards → Import (ou sobrescrever UID `agenda-processual`).
+Selecione **Ambiente = develop** para investigar erros de homologação (API offline, 5xx, DJEN).
+
+Recarregue o Prometheus depois de incluir o job `agenda-api-develop`.
+
+## CI/CD (GitHub Actions → Ubuntu)
+
+1. Instale o [self-hosted runner](https://github.com/RenatoGregorio01/agenda-processual/settings/actions/runners/new) **no Ubuntu**, label `homelab`.
+2. `HOMELAB_REPO_PATH` = clone de **produção**.
+3. `HOMELAB_DEVELOP_REPO_PATH` = clone de **homologação**.
+4. Push em `main` → `deploy-homelab.yml`.
+5. Push em `develop` → `deploy-develop.yml`.
+
+O runner antigo no Mac pode ser removido (Settings → Runners).
+
+## Mac (só desenvolvimento)
+
+```bash
+# Sem túnel / sem produção / sem homologação:
+docker compose -f docker/docker-compose.yml up -d --build
+```
+
+Não rode `compose.homelab.yml` nem `compose.develop.yml` no Mac se os túneis já estiverem ativos no Ubuntu.
 
 ## Checklist
 
-- [ ] Web em **produção** (`next build` / imagem `Dockerfile`, sem `next dev`)
-- [ ] `DEBUG=false`, `APP_ENV=production`
-- [ ] `JWT_SECRET` único
-- [ ] Senha admin forte em `SEED_ADMIN_PASSWORD` (aplicada no boot se a env estiver setada)
-- [ ] `APP_PUBLIC_URL` e `NEXT_PUBLIC_API_URL` em HTTPS
-- [ ] `COOKIE_SECURE=true` (já no compose.homelab)
-- [ ] SMTP real (não Mailpit) — ver [smtp-e-acesso.md](smtp-e-acesso.md)
-- [ ] Tunnel só web + api (1 túnel, 2 Public Hostnames)
-- [ ] Prometheus scrapando `agenda-api`
-- [ ] Backup de `docker/data/postgres`
+- [ ] Stack de produção (`docker ps | grep agenda-api`)
+- [ ] Stack de homologação (`docker ps | grep agenda-develop`)
+- [ ] Dois cloudflared (`agenda` e `agenda-develop`) com `Registered tunnel connection`
+- [ ] https://agendaprocessual.com.br e /api health OK
+- [ ] https://develop.agendaprocessual.com.br com faixa de homologação
+- [ ] Stack do Mac parada (`compose down`)
+- [ ] `HOMELAB_REPO_PATH` e `HOMELAB_DEVELOP_REPO_PATH` no GitHub
+- [ ] Prometheus `agenda-api:8000` e `agenda-develop-api:8000` = UP
+- [ ] Grafana: dashboard Agenda Processual com Ambiente=develop (API up / 5xx / DJEN)
+- [ ] Alertas Grafana: API down develop + 5xx develop (ver `deploy/grafana/alert-rules.md`)
+- [ ] Backup diário do Postgres de **produção** (`agenda-db`) via restic no HD externo — ver [homelab/docs/backup.md](https://github.com/RenatoGregorio01/homelab/blob/main/docs/backup.md)

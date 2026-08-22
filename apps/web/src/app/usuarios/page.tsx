@@ -3,10 +3,10 @@ import { redirect } from "next/navigation";
 
 import { AppShell, PageContent, PageHeader } from "@/components/app-shell";
 import { CriarUsuarioForm } from "@/components/criar-usuario-form";
-import { EditarUsuarioForm } from "@/components/editar-usuario-form";
 import { ListaConvites } from "@/components/lista-convites";
+import { ListaUsuarios } from "@/components/lista-usuarios";
 import { UsuariosTabs } from "@/components/usuarios-tabs";
-import { Card, EmptyState } from "@/components/ui";
+import { Card } from "@/components/ui";
 import { apiFetch } from "@/lib/api-server";
 import { hasPermission, type RoleInfo, type User } from "@/lib/auth";
 import type { Convite } from "@/lib/convites";
@@ -65,20 +65,11 @@ export default async function UsuariosPage() {
             }
             enviados={<ListaConvites convites={convites} />}
             contas={
-              <div className="grid gap-4">
-                {usuarios.length === 0 ? (
-                  <EmptyState>Nenhuma conta cadastrada ainda.</EmptyState>
-                ) : (
-                  usuarios.map((user) => (
-                    <EditarUsuarioForm
-                      key={user.id}
-                      user={user}
-                      roles={roles}
-                      isSelf={user.id === currentUser.id}
-                    />
-                  ))
-                )}
-              </div>
+              <ListaUsuarios
+                usuarios={usuarios}
+                roles={roles}
+                currentUserId={currentUser.id}
+              />
             }
           />
         </Suspense>

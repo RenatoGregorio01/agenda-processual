@@ -30,7 +30,11 @@ export default async function LoginPage({
             <LoginForm nextPath={params.next || "/dashboard"} />
           </div>
           <p className="mt-6 text-center text-xs leading-relaxed text-muted">
-            Ao entrar, você usa o sistema do seu escritório.{" "}
+            Ainda não tem escritório?{" "}
+            <Link href="/cadastro" className="text-primary underline-offset-4 hover:underline">
+              Criar conta
+            </Link>
+            {" · "}
             <Link href="/privacidade" className="text-primary underline-offset-4 hover:underline">
               Privacidade
             </Link>

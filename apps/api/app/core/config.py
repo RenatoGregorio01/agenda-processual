@@ -37,14 +37,34 @@ class Settings(BaseSettings):
     smtp_port: int = 1025
     smtp_user: str = ""
     smtp_password: str = ""
+    # Fallback genérico; preferir smtp_from_convite / smtp_from_alerta.
     smtp_from: str = "agenda@local.test"
     smtp_from_name: str = "Agenda Processual"
+    smtp_from_convite: str = "convite@local.test"
+    smtp_from_name_convite: str = "Agenda Processual — Convite"
+    smtp_from_alerta: str = "alerta@local.test"
+    smtp_from_name_alerta: str = "Agenda Processual — Alerta"
     # STARTTLS (porta 587). Para 465 use smtp_ssl=true e smtp_tls=false.
     smtp_tls: bool = False
     smtp_ssl: bool = False
 
+    def from_convite(self) -> tuple[str, str]:
+        address = (self.smtp_from_convite or self.smtp_from).strip()
+        name = (self.smtp_from_name_convite or self.smtp_from_name).strip()
+        return address, name
+
+    def from_alerta(self) -> tuple[str, str]:
+        address = (self.smtp_from_alerta or self.smtp_from).strip()
+        name = (self.smtp_from_name_alerta or self.smtp_from_name).strip()
+        return address, name
+
     alertas_enabled: bool = True
     alertas_cron_hour: int = 8
+
+    audit_purge_enabled: bool = True
+    audit_retention_days: int = 365
+    audit_purge_cron_hour: int = 3
+    audit_purge_batch_size: int = 1000
 
     invite_expire_hours: int = 72
 
@@ -55,6 +75,17 @@ class Settings(BaseSettings):
     datajud_cache_ttl_seconds: int = 60 * 60 * 12
     datajud_empty_ttl_seconds: int = 60 * 60 * 6
     datajud_lock_ttl_seconds: int = 45
+    datajud_rate_limit_per_minute: int = 60
+
+    djen_enabled: bool = True
+    djen_base_url: str = "https://comunicaapi.pje.jus.br/api/v1"
+    djen_cache_ttl_seconds: int = 60 * 60 * 5
+    djen_empty_ttl_seconds: int = 60 * 60 * 3
+    djen_lock_ttl_seconds: int = 45
+    djen_rate_limit_per_minute: int = 30
+    djen_cron_hour: int = 7
+    djen_prazo_dias_uteis: int = 15
+
     cors_origins: str = "http://localhost:3000,http://127.0.0.1:3000"
     seed_example_data: bool = True
     metrics_enabled: bool = True

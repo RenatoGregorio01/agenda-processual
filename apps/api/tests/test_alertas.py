@@ -87,4 +87,16 @@ def test_email_corpo_nao_inclui_dados_do_cliente() -> None:
     assert "Maria Souza" not in text_body
     assert "Maria Souza" not in html_body
     assert f"http://localhost:3000/prazos/{prazo.id}" in text_body
+    assert f"http://localhost:3000/prazos/{prazo.id}" in html_body
     assert "Verônica" not in html_body
+    assert "Abrir prazo no sistema" in html_body
+    assert "não inclui dados" in html_body
+
+
+def test_email_alerta_um_dia_usa_urgencia() -> None:
+    prazo = _prazo(id=uuid4(), data_vencimento=date(2026, 8, 10))
+    settings = Settings(app_public_url="http://localhost:3000")
+    subject, _, html_body = _montar_corpo(prazo, 1, settings)
+    assert "1 dia" in subject
+    assert "Prazo amanhã" in html_body
+    assert "#b54708" in html_body

@@ -7,6 +7,7 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 from app.api.deps import get_current_admin
 from app.core.config import get_settings
 from app.core.database import get_session
+from app.core.oab import validate_advogado_oab
 from app.core.permissions import sync_admin_flag
 from app.core.security import create_access_token, hash_password
 from app.core.tenant import get_owned
@@ -36,6 +37,9 @@ def _to_read(convite: Convite) -> ConviteRead:
         nome=convite.nome,
         role=convite.role,
         receber_alertas=convite.receber_alertas,
+        eh_advogado=convite.eh_advogado,
+        oab_numero=convite.oab_numero,
+        oab_uf=convite.oab_uf,
         expires_at=convite.expires_at,
         used_at=convite.used_at,
         revoked_at=convite.revoked_at,
@@ -67,6 +71,9 @@ async def consultar_convite(
         email=convite.email,
         nome=convite.nome,
         role=convite.role,
+        eh_advogado=convite.eh_advogado,
+        oab_numero=convite.oab_numero,
+        oab_uf=convite.oab_uf,
         expires_at=convite.expires_at,
     )
 
@@ -86,6 +93,12 @@ async def aceitar_convite(
             detail="Já existe um usuário com este e-mail",
         )
 
+    oab_numero, oab_uf = validate_advogado_oab(
+        eh_advogado=convite.eh_advogado,
+        oab_numero=payload.oab_numero or convite.oab_numero,
+        oab_uf=payload.oab_uf or convite.oab_uf,
+    )
+
     user = User(
         escritorio_id=convite.escritorio_id,
         email=convite.email,
@@ -94,6 +107,9 @@ async def aceitar_convite(
         role=convite.role,
         ativo=True,
         receber_alertas=convite.receber_alertas,
+        eh_advogado=convite.eh_advogado,
+        oab_numero=oab_numero,
+        oab_uf=oab_uf,
     )
     sync_admin_flag(user)
     session.add(user)
@@ -146,6 +162,11 @@ async def criar_convite(
 ) -> ConviteRead:
     settings = get_settings()
     email = str(payload.email).lower()
+    oab_numero, oab_uf = validate_advogado_oab(
+        eh_advogado=payload.eh_advogado,
+        oab_numero=payload.oab_numero,
+        oab_uf=payload.oab_uf,
+    )
 
     existing_user = await session.exec(select(User).where(User.email == email))
     if existing_user.first() is not None:
@@ -175,6 +196,9 @@ async def criar_convite(
         nome=payload.nome.strip(),
         role=payload.role,
         receber_alertas=payload.receber_alertas,
+        eh_advogado=payload.eh_advogado,
+        oab_numero=oab_numero,
+        oab_uf=oab_uf,
         token_hash=hash_invite_token(token),
         expires_at=build_invite_expiry(settings),
         invited_by_id=current_admin.id,

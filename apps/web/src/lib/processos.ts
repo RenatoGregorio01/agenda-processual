@@ -1,4 +1,5 @@
 import type { AuditLog } from "@/lib/auditoria";
+import type { DjenPublicacao } from "@/lib/djen";
 import type { Prazo } from "@/lib/prazos";
 
 export type Processo = {
@@ -14,6 +15,8 @@ export type DatajudAndamento = {
   data_hora: string | null;
   codigo: number | null;
   nome: string;
+  complemento: string | null;
+  orgao: string | null;
 };
 
 export type DatajudSync = {
@@ -53,4 +56,5 @@ export type ProcessoDetail = {
   prazos: Prazo[];
   historico: AuditLog[];
   datajud: DatajudSync;
+  djen?: DjenPublicacao[];
 };

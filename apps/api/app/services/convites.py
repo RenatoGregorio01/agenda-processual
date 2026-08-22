@@ -6,6 +6,7 @@ from app.core.config import Settings
 from app.core.timeutils import utc_now
 from app.models.convite import Convite
 from app.services.email import send_email
+from app.services.email_templates import montar_email_convite
 
 
 def generate_invite_token() -> str:
@@ -39,33 +40,6 @@ def build_invite_expiry(settings: Settings, *, now: datetime | None = None) -> d
     return current + timedelta(hours=settings.invite_expire_hours)
 
 
-def montar_email_convite(
-    *,
-    settings: Settings,
-    nome: str,
-    token: str,
-    convidado_por: str,
-) -> tuple[str, str, str]:
-    link = f"{settings.app_public_url.rstrip('/')}/convite/{token}"
-    horas = settings.invite_expire_hours
-    subject = "Convite para a Agenda Processual"
-    text_body = (
-        f"Olá, {nome}.\n\n"
-        f"{convidado_por} convidou você para acessar a Agenda Processual.\n\n"
-        f"Defina sua senha neste link (válido por {horas}h):\n{link}\n\n"
-        "Se você não esperava este convite, ignore este e-mail.\n"
-    )
-    html_body = (
-        f"<p>Olá, <strong>{nome}</strong>.</p>"
-        f"<p><strong>{convidado_por}</strong> convidou você para acessar a "
-        "Agenda Processual.</p>"
-        f"<p><a href=\"{link}\">Definir senha e ativar acesso</a></p>"
-        f"<p>O link é válido por {horas} horas.</p>"
-        "<p>Se você não esperava este convite, ignore este e-mail.</p>"
-    )
-    return subject, text_body, html_body
-
-
 async def enviar_email_convite(
     *,
     settings: Settings,
@@ -80,10 +54,13 @@ async def enviar_email_convite(
         token=token,
         convidado_por=convidado_por,
     )
+    from_email, from_name = settings.from_convite()
     await send_email(
         settings=settings,
         to_email=to_email,
         subject=subject,
         text_body=text_body,
         html_body=html_body,
+        from_email=from_email,
+        from_name=from_name,
     )

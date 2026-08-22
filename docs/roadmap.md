@@ -25,7 +25,7 @@ Visão de produto após o MVP (`v0.1.0`). Ordem sugerida; prioridades podem muda
   - App: `https://agendaprocessual.com.br`
   - API: `https://api.agendaprocessual.com.br`
   - Login atual: `/login` → `/dashboard` (tenant pelo `escritorio_id` do usuário, **não** pela URL)
-- [ ] CI/CD: self-hosted runner + deploy automático (workflows prontos; ver [homelab-deploy.md](homelab-deploy.md) §6)
+- [x] CI/CD: self-hosted runner; `develop` → homologação, `main` → produção ([homelab-deploy.md](homelab-deploy.md))
 
 ## Monetização e acesso
 
@@ -41,7 +41,8 @@ Visão de produto após o MVP (`v0.1.0`). Ordem sugerida; prioridades podem muda
 
 ## Depois (quando o manual estabilizar)
 
-- [ ] Integração tribunal / PJe (leitura de andamentos)
+- [ ] Integração tribunal / PJe (leitura autenticada de autos — depois do DJEN)
+- [x] DJEN V1: inbox de publicações + sugestão de prazo (confirmação humana)
 - [ ] Notificações WhatsApp
 - [ ] **Login multi-escritório (slug / subdomínio)** — **adiar** enquanto houver 1 escritório ou poucos clientes manuais
   - Hoje: e-mail único no sistema; tenant resolvido no banco após o login
@@ -49,7 +50,8 @@ Visão de produto após o MVP (`v0.1.0`). Ordem sugerida; prioridades podem muda
   - Opções futuras: `silva.agendaprocessual.com.br` ou `/e/{slug}/login`
   - Escopo típico além da URL: unique `(escritorio_id, email)`, middleware de tenant por host, cookies/`APP_PUBLIC_URL` por host, convites e SMTP alinhados
   - O alicerce `Escritorio` + `escritorio_id` já reduz o retrabalho quando essa fase chegar
-- [ ] Retenção e purge de auditoria / `alerta_envios`
+- [x] Retenção e purge de auditoria (365 dias; job às 3h)
+- [ ] Purge de `alerta_envios` (não entra na V1: apagar reabre o envio do alerta)
 - [ ] Anonimizar colaborador ao desligar a conta
 - [ ] Viewer só vê os próprios prazos; export restrito
 - [ ] Super-admin e seletor de escritório (SaaS)

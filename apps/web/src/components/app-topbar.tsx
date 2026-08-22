@@ -1,6 +1,6 @@
 "use client";
 
-import { usePathname } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 
 import { ButtonLink, SearchField } from "@/components/ui";
 import { hasPermission, type User } from "@/lib/auth";
@@ -11,21 +11,45 @@ type AppTopbarProps = {
 
 /** Páginas que já trazem o CTA “+ Novo prazo” no próprio header. */
 function hideNovoPrazoCta(pathname: string): boolean {
-  if (pathname === "/prazos" || pathname.startsWith("/prazos/novo")) return true;
+  if (pathname.startsWith("/prazos/novo")) return true;
   if (pathname.startsWith("/processos/")) return true;
   return false;
 }
 
 export function AppTopbar({ user }: AppTopbarProps) {
   const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const onPrazosList = pathname === "/prazos";
   const showNovoPrazo =
     hasPermission(user, "prazos_criar") && !hideNovoPrazoCta(pathname);
+
+  const filtro = searchParams.get("filtro") || undefined;
+  const responsavelId = searchParams.get("responsavel_id") || undefined;
+  const dataInicio = searchParams.get("data_inicio") || undefined;
+  const dataFim = searchParams.get("data_fim") || undefined;
+  const periodo = searchParams.get("periodo") || undefined;
+  const q = onPrazosList ? searchParams.get("q") ?? "" : "";
 
   return (
     <div className="sticky top-0 z-10 flex items-center gap-2 border-b border-border bg-surface/95 px-4 py-2.5 backdrop-blur-sm pt-[max(0.625rem,env(safe-area-inset-top))] sm:gap-3 sm:px-8 sm:py-3">
       <form action="/prazos" method="get" className="min-w-0 flex-1 sm:max-w-md">
+        {onPrazosList ? (
+          <>
+            {filtro && filtro !== "todos" ? (
+              <input type="hidden" name="filtro" value={filtro} />
+            ) : null}
+            {responsavelId ? (
+              <input type="hidden" name="responsavel_id" value={responsavelId} />
+            ) : null}
+            {dataInicio ? <input type="hidden" name="data_inicio" value={dataInicio} /> : null}
+            {dataFim ? <input type="hidden" name="data_fim" value={dataFim} /> : null}
+            {periodo ? <input type="hidden" name="periodo" value={periodo} /> : null}
+          </>
+        ) : null}
         <SearchField
+          key={onPrazosList ? `prazos-q-${q}` : "prazos-q"}
           name="q"
+          defaultValue={q}
           placeholder="Buscar prazos…"
           aria-label="Buscar prazos"
           className="h-10 text-base sm:h-11 sm:text-sm"
