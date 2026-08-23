@@ -9,8 +9,16 @@ from app.models.audit_log import AuditAction
 from app.models.conta import Conta
 from app.models.escritorio import Escritorio
 from app.models.user import User
-from app.schemas.auth import LoginEscritorio, LoginRequest, LoginResponse, UserRead
+from app.schemas.auth import (
+    LoginEscritorio,
+    LoginRequest,
+    LoginResponse,
+    PasswordResetConfirm,
+    PasswordResetRequest,
+    UserRead,
+)
 from app.services.audit import registrar_auditoria
+from app.services.password_reset import redefinir_senha, solicitar_recuperacao
 from app.services.users import to_user_read_with_escritorio
 
 router = APIRouter()
@@ -99,3 +107,22 @@ async def me(
     session: AsyncSession = Depends(get_session),
 ) -> UserRead:
     return await to_user_read_with_escritorio(session, current_user)
+
+
+@router.post("/recuperar-senha")
+async def recuperar_senha(
+    payload: PasswordResetRequest,
+    session: AsyncSession = Depends(get_session),
+) -> dict[str, bool]:
+    await solicitar_recuperacao(session, str(payload.email))
+    return {"ok": True}
+
+
+@router.post("/redefinir-senha/{token}")
+async def confirmar_recuperacao_senha(
+    token: str,
+    payload: PasswordResetConfirm,
+    session: AsyncSession = Depends(get_session),
+) -> dict[str, bool]:
+    await redefinir_senha(session, token, payload.password)
+    return {"ok": True}

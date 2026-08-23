@@ -2,6 +2,7 @@
 
 import { useState, useTransition, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 
 import { Button, Field, Input, Select } from "@/components/ui";
 import type { LoginEscritorio, LoginResponse } from "@/lib/auth";
@@ -75,16 +76,9 @@ export function LoginForm({ nextPath }: LoginFormProps) {
           />
         </Field>
         <div className="flex justify-end">
-          <Button
-            type="button"
-            variant="link"
-            size="sm"
-            onClick={() =>
-              setError("Recuperação de senha ainda não está disponível no MVP.")
-            }
-          >
+          <Link href="/recuperar-senha" className="text-sm text-primary underline-offset-4 hover:underline">
             Esqueci a senha
-          </Button>
+          </Link>
         </div>
       </div>
 

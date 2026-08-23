@@ -6,6 +6,7 @@ from app.models.convite import Convite
 from app.models.djen_publicacao import DjenPublicacao, DjenStatus
 from app.models.escritorio import Escritorio
 from app.models.feriado import Feriado
+from app.models.password_reset import PasswordReset
 from app.models.prazo import Prazo, StatusPrazo
 from app.models.prazo_alerta import PrazoAlerta
 from app.models.processo import Processo
@@ -23,6 +24,7 @@ __all__ = [
     "DjenStatus",
     "Escritorio",
     "Feriado",
+    "PasswordReset",
     "Prazo",
     "PrazoAlerta",
     "Processo",

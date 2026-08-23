@@ -169,6 +169,33 @@ def montar_email_codigo_cadastro(
     return subject, text_body, html_body
 
 
+def montar_email_recuperacao_senha(
+    *,
+    settings: Settings,
+    token: str,
+) -> tuple[str, str, str]:
+    link = f"{settings.app_public_url.rstrip('/')}/redefinir-senha/{token}"
+    minutos = settings.password_reset_expire_minutes
+    subject = "Recuperação de senha — Agenda Processual"
+    text_body = (
+        "Olá,\n\n"
+        "Recebemos uma solicitação para redefinir sua senha.\n\n"
+        f"Defina uma nova senha neste link (válido por {minutos} minutos):\n{link}\n\n"
+        "Se você não solicitou a alteração, ignore este e-mail.\n"
+    )
+    html_body = render_layout(
+        preheader="Use este link para definir uma nova senha.",
+        eyebrow="Recuperação de senha",
+        heading="Redefina sua senha",
+        body_html=_p("Recebemos uma solicitação para redefinir sua senha."),
+        cta_label="Definir nova senha",
+        cta_url=link,
+        note=f"O link é válido por {minutos} minutos e só pode ser usado uma vez.",
+        footer="Se você não solicitou a alteração, ignore este e-mail.",
+    )
+    return subject, text_body, html_body
+
+
 def montar_email_alerta(
     *,
     settings: Settings,
