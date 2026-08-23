@@ -67,6 +67,7 @@ class Settings(BaseSettings):
     audit_purge_batch_size: int = 1000
 
     invite_expire_hours: int = 72
+    password_reset_expire_minutes: int = 60
 
     redis_url: str = "redis://localhost:6379/0"
 

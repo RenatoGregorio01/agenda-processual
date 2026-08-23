@@ -46,5 +46,7 @@ export const config = {
     "/convite/:path*",
     "/login",
     "/cadastro",
+    "/recuperar-senha",
+    "/redefinir-senha/:path*",
   ],
 };

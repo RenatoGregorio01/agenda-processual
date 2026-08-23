@@ -28,3 +28,11 @@ class LoginResponse(BaseModel):
     token_type: str = "bearer"
     selecionar_escritorio: bool = False
     escritorios: list[LoginEscritorio] = []
+
+
+class PasswordResetRequest(BaseModel):
+    email: EmailStr
+
+
+class PasswordResetConfirm(BaseModel):
+    password: str = Field(min_length=6, max_length=128)
