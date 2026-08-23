@@ -44,10 +44,6 @@ def upgrade() -> None:
     if "ix_users_account_id" not in user_indexes:
         op.create_index("ix_users_account_id", "users", ["account_id"])
 
-    user_foreign_keys = {foreign_key["name"] for foreign_key in inspector.get_foreign_keys("users")}
-    if "fk_users_account_id" not in user_foreign_keys:
-        op.create_foreign_key("fk_users_account_id", "users", "contas", ["account_id"], ["id"])
-
     users = bind.execute(
         sa.text(
             "SELECT id, email, nome, hashed_password, ativo, criado_em, "
@@ -74,6 +70,10 @@ def upgrade() -> None:
             sa.text("UPDATE users SET account_id = :account_id WHERE id = :user_id"),
             {"account_id": account_id, "user_id": user["id"]},
         )
+
+    user_foreign_keys = {foreign_key["name"] for foreign_key in inspector.get_foreign_keys("users")}
+    if "fk_users_account_id" not in user_foreign_keys:
+        op.create_foreign_key("fk_users_account_id", "users", "contas", ["account_id"], ["id"])
 
 
 def downgrade() -> None:
