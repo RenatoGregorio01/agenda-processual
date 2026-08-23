@@ -7,6 +7,7 @@ Revises: 20260822_0014
 from collections.abc import Sequence
 
 import sqlalchemy as sa
+
 from alembic import op
 
 revision: str = "20260823_0015"
