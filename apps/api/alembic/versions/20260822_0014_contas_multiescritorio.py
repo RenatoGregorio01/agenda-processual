@@ -51,25 +51,23 @@ def upgrade() -> None:
         )
     ).mappings()
     for user in users:
-        account_id = bind.execute(
-            sa.text("SELECT id FROM contas WHERE email = :email"),
-            {"email": user["email"]},
-        ).scalar_one_or_none()
-        if account_id is None:
-            account_id = uuid4()
-            bind.execute(
-                sa.text(
-                    "INSERT INTO contas (id, email, nome, hashed_password, ativo, "
-                    "criado_em, atualizado_em) "
-                    "VALUES (:id, :email, :nome, :hashed_password, :ativo, "
-                    ":criado_em, :atualizado_em)"
-                ),
-                {"id": account_id, **dict(user)},
-            )
         bind.execute(
-            sa.text("UPDATE users SET account_id = :account_id WHERE id = :user_id"),
-            {"account_id": account_id, "user_id": user["id"]},
+            sa.text(
+                "INSERT INTO contas (id, email, nome, hashed_password, ativo, "
+                "criado_em, atualizado_em) "
+                "VALUES (:id, :email, :nome, :hashed_password, :ativo, "
+                ":criado_em, :atualizado_em) "
+                "ON CONFLICT (email) DO NOTHING"
+            ),
+            {"id": uuid4(), **dict(user)},
         )
+
+    bind.execute(
+        sa.text(
+            "UPDATE users SET account_id = contas.id FROM contas "
+            "WHERE users.account_id IS NULL AND users.email = contas.email"
+        )
+    )
 
     user_foreign_keys = {foreign_key["name"] for foreign_key in inspector.get_foreign_keys("users")}
     if "fk_users_account_id" not in user_foreign_keys:
