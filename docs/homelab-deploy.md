@@ -149,6 +149,16 @@ curl -sS -o /dev/null -w '%{http_code}\n' https://api-develop.agendaprocessual.c
 Após alterar o JSON: Grafana → Dashboards → Import (ou sobrescrever UID `agenda-processual`).
 Selecione **Ambiente = develop** para investigar erros de homologação (API offline, 5xx, DJEN).
 
+### Annotations de deploy no Grafana
+
+Os workflows de `develop` e `main` registram uma annotation após um deploy bem-sucedido.
+No GitHub, configure:
+
+- variável `GRAFANA_URL`: URL interna acessível pelo self-hosted runner, sem `/` final;
+- secret `GRAFANA_API_TOKEN`: service account token do Grafana com permissão para criar annotations.
+
+Sem essas configurações, o deploy continua normalmente e apenas ignora a annotation.
+
 Recarregue o Prometheus depois de incluir o job `agenda-api-develop`.
 
 ## CI/CD (GitHub Actions → Ubuntu)

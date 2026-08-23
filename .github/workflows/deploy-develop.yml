@@ -93,3 +93,22 @@ jobs:
             up -d --build
 
           echo "Deploy develop ok"
+
+      - name: Registrar annotation do deploy no Grafana
+        if: success()
+        continue-on-error: true
+        env:
+          GRAFANA_URL: ${{ vars.GRAFANA_URL }}
+          GRAFANA_API_TOKEN: ${{ secrets.GRAFANA_API_TOKEN }}
+        run: |
+          if [ -z "${GRAFANA_URL:-}" ] || [ -z "${GRAFANA_API_TOKEN:-}" ]; then
+            echo "Annotation ignorada: defina GRAFANA_URL e GRAFANA_API_TOKEN."
+            exit 0
+          fi
+          payload=$(printf '{"time":%s,"tags":["deploy","agenda-processual","develop"],"text":"Deploy develop · commit %s · %s/actions/runs/%s"}' \
+            "$(date +%s000)" "$GITHUB_SHA" "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY" "$GITHUB_RUN_ID")
+          curl --fail --silent --show-error --request POST \
+            "${GRAFANA_URL%/}/api/annotations" \
+            --header "Authorization: Bearer $GRAFANA_API_TOKEN" \
+            --header "Content-Type: application/json" \
+            --data "$payload"
