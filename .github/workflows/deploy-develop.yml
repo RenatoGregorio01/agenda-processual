@@ -86,11 +86,16 @@ jobs:
           git checkout develop
           git pull --ff-only origin develop
 
-          docker compose -p agenda-develop \
+          COMPOSE=(
+            docker compose -p agenda-develop \
             --env-file docker/homelab-develop.env \
             -f docker/docker-compose.yml \
-            -f docker/compose.develop.yml \
-            up -d --build
+            -f docker/compose.develop.yml
+          )
+
+          "${COMPOSE[@]}" build api web
+          "${COMPOSE[@]}" run --rm api alembic upgrade head
+          "${COMPOSE[@]}" up -d
 
           echo "Deploy develop ok"
 
