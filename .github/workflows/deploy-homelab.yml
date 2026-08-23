@@ -92,7 +92,9 @@ jobs:
             COMPOSE+=(--env-file docker/smtp.env -f docker/compose.smtp.yml)
           fi
 
-          "${COMPOSE[@]}" up -d --build
+          "${COMPOSE[@]}" build api web
+          "${COMPOSE[@]}" run --rm api alembic upgrade head
+          "${COMPOSE[@]}" up -d
 
           echo "Deploy ok em main"
 
