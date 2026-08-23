@@ -8,6 +8,7 @@ from collections.abc import Sequence
 from uuid import uuid4
 
 import sqlalchemy as sa
+
 from alembic import op
 
 revision: str = "20260822_0014"
@@ -35,13 +36,17 @@ def upgrade() -> None:
 
     bind = op.get_bind()
     users = bind.execute(
-        sa.text("SELECT id, email, nome, hashed_password, ativo, criado_em, atualizado_em FROM users")
+        sa.text(
+            "SELECT id, email, nome, hashed_password, ativo, criado_em, "
+            "atualizado_em FROM users"
+        )
     ).mappings()
     for user in users:
         account_id = uuid4()
         bind.execute(
             sa.text(
-                "INSERT INTO contas (id, email, nome, hashed_password, ativo, criado_em, atualizado_em) "
+                "INSERT INTO contas (id, email, nome, hashed_password, ativo, "
+                "criado_em, atualizado_em) "
                 "VALUES (:id, :email, :nome, :hashed_password, :ativo, :criado_em, :atualizado_em)"
             ),
             {"id": account_id, **dict(user)},
