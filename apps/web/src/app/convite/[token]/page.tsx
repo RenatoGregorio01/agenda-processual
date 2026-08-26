@@ -29,7 +29,11 @@ export default async function ConvitePage({ params }: PageProps) {
       <h1 className="mt-5 text-3xl font-semibold tracking-tight text-foreground">
         Ativar acesso
       </h1>
-      <p className="mt-2 text-muted">Defina sua senha para começar a usar o sistema.</p>
+      <p className="mt-2 text-muted">
+        {convite?.conta_existente
+          ? "Use sua senha atual para adicionar este escritório à sua conta."
+          : "Defina sua senha para começar a usar o sistema."}
+      </p>
 
       <p className="mt-3 text-sm text-muted">
         Ao ativar o acesso, seus dados ficam no escritório que te convidou.{" "}

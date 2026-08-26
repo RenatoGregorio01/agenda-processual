@@ -24,6 +24,7 @@ export async function POST(request: Request) {
       body: JSON.stringify({
         email: payload.email,
         password: payload.password,
+        escritorio_id: payload.escritorio_id,
       }),
     });
   } catch {
@@ -42,6 +43,13 @@ export async function POST(request: Request) {
   }
 
   const response = NextResponse.json({ ok: true });
+  if (!data.access_token) {
+    return NextResponse.json({
+      ok: true,
+      selecionar_escritorio: Boolean(data.selecionar_escritorio),
+      escritorios: data.escritorios ?? [],
+    });
+  }
   response.cookies.set({
     name: AUTH_COOKIE,
     value: data.access_token,

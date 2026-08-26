@@ -59,6 +59,7 @@ export async function createPrazo(
     data_vencimento: String(formData.get("data_vencimento") || ""),
     responsavel_id: String(formData.get("responsavel_id") || "").trim(),
     alertas: alertasFromForm(formData),
+    djen_publicacao_id: String(formData.get("djen_publicacao_id") || "").trim() || null,
   };
 
   if (
@@ -103,6 +104,7 @@ export async function createPrazo(
 
   revalidatePath("/prazos");
   revalidatePath("/dashboard");
+  revalidatePath("/djen");
   revalidatePath(`/prazos/${created.id}`);
   if (created.processo_id) {
     revalidatePath(`/processos/${created.processo_id}`);

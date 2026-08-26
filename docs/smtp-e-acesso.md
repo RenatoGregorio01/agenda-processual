@@ -114,11 +114,11 @@ O tunnel aponta para `localhost:3000` (web). Ajuste `APP_PUBLIC_URL` e `NEXT_PUB
 
 ### 2. Uso real do escritório (homelab)
 
-Guia completo: [homelab-deploy.md](homelab-deploy.md) (Tunnel + SMTP + Grafana).
+Guia completo: [homelab-deploy.md](homelab-deploy.md) (produção + homologação `develop`).
 
 1. **Domínio** — recomendado (~R$ 40–80/ano); DNS na Cloudflare.
 2. **Homelab** + **Cloudflare Tunnel** — sem abrir porta no roteador.
-3. **SMTP** — Resend/Brevo com `convite@` / `alerta@` (ou Gmail só para teste).
+3. **SMTP** — Resend/Brevo com `convite@` / `alerta@` em produção. Homologação (`develop`) usa Mailpit (não envia e-mail real).
 4. **Observabilidade** — scrape Prometheus em `/metrics` + dashboard em `deploy/grafana/`.
 
 ### O que pagar (resumo)
@@ -141,4 +141,4 @@ Guia completo: [homelab-deploy.md](homelab-deploy.md) (Tunnel + SMTP + Grafana).
 - [ ] `DEBUG=false`
 - [ ] SMTP real configurado (`SMTP_FROM_CONVITE` / `SMTP_FROM_ALERTA`)
 - [ ] Email Routing Cloudflare para receber em `convite@` / `alerta@` (opcional)
-- [ ] Backup do Postgres (`docker/data/postgres`)
+- [ ] Backup do Postgres (`agenda-db` via restic no homelab — ver repo homelab `docs/backup.md`)

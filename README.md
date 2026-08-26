@@ -35,8 +35,8 @@ docs/      # Briefs e documentação de produto
 
 | Branch | Uso |
 |--------|-----|
-| `main` | Produção / releases estáveis |
-| `develop` | Integração da próxima release |
+| `main` | Produção / releases estáveis (`agendaprocessual.com.br`) |
+| `develop` | Integração da próxima release (`develop.agendaprocessual.com.br`) |
 | `feature/*` | Features a partir de `develop` |
 | `release/*` | Preparação de versão |
 | `hotfix/*` | Correção urgente a partir de `main` |
@@ -58,8 +58,10 @@ docker compose -f docker/docker-compose.yml up --build
 | Postgres | `localhost:5432` |
 | Redis | `localhost:6379` |
 
+Homologação no homelab (depois do merge em `develop`): https://develop.agendaprocessual.com.br — ver [docs/homelab-deploy.md](docs/homelab-deploy.md).
+
 SMTP real (Gmail etc.) e como expor na internet: [docs/smtp-e-acesso.md](docs/smtp-e-acesso.md).  
-Homelab + Cloudflare Tunnel + Grafana: [docs/homelab-deploy.md](docs/homelab-deploy.md).
+Homelab (produção + homologação `develop`): [docs/homelab-deploy.md](docs/homelab-deploy.md).
 
 Web isolado:
 

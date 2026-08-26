@@ -1,0 +1,84 @@
+# Regras Prometheus para a Agenda Processual.
+#
+# No prometheus.yml do homelab (servidor Ubuntu):
+#   rule_files:
+#     - /etc/prometheus/rules/agenda-alerts.yml
+#
+# Copie este arquivo para o path acima (ou monte via volume) e recarregue:
+#   curl -X POST http://localhost:9090/-/reload
+#
+# Notificações: configure Alertmanager ou Grafana Alerting apontando para
+# essas regras (Prometheus → Grafana managed alerts / contact points).
+
+groups:
+  - name: agenda-processual
+    rules:
+      - alert: AgendaApiDown
+        expr: max(up{job="agenda-api"}) == 0
+        for: 2m
+        labels:
+          severity: critical
+          service: agenda-processual
+        annotations:
+          summary: Agenda API indisponível no Prometheus
+          description: >
+            O scrape do job agenda-api falhou por mais de 2 minutos
+            (Tailscale, container parado ou /metrics inacessível).
+
+      - alert: AgendaApi5xxHigh
+        expr: >
+          sum(rate(http_requests_total{job="agenda-api",status=~"5.."}[5m])) > 0.1
+        for: 5m
+        labels:
+          severity: warning
+          service: agenda-processual
+        annotations:
+          summary: Erros 5xx na Agenda API
+          description: >
+            Taxa de respostas 5xx acima de 0.1 req/s por 5 minutos.
+            Veja o painel "5xx por endpoint" no dashboard Agenda Processual.
+
+      - alert: AgendaApiErrorRatioHigh
+        expr: >
+          (
+            sum(rate(http_requests_total{job="agenda-api",status=~"5.."}[5m]))
+            /
+            clamp_min(sum(rate(http_requests_total{job="agenda-api"}[5m])), 1e-9)
+          ) > 0.05
+        for: 5m
+        labels:
+          severity: warning
+          service: agenda-processual
+        annotations:
+          summary: Taxa de erro 5xx acima de 5%
+          description: >
+            Mais de 5% das requisições HTTP estão retornando 5xx
+            nos últimos 5 minutos (com persistência de 5m).
+
+      - alert: AgendaApiLatencyHigh
+        expr: >
+          histogram_quantile(
+            0.95,
+            sum(rate(http_request_duration_seconds_bucket{job="agenda-api"}[5m])) by (le)
+          ) > 2
+        for: 5m
+        labels:
+          severity: warning
+          service: agenda-processual
+        annotations:
+          summary: Latência p95 da Agenda API alta
+          description: >
+            p95 acima de 2s por 5 minutos. Confira "Latência p95 por endpoint"
+            (DB, DataJud, SMTP ou carga).
+
+      - alert: AgendaAlertasEmailErros
+        expr: increase(agenda_alertas_erros_total{job="agenda-api"}[1h]) > 0
+        for: 0m
+        labels:
+          severity: warning
+          service: agenda-processual
+        annotations:
+          summary: Falha ao enviar alerta de prazo
+          description: >
+            Houve falha no envio de e-mail de alerta de prazo na última hora
+            (SMTP / credenciais / destinatário).

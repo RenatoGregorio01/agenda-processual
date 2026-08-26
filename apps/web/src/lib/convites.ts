@@ -6,6 +6,9 @@ export type Convite = {
   nome: string;
   role: Role;
   receber_alertas: boolean;
+  eh_advogado: boolean;
+  oab_numero: string | null;
+  oab_uf: string | null;
   expires_at: string;
   used_at: string | null;
   revoked_at: string | null;
@@ -18,7 +21,11 @@ export type ConvitePublic = {
   email: string;
   nome: string;
   role: Role;
+  eh_advogado: boolean;
+  oab_numero: string | null;
+  oab_uf: string | null;
   expires_at: string;
+  conta_existente: boolean;
 };
 
 export function labelStatusConvite(status: string): string {

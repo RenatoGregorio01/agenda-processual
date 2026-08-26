@@ -7,11 +7,13 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 from app.api.deps import get_current_admin
 from app.core.config import get_settings
 from app.core.database import get_session
+from app.core.oab import validate_advogado_oab
 from app.core.permissions import sync_admin_flag
-from app.core.security import create_access_token, hash_password
+from app.core.security import create_access_token, hash_password, verify_password
 from app.core.tenant import get_owned
 from app.core.timeutils import utc_now
 from app.models.audit_log import AuditAction
+from app.models.conta import Conta
 from app.models.convite import Convite
 from app.models.user import User
 from app.schemas.auth import TokenResponse
@@ -36,6 +38,9 @@ def _to_read(convite: Convite) -> ConviteRead:
         nome=convite.nome,
         role=convite.role,
         receber_alertas=convite.receber_alertas,
+        eh_advogado=convite.eh_advogado,
+        oab_numero=convite.oab_numero,
+        oab_uf=convite.oab_uf,
         expires_at=convite.expires_at,
         used_at=convite.used_at,
         revoked_at=convite.revoked_at,
@@ -63,11 +68,16 @@ async def consultar_convite(
     session: AsyncSession = Depends(get_session),
 ) -> ConvitePublic:
     convite = await _get_usable_convite(session, token)
+    conta = await session.exec(select(Conta).where(Conta.email == convite.email))
     return ConvitePublic(
         email=convite.email,
         nome=convite.nome,
         role=convite.role,
+        eh_advogado=convite.eh_advogado,
+        oab_numero=convite.oab_numero,
+        oab_uf=convite.oab_uf,
         expires_at=convite.expires_at,
+        conta_existente=conta.first() is not None,
     )
 
 
@@ -79,21 +89,51 @@ async def aceitar_convite(
 ) -> TokenResponse:
     convite = await _get_usable_convite(session, token)
 
-    existing_user = await session.exec(select(User).where(User.email == convite.email))
-    if existing_user.first() is not None:
+    existing_membership = await session.exec(
+        select(User).where(User.escritorio_id == convite.escritorio_id, User.email == convite.email)
+    )
+    if existing_membership.first() is not None:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
-            detail="Já existe um usuário com este e-mail",
+            detail="Esta conta já possui acesso a este escritório",
         )
 
+    account_result = await session.exec(select(Conta).where(Conta.email == convite.email))
+    conta = account_result.first()
+    if conta is not None and not verify_password(payload.password, conta.hashed_password):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Informe a senha da sua conta existente para aceitar o convite",
+        )
+
+    oab_numero, oab_uf = validate_advogado_oab(
+        eh_advogado=convite.eh_advogado,
+        oab_numero=payload.oab_numero or convite.oab_numero,
+        oab_uf=payload.oab_uf or convite.oab_uf,
+    )
+
+    if conta is None:
+        conta = Conta(
+            email=convite.email,
+            nome=convite.nome,
+            hashed_password=hash_password(payload.password),
+            ativo=True,
+        )
+        session.add(conta)
+        await session.flush()
+
     user = User(
+        account_id=conta.id,
         escritorio_id=convite.escritorio_id,
         email=convite.email,
         nome=convite.nome,
-        hashed_password=hash_password(payload.password),
+        hashed_password=conta.hashed_password,
         role=convite.role,
         ativo=True,
         receber_alertas=convite.receber_alertas,
+        eh_advogado=convite.eh_advogado,
+        oab_numero=oab_numero,
+        oab_uf=oab_uf,
     )
     sync_admin_flag(user)
     session.add(user)
@@ -146,16 +186,24 @@ async def criar_convite(
 ) -> ConviteRead:
     settings = get_settings()
     email = str(payload.email).lower()
+    oab_numero, oab_uf = validate_advogado_oab(
+        eh_advogado=payload.eh_advogado,
+        oab_numero=payload.oab_numero,
+        oab_uf=payload.oab_uf,
+    )
 
-    existing_user = await session.exec(select(User).where(User.email == email))
+    existing_user = await session.exec(
+        select(User).where(User.escritorio_id == current_admin.escritorio_id, User.email == email)
+    )
     if existing_user.first() is not None:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
-            detail="Já existe um usuário com este e-mail",
+            detail="Esta conta já possui acesso a este escritório",
         )
 
     pending = await session.exec(
         select(Convite).where(
+            Convite.escritorio_id == current_admin.escritorio_id,
             Convite.email == email,
             col(Convite.used_at).is_(None),
             col(Convite.revoked_at).is_(None),
@@ -175,6 +223,9 @@ async def criar_convite(
         nome=payload.nome.strip(),
         role=payload.role,
         receber_alertas=payload.receber_alertas,
+        eh_advogado=payload.eh_advogado,
+        oab_numero=oab_numero,
+        oab_uf=oab_uf,
         token_hash=hash_invite_token(token),
         expires_at=build_invite_expiry(settings),
         invited_by_id=current_admin.id,
@@ -235,11 +286,16 @@ async def reenviar_convite(
             detail="Este convite já foi aceito",
         )
 
-    existing_user = await session.exec(select(User).where(User.email == convite.email))
+    existing_user = await session.exec(
+        select(User).where(
+            User.escritorio_id == current_admin.escritorio_id,
+            User.email == convite.email,
+        )
+    )
     if existing_user.first() is not None:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
-            detail="Já existe um usuário com este e-mail",
+            detail="Esta conta já possui acesso a este escritório",
         )
 
     token = generate_invite_token()

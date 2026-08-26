@@ -6,6 +6,7 @@ const protectedPrefixes = [
   "/dashboard",
   "/prazos",
   "/processos",
+  "/djen",
   "/auditoria",
   "/usuarios",
   "/feriados",
@@ -24,9 +25,9 @@ export function middleware(request: NextRequest) {
     return NextResponse.redirect(loginUrl);
   }
 
-  // Login com sessão: manda pro app. Convite deve abrir mesmo logado
+  // Login/cadastro com sessão: manda pro app. Convite deve abrir mesmo logado
   // (ex.: admin testando o link, ou outro usuário no mesmo browser).
-  if (pathname === "/login" && token) {
+  if ((pathname === "/login" || pathname === "/cadastro") && token) {
     return NextResponse.redirect(new URL("/dashboard", request.url));
   }
 
@@ -38,10 +39,14 @@ export const config = {
     "/dashboard",
     "/prazos/:path*",
     "/processos/:path*",
+    "/djen",
     "/auditoria",
     "/usuarios",
     "/feriados",
     "/convite/:path*",
     "/login",
+    "/cadastro",
+    "/recuperar-senha",
+    "/redefinir-senha/:path*",
   ],
 };

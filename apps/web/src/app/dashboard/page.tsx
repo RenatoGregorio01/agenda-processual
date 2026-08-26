@@ -4,9 +4,10 @@ import { AppShell, PageContent, PageHeader } from "@/components/app-shell";
 import { DashboardPrazoList } from "@/components/dashboard-prazo-list";
 import { DashboardTabs } from "@/components/dashboard-tabs";
 import { ExportPautaButtons } from "@/components/export-pauta-buttons";
-import { Stat } from "@/components/ui";
+import { ButtonLink, Card, Stat } from "@/components/ui";
 import { apiFetch } from "@/lib/api-server";
 import type { User, UserOption } from "@/lib/auth";
+import type { DjenResumo } from "@/lib/djen";
 import type { Prazo } from "@/lib/prazos";
 
 async function getCurrentUser(): Promise<User | null> {
@@ -29,14 +30,21 @@ async function listPrazos(
   return (await response.json()) as Prazo[];
 }
 
+async function getDjenResumo(): Promise<DjenResumo> {
+  const response = await apiFetch("/api/v1/djen/resumo");
+  if (!response.ok) return { novas: 0 };
+  return (await response.json()) as DjenResumo;
+}
+
 export default async function DashboardPage() {
-  const [user, atrasados, hoje, futuros, concluidos, usuarios] = await Promise.all([
+  const [user, atrasados, hoje, futuros, concluidos, usuarios, djenResumo] = await Promise.all([
     getCurrentUser(),
     listPrazos("atrasados"),
     listPrazos("hoje"),
     listPrazos("futuros"),
     listPrazos("cumpridos"),
     listUsuariosOpcoes(),
+    getDjenResumo(),
   ]);
 
   const todos = [...atrasados, ...hoje, ...futuros].sort((a, b) =>
@@ -54,6 +62,18 @@ export default async function DashboardPage() {
       />
 
       <PageContent wide>
+        {djenResumo.novas > 0 ? (
+          <Card className="mb-6 flex flex-col gap-2 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+            <p className="text-sm text-foreground">
+              {djenResumo.novas} publicação{djenResumo.novas === 1 ? "" : "ões"} no DJEN
+              sem prazo.
+            </p>
+            <ButtonLink href="/djen" variant="secondary" size="sm" className="w-full sm:w-auto">
+              Ver publicações
+            </ButtonLink>
+          </Card>
+        ) : null}
+
         <div className="mb-6 grid grid-cols-2 gap-2 lg:grid-cols-4">
           <Stat label="Atrasados" value={atrasados.length} tone="atrasado" />
           <Stat label="Vence hoje" value={hoje.length} tone="urgente" />

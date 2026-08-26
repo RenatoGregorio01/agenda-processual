@@ -2,8 +2,10 @@
 
 import { useState, useTransition, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 
-import { Button, Field, Input } from "@/components/ui";
+import { Button, Field, Input, Select } from "@/components/ui";
+import type { LoginEscritorio, LoginResponse } from "@/lib/auth";
 
 type LoginFormProps = {
   nextPath: string;
@@ -12,6 +14,8 @@ type LoginFormProps = {
 export function LoginForm({ nextPath }: LoginFormProps) {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
+  const [escritorios, setEscritorios] = useState<LoginEscritorio[]>([]);
+  const [escritorioId, setEscritorioId] = useState("");
   const [pending, startTransition] = useTransition();
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
@@ -26,14 +30,20 @@ export function LoginForm({ nextPath }: LoginFormProps) {
       const response = await fetch("/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ email, password, escritorio_id: escritorioId || undefined }),
       });
 
+      const data = (await response.json().catch(() => ({}))) as LoginResponse & { detail?: string };
       if (!response.ok) {
-        const data = await response.json().catch(() => ({}));
         setError(
           typeof data.detail === "string" ? data.detail : "Não foi possível entrar",
         );
+        return;
+      }
+
+      if (data.selecionar_escritorio) {
+        setEscritorios(data.escritorios ?? []);
+        setEscritorioId((data.escritorios ?? [])[0]?.id ?? "");
         return;
       }
 
@@ -66,23 +76,29 @@ export function LoginForm({ nextPath }: LoginFormProps) {
           />
         </Field>
         <div className="flex justify-end">
-          <Button
-            type="button"
-            variant="link"
-            size="sm"
-            onClick={() =>
-              setError("Recuperação de senha ainda não está disponível no MVP.")
-            }
-          >
+          <Link href="/recuperar-senha" className="text-sm text-primary underline-offset-4 hover:underline">
             Esqueci a senha
-          </Button>
+          </Link>
         </div>
       </div>
+
+      {escritorios.length > 0 ? (
+        <Field label="Escritório para acessar">
+          <Select value={escritorioId} onChange={(event) => setEscritorioId(event.target.value)}>
+            {escritorios.map((escritorio) => (
+              <option key={escritorio.id} value={escritorio.id}>
+                {escritorio.nome}
+              </option>
+            ))}
+          </Select>
+          <span className="text-xs text-muted">Escolha o escritório desta sessão.</span>
+        </Field>
+      ) : null}
 
       {error ? <p className="text-sm text-atrasado">{error}</p> : null}
 
       <Button type="submit" size="lg" fullWidth disabled={pending}>
-        {pending ? "Entrando…" : "Entrar"}
+        {pending ? "Entrando…" : escritorios.length > 0 ? "Acessar escritório" : "Entrar"}
       </Button>
     </form>
   );

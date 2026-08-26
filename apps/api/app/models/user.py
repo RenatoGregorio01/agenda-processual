@@ -21,13 +21,17 @@ class User(SQLModel, table=True):
     )
 
     id: UUID = Field(default_factory=uuid4, primary_key=True)
+    account_id: UUID | None = Field(default=None, index=True, foreign_key="contas.id")
     escritorio_id: UUID = Field(index=True, foreign_key="escritorios.id")
-    email: str = Field(index=True, unique=True, max_length=255)
+    email: str = Field(index=True, max_length=255)
     nome: str = Field(max_length=120)
     hashed_password: str = Field(max_length=255)
     ativo: bool = Field(default=True, index=True)
     role: Role = Field(default=Role.editor, index=True)
     receber_alertas: bool = Field(default=False)
+    eh_advogado: bool = Field(default=False)
+    oab_numero: str | None = Field(default=None, max_length=20)
+    oab_uf: str | None = Field(default=None, max_length=2)
     # Mantido sincronizado com role == admin (compatibilidade)
     is_admin: bool = False
     criado_em: datetime = Field(default_factory=utc_now)

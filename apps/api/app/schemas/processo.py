@@ -4,6 +4,7 @@ from uuid import UUID
 from pydantic import BaseModel, ConfigDict, Field
 
 from app.schemas.audit import AuditLogRead
+from app.schemas.djen import DjenPublicacaoRead
 from app.schemas.prazo import PrazoRead
 
 
@@ -62,3 +63,4 @@ class ProcessoDetail(BaseModel):
     prazos: list[PrazoRead]
     historico: list[AuditLogRead]
     datajud: DatajudSyncRead
+    djen: list[DjenPublicacaoRead] = Field(default_factory=list)

@@ -33,6 +33,29 @@ def record_alertas_result(*, candidatos: int, enviados: int, erros: int, ignorad
         ALERTAS_IGNORADOS.inc(ignorados)
 
 
+DJEN_SYNC_OK = Counter(
+    "agenda_djen_sync_ok_total",
+    "Sincronizações DJEN concluídas com sucesso",
+)
+DJEN_SYNC_ERROS = Counter(
+    "agenda_djen_sync_erros_total",
+    "Falhas ao sincronizar o DJEN",
+)
+DJEN_PUBLICACOES_NOVAS = Counter(
+    "agenda_djen_publicacoes_novas_total",
+    "Publicações DJEN novas persistidas",
+)
+
+
 def record_audit_purge(*, deleted: int) -> None:
     if deleted:
         AUDIT_PURGE_DELETED.inc(deleted)
+
+
+def record_djen_sync(*, ok: bool, criados: int) -> None:
+    if ok:
+        DJEN_SYNC_OK.inc()
+    else:
+        DJEN_SYNC_ERROS.inc()
+    if criados:
+        DJEN_PUBLICACOES_NOVAS.inc(criados)

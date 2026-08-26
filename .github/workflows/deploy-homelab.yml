@@ -1,13 +1,14 @@
 name: Deploy Homelab
 
-# Publica no servidor Ubuntu do homelab depois que API + Web passam no CI.
+# Publica `main` na stack de produção do homelab depois que API + Web passam no CI.
+# Homologação (`develop`) usa deploy-develop.yml e outro clone.
 # Requer self-hosted runner com label `homelab` e variável HOMELAB_REPO_PATH
-# apontando para o clone no Ubuntu (ex.: /home/renato/agenda-processual).
+# apontando para o clone de produção no Ubuntu (ex.: /home/renato/agenda-processual).
 # Ver docs/homelab-deploy.md (seção CI/CD).
 
 on:
   push:
-    branches: [main, develop]
+    branches: [main]
   workflow_dispatch:
 
 concurrency:
@@ -77,8 +78,8 @@ jobs:
           fi
           cd "$HOMELAB_REPO_PATH"
           git fetch origin
-          git checkout "${GITHUB_REF_NAME}"
-          git pull --ff-only "origin" "${GITHUB_REF_NAME}"
+          git checkout main
+          git pull --ff-only origin main
 
           COMPOSE=(
             docker compose
@@ -91,6 +92,27 @@ jobs:
             COMPOSE+=(--env-file docker/smtp.env -f docker/compose.smtp.yml)
           fi
 
-          "${COMPOSE[@]}" up -d --build
+          "${COMPOSE[@]}" build api web
+          "${COMPOSE[@]}" run --rm api alembic upgrade head
+          "${COMPOSE[@]}" up -d
 
-          echo "Deploy ok em ${GITHUB_REF_NAME}"
+          echo "Deploy ok em main"
+
+      - name: Registrar annotation do deploy no Grafana
+        if: success()
+        continue-on-error: true
+        env:
+          GRAFANA_URL: ${{ vars.GRAFANA_URL }}
+          GRAFANA_API_TOKEN: ${{ secrets.GRAFANA_API_TOKEN }}
+        run: |
+          if [ -z "${GRAFANA_URL:-}" ] || [ -z "${GRAFANA_API_TOKEN:-}" ]; then
+            echo "Annotation ignorada: defina GRAFANA_URL e GRAFANA_API_TOKEN."
+            exit 0
+          fi
+          payload=$(printf '{"time":%s,"tags":["deploy","agenda-processual","homelab"],"text":"Deploy produção · commit %s · %s/actions/runs/%s"}' \
+            "$(date +%s000)" "$GITHUB_SHA" "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY" "$GITHUB_RUN_ID")
+          curl --fail --silent --show-error --request POST \
+            "${GRAFANA_URL%/}/api/annotations" \
+            --header "Authorization: Bearer $GRAFANA_API_TOKEN" \
+            --header "Content-Type: application/json" \
+            --data "$payload"

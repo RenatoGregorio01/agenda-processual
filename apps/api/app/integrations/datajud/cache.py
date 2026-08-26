@@ -5,8 +5,8 @@ from redis.asyncio import Redis
 
 from app.core.config import get_settings
 
-CACHE_PREFIX = "datajud:v3:proc:"
-LOCK_PREFIX = "datajud:v3:lock:"
+CACHE_PREFIX = "datajud:v4:proc:"
+LOCK_PREFIX = "datajud:v4:lock:"
 RATE_KEY = "datajud:rl:global"
 
 

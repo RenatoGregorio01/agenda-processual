@@ -21,6 +21,9 @@ export type User = {
   ativo: boolean;
   role: Role;
   receber_alertas: boolean;
+  eh_advogado: boolean;
+  oab_numero: string | null;
+  oab_uf: string | null;
   is_admin: boolean;
   permissions: Permission[];
 };
@@ -33,6 +36,14 @@ export type UserOption = {
 export type LoginPayload = {
   email: string;
   password: string;
+  escritorio_id?: string;
+};
+
+export type LoginEscritorio = { id: string; nome: string };
+
+export type LoginResponse = {
+  selecionar_escritorio?: boolean;
+  escritorios?: LoginEscritorio[];
 };
 
 export type RoleInfo = {
