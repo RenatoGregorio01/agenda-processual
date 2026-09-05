@@ -21,6 +21,8 @@ class Processo(SQLModel, table=True):
     escritorio_id: UUID = Field(index=True, foreign_key="escritorios.id")
     numero_processo: str = Field(index=True, max_length=64)
     cliente: str = Field(max_length=255)
+    origem_cadastro: str = Field(default="manual", max_length=20)
+    pendente_revisao: bool = Field(default=False, index=True)
     criado_em: datetime = Field(default_factory=utc_now)
     atualizado_em: datetime = Field(default_factory=utc_now)
     datajud_status: str | None = Field(default=None, max_length=40)

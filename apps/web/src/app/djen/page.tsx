@@ -1,6 +1,7 @@
 import { AppShell, PageContent, PageHeader } from "@/components/app-shell";
 import { DjenPublicacoesList } from "@/components/djen-publicacoes";
 import { DjenSyncButton } from "@/components/djen-sync-button";
+import { DjenHistoricoForm } from "@/components/djen-historico-form";
 import { EmptyState } from "@/components/ui";
 import { apiFetch } from "@/lib/api-server";
 import { hasPermission, type User } from "@/lib/auth";
@@ -29,6 +30,7 @@ export default async function DjenPage() {
         actions={hasPermission(user, "prazos_criar") ? <DjenSyncButton /> : undefined}
       />
       <PageContent wide>
+        {hasPermission(user, "prazos_criar") ? <div className="mb-6"><DjenHistoricoForm /></div> : null}
         {novas.length === 0 ? (
           <EmptyState>Nenhuma publicação nova. O job diário consulta o DJEN às 7h.</EmptyState>
         ) : (

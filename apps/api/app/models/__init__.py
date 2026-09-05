@@ -4,6 +4,7 @@ from app.models.checklist_item import ChecklistItem
 from app.models.conta import Conta
 from app.models.convite import Convite
 from app.models.djen_publicacao import DjenPublicacao, DjenStatus
+from app.models.djen_sync_job import DjenSyncJob, DjenSyncJobStatus
 from app.models.escritorio import Escritorio
 from app.models.feriado import Feriado
 from app.models.password_reset import PasswordReset
@@ -22,6 +23,8 @@ __all__ = [
     "Convite",
     "DjenPublicacao",
     "DjenStatus",
+    "DjenSyncJob",
+    "DjenSyncJobStatus",
     "Escritorio",
     "Feriado",
     "PasswordReset",

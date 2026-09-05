@@ -25,6 +25,7 @@ from app.integrations.djen.cache import (
 from app.integrations.djen.client import DjenError, consultar_comunicacoes
 from app.integrations.djen.parse import normalize_item
 from app.models.djen_publicacao import DjenPublicacao, DjenStatus
+from app.models.djen_sync_job import DjenSyncJob, DjenSyncJobStatus
 from app.models.escritorio import Escritorio
 from app.models.feriado import Feriado
 from app.models.processo import Processo
@@ -35,6 +36,7 @@ from app.services.processos import get_processo_by_numero
 
 BRT = ZoneInfo("America/Sao_Paulo")
 LOOKBACK_PRIMEIRA_SYNC_DIAS = 7
+CLIENTE_NAO_INFORMADO_DJEN = "Não informado (DJEN)"
 
 
 def today_brt() -> date:
@@ -103,6 +105,8 @@ async def to_publicacao_read(
         link=item.link,
         destinatarios=item.destinatarios,
         dias_identificados=item.dias_identificados,
+        classificacao_ato=item.classificacao_ato,
+        confianca_prazo=item.confianca_prazo,
         data_disponibilizacao=item.data_disponibilizacao,
         vencimento_sugerido=vencimento,
         status=item.status.value,
@@ -201,6 +205,8 @@ def _apply_normalized(
     row.link = parsed.get("link")
     row.destinatarios = parsed.get("destinatarios")
     row.dias_identificados = parsed.get("dias_identificados")
+    row.classificacao_ato = parsed.get("classificacao_ato", "outro")
+    row.confianca_prazo = parsed.get("confianca_prazo", "nenhuma")
     row.data_disponibilizacao = parsed.get("data_disponibilizacao")
     row.motivo_cancelamento = parsed.get("motivo_cancelamento")
     row.sincronizado_em = utc_now()
@@ -213,9 +219,10 @@ async def upsert_items(
     items: list[dict[str, Any]],
     processo: Processo | None = None,
 ) -> int:
-    """Persiste itens do DJEN associando ao processo quando disponível.
+    """Persiste itens do DJEN e descobre processos ainda não cadastrados.
 
-    Retorna quantos eram novos.
+    Um processo descoberto pelo radar da OAB é criado como pendente de revisão.
+    Retorna quantas publicações eram novas.
     """
     criados = 0
     now = utc_now()
@@ -236,6 +243,17 @@ async def upsert_items(
             )
             if found is not None:
                 target_proc_id = found.id
+            else:
+                discovered = Processo(
+                    escritorio_id=escritorio_id,
+                    numero_processo=parsed["numero_processo"],
+                    cliente=CLIENTE_NAO_INFORMADO_DJEN,
+                    origem_cadastro="djen",
+                    pendente_revisao=True,
+                )
+                session.add(discovered)
+                await session.flush()
+                target_proc_id = discovered.id
 
         existing = await _get_by_djen_id(session, escritorio_id, parsed["djen_id"])
         if existing is None:
@@ -382,6 +400,78 @@ async def sincronizar_escritorio(session: AsyncSession, escritorio_id: UUID) -> 
         criados=criados,
         mensagem=None if erros == 0 else f"{erros} processo(s) com falha na sync",
     )
+
+
+def _proximo_mes(value: date) -> date:
+    return date(value.year + (value.month == 12), 1 if value.month == 12 else value.month + 1, 1)
+
+
+async def enfileirar_historico_oab(
+    session: AsyncSession, *, escritorio_id: UUID, data_inicio: date
+) -> list[DjenSyncJob]:
+    """Cria lotes mensais para todos os advogados ativos do escritório."""
+    hoje = today_brt()
+    if data_inicio > hoje:
+        raise ValueError("A data inicial não pode estar no futuro")
+    users_res = await session.exec(
+        select(User).where(User.escritorio_id == escritorio_id, col(User.ativo).is_(True))
+    )
+    jobs: list[DjenSyncJob] = []
+    for user in users_res.all():
+        if not (user.eh_advogado and user.oab_numero and user.oab_uf):
+            continue
+        inicio = data_inicio
+        while inicio <= hoje:
+            proximo = _proximo_mes(inicio.replace(day=1))
+            fim = min(hoje, proximo - timedelta(days=1))
+            job = DjenSyncJob(
+                escritorio_id=escritorio_id,
+                usuario_id=user.id,
+                numero_oab=user.oab_numero,
+                uf_oab=user.oab_uf,
+                data_inicio=inicio,
+                data_fim=fim,
+            )
+            session.add(job)
+            jobs.append(job)
+            inicio = proximo
+    await session.commit()
+    for job in jobs:
+        await session.refresh(job)
+    return jobs
+
+
+async def processar_fila_historico(session: AsyncSession, *, limite: int = 3) -> int:
+    """Processa poucos lotes por execução para respeitar os limites do DJEN."""
+    result = await session.exec(
+        select(DjenSyncJob)
+        .where(DjenSyncJob.status == DjenSyncJobStatus.pendente)
+        .order_by(col(DjenSyncJob.criado_em).asc())
+        .limit(limite)
+    )
+    jobs = list(result.all())
+    for job in jobs:
+        job.status = DjenSyncJobStatus.processando
+        job.iniciado_em = utc_now()
+        session.add(job)
+        await session.commit()
+        try:
+            items = await consultar_comunicacoes(
+                numero_oab=job.numero_oab,
+                uf_oab=job.uf_oab,
+                data_inicio=job.data_inicio,
+                data_fim=job.data_fim,
+            )
+            job.publicacoes_criadas = await upsert_items(session, job.escritorio_id, items)
+            job.status = DjenSyncJobStatus.concluido
+            job.mensagem_erro = None
+        except Exception as exc:
+            job.status = DjenSyncJobStatus.erro
+            job.mensagem_erro = str(exc)[:500]
+        job.concluido_em = utc_now()
+        session.add(job)
+        await session.commit()
+    return len(jobs)
 
 
 async def sincronizar_todos() -> SyncResult:

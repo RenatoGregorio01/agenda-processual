@@ -20,3 +20,14 @@ export async function sincronizarDjenEscritorio(): Promise<void> {
   revalidatePath("/dashboard");
   revalidatePath("/processos");
 }
+
+export async function enfileirarHistoricoDjen(dataInicio: string): Promise<string | null> {
+  const response = await apiFetch("/api/v1/djen/historico", {
+    method: "POST",
+    body: JSON.stringify({ data_inicio: dataInicio }),
+    headers: { "Content-Type": "application/json" },
+  });
+  if (!response.ok) return "Não foi possível enfileirar a carga histórica.";
+  revalidatePath("/djen");
+  return null;
+}

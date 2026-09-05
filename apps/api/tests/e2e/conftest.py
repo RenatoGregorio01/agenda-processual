@@ -22,6 +22,7 @@ from app.models import (  # noqa: F401
     AuditLog,
     Convite,
     DjenPublicacao,
+    DjenSyncJob,
     Escritorio,
     Feriado,
     Prazo,

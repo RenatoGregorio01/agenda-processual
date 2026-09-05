@@ -135,6 +135,19 @@ def normalize_item(raw: dict[str, Any]) -> dict[str, Any] | None:
     )
     destinatarios = _format_destinatarios(raw)
     dias = extrair_dias_prazo(texto)
+    tipo_lower = f"{tipo} {raw.get('tipoDocumento') or ''}".lower()
+    if "cita" in tipo_lower:
+        classificacao = "citacao"
+    elif "intima" in tipo_lower:
+        classificacao = "intimacao"
+    elif "senten" in tipo_lower:
+        classificacao = "sentenca"
+    elif "decis" in tipo_lower or "despacho" in tipo_lower:
+        classificacao = "decisao"
+    elif "edital" in tipo_lower:
+        classificacao = "edital"
+    else:
+        classificacao = "outro"
 
     hash_value = raw.get("hash")
     return {
@@ -155,6 +168,8 @@ def normalize_item(raw: dict[str, Any]) -> dict[str, Any] | None:
         "link": link,
         "destinatarios": destinatarios,
         "dias_identificados": dias,
+        "classificacao_ato": classificacao,
+        "confianca_prazo": "alta" if dias is not None else "nenhuma",
         "data_disponibilizacao": parse_data(
             raw.get("data_disponibilizacao") or raw.get("dataDisponibilizacao")
         ),

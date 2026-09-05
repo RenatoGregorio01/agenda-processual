@@ -41,6 +41,8 @@ class DjenPublicacao(SQLModel, table=True):
     link: str | None = Field(default=None, max_length=500)
     destinatarios: str | None = Field(default=None, sa_column=Column(Text, nullable=True))
     dias_identificados: int | None = Field(default=None)
+    classificacao_ato: str = Field(default="outro", max_length=30, index=True)
+    confianca_prazo: str = Field(default="nenhuma", max_length=20, index=True)
     data_disponibilizacao: date | None = Field(default=None, index=True)
     status: DjenStatus = Field(default=DjenStatus.nova, index=True)
     motivo_cancelamento: str | None = Field(default=None, max_length=500)

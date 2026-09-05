@@ -83,6 +83,7 @@ async def get_or_create_processo(
         escritorio_id=usuario.escritorio_id,
         numero_processo=numero,
         cliente=cliente_limpo,
+        origem_cadastro="manual",
     )
     session.add(processo)
     await session.flush()
