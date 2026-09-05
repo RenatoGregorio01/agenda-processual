@@ -52,6 +52,8 @@ async def _to_processo_read(session: AsyncSession, processo: Processo) -> Proces
         id=processo.id,
         numero_processo=processo.numero_processo,
         cliente=processo.cliente,
+        origem_cadastro=processo.origem_cadastro,
+        pendente_revisao=processo.pendente_revisao,
         criado_em=processo.criado_em,
         atualizado_em=processo.atualizado_em,
         prazos_count=await count_prazos_processo(session, processo.id),
@@ -225,6 +227,8 @@ async def atualizar_processo(
         for prazo in prazos:
             prazo.cliente = processo.cliente
             session.add(prazo)
+    if "pendente_revisao" in data and data["pendente_revisao"] is not None:
+        processo.pendente_revisao = data["pendente_revisao"]
 
     processo.atualizado_em = utc_now()
     session.add(processo)

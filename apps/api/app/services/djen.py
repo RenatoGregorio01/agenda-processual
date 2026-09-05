@@ -35,6 +35,7 @@ from app.services.processos import get_processo_by_numero
 
 BRT = ZoneInfo("America/Sao_Paulo")
 LOOKBACK_PRIMEIRA_SYNC_DIAS = 7
+CLIENTE_NAO_INFORMADO_DJEN = "Não informado (DJEN)"
 
 
 def today_brt() -> date:
@@ -213,9 +214,10 @@ async def upsert_items(
     items: list[dict[str, Any]],
     processo: Processo | None = None,
 ) -> int:
-    """Persiste itens do DJEN associando ao processo quando disponível.
+    """Persiste itens do DJEN e descobre processos ainda não cadastrados.
 
-    Retorna quantos eram novos.
+    Um processo descoberto pelo radar da OAB é criado como pendente de revisão.
+    Retorna quantas publicações eram novas.
     """
     criados = 0
     now = utc_now()
@@ -236,6 +238,17 @@ async def upsert_items(
             )
             if found is not None:
                 target_proc_id = found.id
+            else:
+                discovered = Processo(
+                    escritorio_id=escritorio_id,
+                    numero_processo=parsed["numero_processo"],
+                    cliente=CLIENTE_NAO_INFORMADO_DJEN,
+                    origem_cadastro="djen",
+                    pendente_revisao=True,
+                )
+                session.add(discovered)
+                await session.flush()
+                target_proc_id = discovered.id
 
         existing = await _get_by_djen_id(session, escritorio_id, parsed["djen_id"])
         if existing is None:

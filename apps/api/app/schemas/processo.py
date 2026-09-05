@@ -14,6 +14,8 @@ class ProcessoRead(BaseModel):
     id: UUID
     numero_processo: str
     cliente: str
+    origem_cadastro: str = "manual"
+    pendente_revisao: bool = False
     criado_em: datetime
     atualizado_em: datetime
     prazos_count: int = 0
@@ -21,6 +23,7 @@ class ProcessoRead(BaseModel):
 
 class ProcessoUpdate(BaseModel):
     cliente: str | None = Field(default=None, min_length=1, max_length=255)
+    pendente_revisao: bool | None = None
 
 
 class DatajudAndamentoRead(BaseModel):

@@ -6,6 +6,8 @@ export type Processo = {
   id: string;
   numero_processo: string;
   cliente: string;
+  origem_cadastro: string;
+  pendente_revisao: boolean;
   criado_em: string;
   atualizado_em: string;
   prazos_count: number;

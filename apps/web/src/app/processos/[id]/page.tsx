@@ -70,6 +70,11 @@ export default async function ProcessoPage({
         description={
           <>
             <p className="text-base text-foreground">{processo.cliente}</p>
+            {processo.pendente_revisao ? (
+              <p className="mt-1 text-sm font-medium text-amber-700">
+                Processo descoberto no DJEN — revise o cadastro antes de utilizá-lo como ficha definitiva.
+              </p>
+            ) : null}
             <p className="mt-1">
               {ativos.length} prazo{ativos.length === 1 ? "" : "s"} ativo
               {ativos.length === 1 ? "" : "s"}
