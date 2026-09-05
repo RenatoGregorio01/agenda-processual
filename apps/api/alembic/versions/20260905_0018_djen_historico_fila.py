@@ -17,10 +17,20 @@ depends_on: str | Sequence[str] | None = None
 
 
 def upgrade() -> None:
-    op.add_column("djen_publicacoes", sa.Column("classificacao_ato", sa.String(30), nullable=False, server_default="outro"))
-    op.add_column("djen_publicacoes", sa.Column("confianca_prazo", sa.String(20), nullable=False, server_default="nenhuma"))
-    op.create_index("ix_djen_publicacoes_classificacao_ato", "djen_publicacoes", ["classificacao_ato"])
-    op.create_index("ix_djen_publicacoes_confianca_prazo", "djen_publicacoes", ["confianca_prazo"])
+    op.add_column(
+        "djen_publicacoes",
+        sa.Column("classificacao_ato", sa.String(30), nullable=False, server_default="outro"),
+    )
+    op.add_column(
+        "djen_publicacoes",
+        sa.Column("confianca_prazo", sa.String(20), nullable=False, server_default="nenhuma"),
+    )
+    op.create_index(
+        "ix_djen_publicacoes_classificacao_ato", "djen_publicacoes", ["classificacao_ato"]
+    )
+    op.create_index(
+        "ix_djen_publicacoes_confianca_prazo", "djen_publicacoes", ["confianca_prazo"]
+    )
     op.create_table(
         "djen_sync_jobs",
         sa.Column("id", sa.Uuid(), nullable=False),
@@ -40,12 +50,30 @@ def upgrade() -> None:
         sa.ForeignKeyConstraint(["usuario_id"], ["users.id"]),
         sa.PrimaryKeyConstraint("id"),
     )
-    for column in ("escritorio_id", "usuario_id", "numero_oab", "uf_oab", "data_inicio", "data_fim", "status"):
+    columns = (
+        "escritorio_id",
+        "usuario_id",
+        "numero_oab",
+        "uf_oab",
+        "data_inicio",
+        "data_fim",
+        "status",
+    )
+    for column in columns:
         op.create_index(f"ix_djen_sync_jobs_{column}", "djen_sync_jobs", [column])
 
 
 def downgrade() -> None:
-    for column in ("status", "data_fim", "data_inicio", "uf_oab", "numero_oab", "usuario_id", "escritorio_id"):
+    columns = (
+        "status",
+        "data_fim",
+        "data_inicio",
+        "uf_oab",
+        "numero_oab",
+        "usuario_id",
+        "escritorio_id",
+    )
+    for column in columns:
         op.drop_index(f"ix_djen_sync_jobs_{column}", table_name="djen_sync_jobs")
     op.drop_table("djen_sync_jobs")
     op.drop_index("ix_djen_publicacoes_confianca_prazo", table_name="djen_publicacoes")
