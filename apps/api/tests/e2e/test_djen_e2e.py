@@ -205,6 +205,40 @@ async def test_radar_oab_descobre_processo_e_mantem_publicacao_no_historico(e2e_
     assert detail.json()["djen"][0]["numero_processo"] == numero
 
 
+async def test_historico_djen_entra_em_fila_mensal_por_oab(e2e_client) -> None:
+    client, _, _ = e2e_client
+    headers = auth_headers(await login(client))
+    advogado = await client.post(
+        "/api/v1/usuarios",
+        headers=headers,
+        json={
+            "nome": "Advogado Histórico",
+            "email": "historico-oab@test.com",
+            "password": "historico123",
+            "role": "editor",
+            "ativo": True,
+            "receber_alertas": False,
+            "eh_advogado": True,
+            "oab_numero": "123456",
+            "oab_uf": "BA",
+        },
+    )
+    assert advogado.status_code == 201, advogado.text
+    inicio = date.today().replace(day=1) - timedelta(days=1)
+    queued = await client.post(
+        "/api/v1/djen/historico",
+        headers=headers,
+        json={"data_inicio": inicio.isoformat()},
+    )
+    assert queued.status_code == 202, queued.text
+    assert len(queued.json()) == 2
+    assert all(item["status"] == "pendente" for item in queued.json())
+
+    jobs = await client.get("/api/v1/djen/historico", headers=headers)
+    assert jobs.status_code == 200
+    assert len(jobs.json()) == 2
+
+
 async def test_viewer_nao_pode_ignorar_nem_sync_escritorio(e2e_client) -> None:
     client, _, _ = e2e_client
     admin_token = await login(client)

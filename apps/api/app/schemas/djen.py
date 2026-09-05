@@ -21,6 +21,8 @@ class DjenPublicacaoRead(BaseModel):
     link: str | None = None
     destinatarios: str | None = None
     dias_identificados: int | None = None
+    classificacao_ato: str = "outro"
+    confianca_prazo: str = "nenhuma"
     data_disponibilizacao: date | None = None
     vencimento_sugerido: date | None = None
     status: str
@@ -42,3 +44,22 @@ class DjenSyncRead(BaseModel):
     criados: int = 0
     mensagem: str | None = None
     publicacoes: list[DjenPublicacaoRead] = Field(default_factory=list)
+
+
+class DjenHistoricoRequest(BaseModel):
+    data_inicio: date
+
+
+class DjenSyncJobRead(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    id: UUID
+    numero_oab: str
+    uf_oab: str
+    data_inicio: date
+    data_fim: date
+    status: str
+    publicacoes_criadas: int
+    mensagem_erro: str | None = None
+    criado_em: datetime
+    iniciado_em: datetime | None = None
+    concluido_em: datetime | None = None

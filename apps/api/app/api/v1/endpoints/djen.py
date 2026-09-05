@@ -1,6 +1,7 @@
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
+from sqlmodel import col, select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from app.api.deps import require_permission
@@ -9,10 +10,18 @@ from app.core.permissions import Permission
 from app.core.tenant import get_owned
 from app.models.audit_log import AuditAction
 from app.models.djen_publicacao import DjenPublicacao, DjenStatus
+from app.models.djen_sync_job import DjenSyncJob
 from app.models.user import User
-from app.schemas.djen import DjenPublicacaoRead, DjenResumoRead, DjenSyncRead
+from app.schemas.djen import (
+    DjenHistoricoRequest,
+    DjenPublicacaoRead,
+    DjenResumoRead,
+    DjenSyncJobRead,
+    DjenSyncRead,
+)
 from app.services.audit import montar_auditoria
 from app.services.djen import (
+    enfileirar_historico_oab,
     ignorar_publicacao,
     list_publicacoes,
     resumo,
@@ -21,6 +30,38 @@ from app.services.djen import (
 )
 
 router = APIRouter()
+
+
+@router.post(
+    "/historico",
+    response_model=list[DjenSyncJobRead],
+    status_code=status.HTTP_202_ACCEPTED,
+)
+async def enfileirar_historico(
+    payload: DjenHistoricoRequest,
+    session: AsyncSession = Depends(get_session),
+    current_user: User = Depends(require_permission(Permission.prazos_criar)),
+) -> list[DjenSyncJobRead]:
+    try:
+        return await enfileirar_historico_oab(
+            session, escritorio_id=current_user.escritorio_id, data_inicio=payload.data_inicio
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+
+
+@router.get("/historico", response_model=list[DjenSyncJobRead])
+async def listar_historico(
+    session: AsyncSession = Depends(get_session),
+    current_user: User = Depends(require_permission(Permission.prazos_visualizar)),
+) -> list[DjenSyncJobRead]:
+    result = await session.exec(
+        select(DjenSyncJob)
+        .where(DjenSyncJob.escritorio_id == current_user.escritorio_id)
+        .order_by(col(DjenSyncJob.criado_em).desc())
+        .limit(200)
+    )
+    return list(result.all())
 
 
 def _parse_status(value: str | None) -> DjenStatus | None:
