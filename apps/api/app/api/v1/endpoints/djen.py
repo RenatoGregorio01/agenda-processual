@@ -1,10 +1,12 @@
+import hmac
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, Header, HTTPException, Query, status
 from sqlmodel import col, select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from app.api.deps import require_permission
+from app.core.config import get_settings
 from app.core.database import get_session
 from app.core.permissions import Permission
 from app.core.tenant import get_owned
@@ -16,20 +18,66 @@ from app.schemas.djen import (
     DjenHistoricoRequest,
     DjenPublicacaoRead,
     DjenResumoRead,
+    DjenSyncJobComplete,
+    DjenSyncJobFail,
     DjenSyncJobRead,
     DjenSyncRead,
 )
 from app.services.audit import montar_auditoria
 from app.services.djen import (
+    concluir_job_historico,
     enfileirar_historico_oab,
+    falhar_job_historico,
     ignorar_publicacao,
     list_publicacoes,
+    reivindicar_jobs_historico,
     resumo,
     sincronizar_escritorio,
     to_publicacao_read,
 )
 
 router = APIRouter()
+
+
+def _worker_autorizado(token: str = Header(default="", alias="X-Integration-Worker-Token")) -> None:
+    if not hmac.compare_digest(token, get_settings().integration_worker_token):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="Worker não autorizado"
+        )
+
+
+@router.post("/internal/jobs/claim", response_model=list[DjenSyncJobRead])
+async def reivindicar_jobs(
+    session: AsyncSession = Depends(get_session),
+    _: None = Depends(_worker_autorizado),
+) -> list[DjenSyncJobRead]:
+    return await reivindicar_jobs_historico(session, limite=3)
+
+
+@router.post("/internal/jobs/{job_id}/complete", response_model=DjenSyncJobRead)
+async def concluir_job(
+    job_id: UUID,
+    payload: DjenSyncJobComplete,
+    session: AsyncSession = Depends(get_session),
+    _: None = Depends(_worker_autorizado),
+) -> DjenSyncJobRead:
+    job = await session.get(DjenSyncJob, job_id)
+    if job is None or job.status != "processando":
+        raise HTTPException(status_code=404, detail="Job não encontrado")
+    return await concluir_job_historico(session, job, payload.items)
+
+
+@router.post("/internal/jobs/{job_id}/fail", response_model=DjenSyncJobRead)
+async def falhar_job(
+    job_id: UUID,
+    payload: DjenSyncJobFail,
+    session: AsyncSession = Depends(get_session),
+    _: None = Depends(_worker_autorizado),
+) -> DjenSyncJobRead:
+    job = await session.get(DjenSyncJob, job_id)
+    if job is None:
+        raise HTTPException(status_code=404, detail="Job não encontrado")
+    return await falhar_job_historico(session, job, payload.mensagem)
 
 
 @router.post(

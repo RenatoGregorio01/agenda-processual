@@ -7,7 +7,7 @@ from app.core.config import get_settings
 from app.core.database import AsyncSessionLocal
 from app.services.alertas import processar_alertas
 from app.services.audit import purgar_auditoria
-from app.services.djen import processar_fila_historico, sincronizar_todos
+from app.services.djen import sincronizar_todos
 
 logger = logging.getLogger(__name__)
 
@@ -57,13 +57,10 @@ async def _job_djen() -> None:
         return
 
     result = await sincronizar_todos()
-    async with AsyncSessionLocal() as session:
-        processados = await processar_fila_historico(session)
     logger.info(
-        "Sync DJEN: ok=%s criados=%s fila=%s mensagem=%s",
+        "Sync DJEN: ok=%s criados=%s mensagem=%s",
         result.ok,
         result.criados,
-        processados,
         result.mensagem,
     )
 

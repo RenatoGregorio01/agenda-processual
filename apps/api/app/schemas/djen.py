@@ -1,4 +1,5 @@
 from datetime import date, datetime
+from typing import Any
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field
@@ -63,3 +64,11 @@ class DjenSyncJobRead(BaseModel):
     criado_em: datetime
     iniciado_em: datetime | None = None
     concluido_em: datetime | None = None
+
+
+class DjenSyncJobComplete(BaseModel):
+    items: list[dict[str, Any]] = Field(default_factory=list)
+
+
+class DjenSyncJobFail(BaseModel):
+    mensagem: str = Field(min_length=1, max_length=500)

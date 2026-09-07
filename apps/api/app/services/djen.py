@@ -474,6 +474,44 @@ async def processar_fila_historico(session: AsyncSession, *, limite: int = 3) ->
     return len(jobs)
 
 
+async def reivindicar_jobs_historico(session: AsyncSession, *, limite: int) -> list[DjenSyncJob]:
+    result = await session.exec(
+        select(DjenSyncJob).where(DjenSyncJob.status == DjenSyncJobStatus.pendente).limit(limite)
+    )
+    jobs = list(result.all())
+    for job in jobs:
+        job.status = DjenSyncJobStatus.processando
+        job.iniciado_em = utc_now()
+        session.add(job)
+    await session.commit()
+    return jobs
+
+
+async def concluir_job_historico(
+    session: AsyncSession, job: DjenSyncJob, items: list[dict[str, Any]]
+) -> DjenSyncJob:
+    job.publicacoes_criadas = await upsert_items(session, job.escritorio_id, items)
+    job.status = DjenSyncJobStatus.concluido
+    job.mensagem_erro = None
+    job.concluido_em = utc_now()
+    session.add(job)
+    await session.commit()
+    await session.refresh(job)
+    return job
+
+
+async def falhar_job_historico(
+    session: AsyncSession, job: DjenSyncJob, mensagem: str
+) -> DjenSyncJob:
+    job.status = DjenSyncJobStatus.erro
+    job.mensagem_erro = mensagem[:500]
+    job.concluido_em = utc_now()
+    session.add(job)
+    await session.commit()
+    await session.refresh(job)
+    return job
+
+
 async def sincronizar_todos() -> SyncResult:
     from app.core.database import AsyncSessionLocal
 
