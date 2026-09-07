@@ -6,7 +6,7 @@ from typing import Any
 from uuid import UUID
 from zoneinfo import ZoneInfo
 
-from sqlalchemy import or_
+from sqlalchemy import String, cast, or_
 from sqlmodel import col, select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
@@ -445,7 +445,7 @@ async def processar_fila_historico(session: AsyncSession, *, limite: int = 3) ->
     """Processa poucos lotes por execução para respeitar os limites do DJEN."""
     result = await session.exec(
         select(DjenSyncJob)
-        .where(DjenSyncJob.status == DjenSyncJobStatus.pendente)
+        .where(cast(DjenSyncJob.status, String) == DjenSyncJobStatus.pendente.value)
         .order_by(col(DjenSyncJob.criado_em).asc())
         .limit(limite)
     )
@@ -476,7 +476,9 @@ async def processar_fila_historico(session: AsyncSession, *, limite: int = 3) ->
 
 async def reivindicar_jobs_historico(session: AsyncSession, *, limite: int) -> list[DjenSyncJob]:
     result = await session.exec(
-        select(DjenSyncJob).where(DjenSyncJob.status == DjenSyncJobStatus.pendente).limit(limite)
+        select(DjenSyncJob)
+        .where(cast(DjenSyncJob.status, String) == DjenSyncJobStatus.pendente.value)
+        .limit(limite)
     )
     jobs = list(result.all())
     for job in jobs:
