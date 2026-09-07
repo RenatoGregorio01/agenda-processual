@@ -37,6 +37,7 @@ from app.services.convites import montar_email_convite
 @pytest.fixture
 def e2e_settings(monkeypatch: pytest.MonkeyPatch) -> Settings:
     monkeypatch.setenv("JWT_SECRET", "test-secret-for-e2e-tests-32bytes!!")
+    monkeypatch.setenv("INTEGRATION_WORKER_TOKEN", "test-integration-worker-token-32bytes")
     monkeypatch.setenv("SEED_ADMIN_EMAIL", "admin@test.com")
     monkeypatch.setenv("SEED_ADMIN_PASSWORD", "admin123")
     monkeypatch.setenv("SEED_ADMIN_NAME", "Admin Test")

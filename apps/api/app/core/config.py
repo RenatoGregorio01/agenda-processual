@@ -1,5 +1,6 @@
 from functools import lru_cache
 
+from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -86,6 +87,7 @@ class Settings(BaseSettings):
     djen_rate_limit_per_minute: int = 30
     djen_cron_hour: int = 7
     djen_prazo_dias_uteis: int = 15
+    integration_worker_token: str = Field(min_length=32)
 
     cors_origins: str = "http://localhost:3000,http://127.0.0.1:3000"
     seed_example_data: bool = True

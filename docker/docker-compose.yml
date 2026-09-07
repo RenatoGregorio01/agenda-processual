@@ -79,6 +79,7 @@ services:
       DJEN_ENABLED: "true"
       DJEN_CRON_HOUR: "7"
       DJEN_PRAZO_DIAS_UTEIS: "15"
+      INTEGRATION_WORKER_TOKEN: ${INTEGRATION_WORKER_TOKEN:?defina INTEGRATION_WORKER_TOKEN}
     ports:
       # Host 8001: a 8000 costuma estar ocupada por outros projetos locais
       - "8001:8000"
@@ -93,6 +94,17 @@ services:
       uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
     volumes:
       - ../apps/api/app:/app/app
+
+  integration-worker:
+    build:
+      context: ../apps/workers-go
+    restart: unless-stopped
+    environment:
+      INTERNAL_API_URL: http://api:8000
+      INTEGRATION_WORKER_TOKEN: ${INTEGRATION_WORKER_TOKEN:?defina INTEGRATION_WORKER_TOKEN}
+    depends_on:
+      api:
+        condition: service_started
 
   web:
     image: node:22-alpine
